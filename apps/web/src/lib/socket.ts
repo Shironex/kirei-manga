@@ -143,4 +143,20 @@ export function connectSocket(): Promise<void> {
 }
 
 // Re-export socket helpers for convenient access
-export { emitWithErrorHandling } from './socketHelpers';
+export { emitWithErrorHandling, emitAsync } from './socketHelpers';
+
+/**
+ * Emit a socket event and await the server's ack response.
+ * Wraps {@link emitAsync} with a 15s default timeout — tuned for MangaDex
+ * search, which may need to wait on our rate-limit gate before answering.
+ */
+export function emitWithResponse<TPayload, TResponse>(
+  event: string,
+  payload: TPayload,
+  timeoutMs = 15_000
+): Promise<TResponse> {
+  // Imported lazily via require loop to avoid ordering issues.
+
+  const { emitAsync } = require('./socketHelpers') as typeof import('./socketHelpers');
+  return emitAsync<TPayload, TResponse>(event, payload, { timeout: timeoutMs });
+}
