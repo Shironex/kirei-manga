@@ -1,5 +1,6 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, protocol } from 'electron';
 import { NestFactory } from '@nestjs/core';
+import { registerProtocols } from './protocols';
 import { type INestApplication } from '@nestjs/common';
 import { CustomIoAdapter, NestLoggerAdapter, corsOriginCallback } from '../modules/shared';
 import { AppModule } from '../modules/app.module';
@@ -10,6 +11,31 @@ import { initializeAutoUpdater } from './updater';
 import { LOCALHOST, APP_ID } from '@kireimanga/shared';
 import { setBackendPort } from './backend-port';
 import { safeCleanup } from './cleanup-utils';
+
+// Register custom protocol schemes before app.ready so they gain standard /
+// secure / streaming privileges in the renderer.
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'kirei-cover',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      bypassCSP: false,
+      stream: true,
+    },
+  },
+  {
+    scheme: 'kirei-page',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      bypassCSP: false,
+      stream: true,
+    },
+  },
+]);
 
 // Pin the Windows AppUserModelID so toast notifications and shortcut pinning
 // resolve to the installer-registered Start Menu entry (see electron-builder.json "appId").
@@ -91,6 +117,8 @@ function setupWindowDependentServices(win: BrowserWindow): void {
 async function bootstrap(): Promise<void> {
   const isPackaged = app.isPackaged;
   logger.info(`[security] App packaged: ${isPackaged}`);
+
+  registerProtocols();
 
   await bootstrapNestApp();
   mainWindow = await createMainWindow();
