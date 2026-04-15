@@ -1,7 +1,7 @@
 import { registerKireiCoverProtocol } from './kirei-cover';
 import { registerKireiPageProtocol } from './kirei-page';
 
-export { toCoverUrl } from './kirei-cover';
+export { toCoverUrl, toMangaDexCoverUrl, setMangaDexClient } from './kirei-cover';
 export { toPageUrl } from './kirei-page';
 
 /**

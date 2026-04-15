@@ -1,6 +1,7 @@
 import { app, BrowserWindow, protocol } from 'electron';
 import { NestFactory } from '@nestjs/core';
-import { registerProtocols } from './protocols';
+import { registerProtocols, setMangaDexClient } from './protocols';
+import { MangaDexClient } from '../modules/mangadex';
 import { type INestApplication } from '@nestjs/common';
 import { CustomIoAdapter, NestLoggerAdapter, corsOriginCallback } from '../modules/shared';
 import { AppModule } from '../modules/app.module';
@@ -118,9 +119,21 @@ async function bootstrap(): Promise<void> {
   const isPackaged = app.isPackaged;
   logger.info(`[security] App packaged: ${isPackaged}`);
 
+  await bootstrapNestApp();
+
+  // Wire the MangaDex client into the cover protocol proxy before registering
+  // protocols so the first render never hits a 503.
+  if (nestApp) {
+    try {
+      const mangadexClient = nestApp.get(MangaDexClient);
+      setMangaDexClient(mangadexClient);
+    } catch (error) {
+      logger.error('Failed to resolve MangaDexClient for cover protocol:', error);
+    }
+  }
+
   registerProtocols();
 
-  await bootstrapNestApp();
   mainWindow = await createMainWindow();
   setupWindowDependentServices(mainWindow);
 }
