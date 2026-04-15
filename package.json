@@ -1,0 +1,51 @@
+{
+  "name": "kireimanga",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KireiManga — desktop manga reader with OCR + translation overlay",
+  "license": "SEE LICENSE IN LICENSE",
+  "packageManager": "pnpm@10.9.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@swc/core",
+      "electron",
+      "esbuild",
+      "better-sqlite3"
+    ],
+    "overrides": {
+      "electron": ">=40.8.5 <41",
+      "@nestjs/core": ">=11.1.18 <12"
+    }
+  },
+  "scripts": {
+    "build": "pnpm build:packages && pnpm --filter @kireimanga/web build && pnpm --filter @kireimanga/desktop build",
+    "build:packages": "pnpm --filter @kireimanga/shared build",
+    "package": "pnpm build && pnpm --filter @kireimanga/desktop package",
+    "package:win": "pnpm build && pnpm --filter @kireimanga/desktop package:win",
+    "package:mac": "pnpm build && pnpm --filter @kireimanga/desktop package:mac",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm build:packages && pnpm -r run test",
+    "typecheck": "pnpm build:packages && pnpm --filter @kireimanga/web typecheck && pnpm --filter @kireimanga/desktop typecheck",
+    "rebuild": "pnpm --filter @kireimanga/desktop rebuild",
+    "native:build": "node scripts/native-build.mjs",
+    "version:patch": "node scripts/bump-version.mjs patch",
+    "version:minor": "node scripts/bump-version.mjs minor",
+    "version:major": "node scripts/bump-version.mjs major"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.57.0"
+  }
+}
