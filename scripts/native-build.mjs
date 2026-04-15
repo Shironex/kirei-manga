@@ -1,12 +1,15 @@
 /**
  * Build the native C++ addon (bubble-detector) only on Windows.
  *
- * On non-Windows platforms this script exits 0 with a notice. If node-gyp
- * isn't installed (e.g. during early scaffolding / CI type-check jobs), the
- * build is skipped gracefully so `pnpm typecheck` / `pnpm build` can still
- * succeed without a C++ toolchain. Before the native source is filled in,
- * the binding.gyp `type: none` target keeps node-gyp happy when it is
- * available.
+ * Skipped gracefully when:
+ *   - platform is not win32 (macOS/Linux support lands later);
+ *   - `native/bubble-detector` doesn't exist;
+ *   - `node-gyp` isn't on PATH;
+ *   - `node-addon-api` hasn't been installed inside the native package yet
+ *     (binding.gyp requires it at configure time).
+ *
+ * Before the native source is filled in, the binding.gyp `type: none`
+ * target keeps node-gyp happy when it is available.
  */
 
 import { spawnSync } from 'child_process';
@@ -25,6 +28,12 @@ if (process.platform !== 'win32') {
 
 if (!existsSync(nativeDir)) {
   console.log(`Skipping native addon build (no native/ at ${nativeDir})`);
+  process.exit(0);
+}
+
+const nodeAddonApi = resolve(nativeDir, 'node_modules', 'node-addon-api');
+if (!existsSync(nodeAddonApi)) {
+  console.log('Skipping native addon build (node-addon-api not installed in native/bubble-detector)');
   process.exit(0);
 }
 
