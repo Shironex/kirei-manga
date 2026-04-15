@@ -1,0 +1,15 @@
+{
+  "name": "@kireimanga/bubble-detector",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KireiManga C++ speech-bubble detector (node-addon-api + OpenCV)",
+  "main": "index.js",
+  "gypfile": true,
+  "scripts": {
+    "install": "node-gyp rebuild || true",
+    "build": "node-gyp rebuild"
+  },
+  "dependencies": {
+    "node-addon-api": "^8.6.0"
+  }
+}
