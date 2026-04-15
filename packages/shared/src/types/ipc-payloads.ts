@@ -38,6 +38,11 @@ export interface LibraryUnfollowPayload {
   id: string;
 }
 
+export interface LibraryUnfollowResponse {
+  success: boolean;
+  error?: string;
+}
+
 export interface LibraryUpdateStatusPayload {
   id: string;
   status: ReadingStatus;
@@ -52,6 +57,33 @@ export interface LibraryUpdateProgressPayload {
   id: string;
   chapterId: string;
   page: number;
+}
+
+export interface LibraryUpdateProgressResponse {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Discriminator for `LibraryUpdatedEvent` — which mutation triggered the
+ * broadcast. The spec refers to this channel as `library:changed`; the
+ * codebase keeps the existing `library:updated` constant.
+ */
+export type LibraryUpdatedAction =
+  | 'followed'
+  | 'unfollowed'
+  | 'status-changed'
+  | 'progress-changed';
+
+/**
+ * Payload broadcast on `LibraryEvents.UPDATED` after any library mutation.
+ * `series` is populated for follow/status-changed; `id` for unfollow and
+ * progress-changed (where the caller can re-fetch if it cares).
+ */
+export interface LibraryUpdatedEvent {
+  action: LibraryUpdatedAction;
+  id?: string;
+  series?: Series;
 }
 
 // =============================================================================

@@ -15,6 +15,7 @@ import {
   type LibraryUnfollowPayload,
   type LibraryUpdateStatusPayload,
   type LibraryUpdateProgressPayload,
+  type LibraryUpdatedEvent,
   type ChapterMarkReadPayload,
   type ChapterAddBookmarkPayload,
   type ChapterGetBookmarksPayload,
@@ -70,7 +71,11 @@ export class LibraryGateway {
       defaultResult: { series: null },
       handler: async () => {
         const series = await this.libraryService.follow(payload.mangadexId);
-        this.server.emit(LibraryEvents.UPDATED, { series, action: 'followed' });
+        this.server.emit(LibraryEvents.UPDATED, {
+          action: 'followed',
+          id: series.id,
+          series,
+        } satisfies LibraryUpdatedEvent);
         return { series };
       },
     });
@@ -84,7 +89,10 @@ export class LibraryGateway {
       defaultResult: { success: false },
       handler: async () => {
         await this.libraryService.unfollow(payload.id);
-        this.server.emit(LibraryEvents.UPDATED, { id: payload.id, action: 'unfollowed' });
+        this.server.emit(LibraryEvents.UPDATED, {
+          action: 'unfollowed',
+          id: payload.id,
+        } satisfies LibraryUpdatedEvent);
         return { success: true };
       },
     });
@@ -98,7 +106,11 @@ export class LibraryGateway {
       defaultResult: { series: null },
       handler: async () => {
         const series = await this.libraryService.updateStatus(payload.id, payload.status);
-        this.server.emit(LibraryEvents.UPDATED, { series, action: 'status-changed' });
+        this.server.emit(LibraryEvents.UPDATED, {
+          action: 'status-changed',
+          id: payload.id,
+          series: series ?? undefined,
+        } satisfies LibraryUpdatedEvent);
         return { series };
       },
     });
@@ -112,6 +124,10 @@ export class LibraryGateway {
       defaultResult: { success: false },
       handler: async () => {
         await this.libraryService.updateProgress(payload.id, payload.chapterId, payload.page);
+        this.server.emit(LibraryEvents.UPDATED, {
+          action: 'progress-changed',
+          id: payload.id,
+        } satisfies LibraryUpdatedEvent);
         return { success: true };
       },
     });
