@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { DatabaseModule } from './database';
 import { MangaDexModule } from './mangadex';
+import { LibraryModule } from './library';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MangaDexModule } from './mangadex';
     ]),
     DatabaseModule,
     MangaDexModule,
+    LibraryModule,
   ],
   controllers: [],
   providers: [],
