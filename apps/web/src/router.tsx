@@ -4,6 +4,7 @@ import { LibraryPage } from '@/pages/Library';
 import { BrowsePage } from '@/pages/Browse';
 import { SettingsPage } from '@/pages/Settings';
 import { ReaderPage } from '@/pages/Reader';
+import { SeriesDetailPage } from '@/pages/SeriesDetail';
 
 export const router = createHashRouter([
   {
@@ -12,6 +13,7 @@ export const router = createHashRouter([
     children: [
       { index: true, element: <LibraryPage /> },
       { path: 'browse', element: <BrowsePage /> },
+      { path: 'series/:mangadexId', element: <SeriesDetailPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'reader/:chapterId', element: <ReaderPage /> },
     ],

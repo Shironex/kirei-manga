@@ -1,5 +1,6 @@
 import type { SearchResult } from '@kireimanga/shared';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface Props {
   result: SearchResult;
@@ -8,17 +9,19 @@ interface Props {
 }
 
 /**
- * 2px-radius cover card, no shadows. Title reveal on hover in Fraunces italic.
- * Mono content-rating label floats top-left when the rating is not safe.
+ * 2px-radius cover card, no shadows. On hover the title flips from Fraunces
+ * italic to upright foreground as a subtle link affordance.
  */
 export function CoverCard({ result, className, sizeHint = 'default' }: Props) {
   const [loaded, setLoaded] = useState(false);
   const isSafe = result.contentRating === 'safe';
 
   return (
-    <article
+    <Link
+      to={`/series/${result.id}`}
+      aria-label={result.title}
       className={[
-        'group relative flex flex-col',
+        'group relative flex flex-col focus:outline-none',
         sizeHint === 'tall' ? 'row-span-2' : '',
         className ?? '',
       ].join(' ')}
@@ -49,7 +52,7 @@ export function CoverCard({ result, className, sizeHint = 'default' }: Props) {
         )}
       </div>
       <div className="mt-3">
-        <h3 className="font-display text-[14px] leading-snug font-[380] tracking-[-0.01em] text-foreground italic">
+        <h3 className="font-display text-[14px] leading-snug font-[380] tracking-[-0.01em] text-foreground italic transition-[font-style,color] group-hover:not-italic group-hover:text-foreground">
           {result.title}
         </h3>
         {result.author && (
@@ -58,6 +61,6 @@ export function CoverCard({ result, className, sizeHint = 'default' }: Props) {
           </p>
         )}
       </div>
-    </article>
+    </Link>
   );
 }

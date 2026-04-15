@@ -1,4 +1,5 @@
 import type { SearchResult } from '@kireimanga/shared';
+import { Link } from 'react-router-dom';
 
 interface Props {
   results: SearchResult[];
@@ -15,10 +16,12 @@ export function ResultMasthead({ results }: Props) {
   return (
     <section className="grid grid-cols-1 gap-10 md:grid-cols-[320px_1fr] md:gap-14">
       {featured.map((result, i) => (
-        <article
+        <Link
           key={result.id}
+          to={`/series/${result.id}`}
+          aria-label={result.title}
           className={[
-            'flex gap-6',
+            'group flex gap-6 focus:outline-none',
             i === 0 ? 'md:col-span-2 md:grid md:grid-cols-[320px_1fr] md:items-end' : '',
           ].join(' ')}
         >
@@ -31,7 +34,7 @@ export function ResultMasthead({ results }: Props) {
             <span className="font-mono text-[10px] tracking-[0.26em] text-[var(--color-bone-faint)] uppercase">
               {i === 0 ? 'Top result' : 'Also notable'}
             </span>
-            <h2 className="font-display mt-3 text-[clamp(1.75rem,3vw,2.5rem)] leading-[1.04] font-[350] tracking-[-0.02em] text-foreground italic">
+            <h2 className="font-display mt-3 text-[clamp(1.75rem,3vw,2.5rem)] leading-[1.04] font-[350] tracking-[-0.02em] text-foreground italic transition-[font-style,color] group-hover:not-italic group-hover:text-foreground">
               {result.title}
             </h2>
             {result.author && (
@@ -48,7 +51,7 @@ export function ResultMasthead({ results }: Props) {
               {result.lastChapter && <span>· Ch. {result.lastChapter}</span>}
             </div>
           </div>
-        </article>
+        </Link>
       ))}
     </section>
   );
