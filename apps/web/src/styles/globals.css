@@ -209,3 +209,26 @@ body {
 @utility animate-fade-up {
   animation: fade-up 480ms var(--ease-out-expo) both;
 }
+
+/* Slow opacity pulse for loading skeletons — no shimmer, no translate. */
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@utility skeleton-pulse {
+  animation: skeleton-pulse 2200ms var(--ease-out-quart) infinite;
+}
+
+/* Simple four-line clamp for descriptions in the masthead. */
+@utility line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
