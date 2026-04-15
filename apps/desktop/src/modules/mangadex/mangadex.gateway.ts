@@ -1,0 +1,112 @@
+import {
+  WebSocketGateway,
+  SubscribeMessage,
+  MessageBody,
+  WebSocketServer,
+} from '@nestjs/websockets';
+import { UseGuards } from '@nestjs/common';
+import { Server } from 'socket.io';
+import {
+  createLogger,
+  MangaDexEvents,
+  type MangaDexSearchPayload,
+  type MangaDexGetSeriesPayload,
+  type MangaDexGetChaptersPayload,
+  type MangaDexGetPagesPayload,
+  type MangaDexDownloadChapterPayload,
+} from '@kireimanga/shared';
+import { CORS_CONFIG } from '../shared/cors.config';
+import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
+import { handleGatewayRequest } from '../shared/gateway-handler';
+import { MangaDexService } from './mangadex.service';
+
+const logger = createLogger('MangaDexGateway');
+
+@WebSocketGateway({ cors: CORS_CONFIG })
+@UseGuards(WsThrottlerGuard)
+export class MangaDexGateway {
+  @WebSocketServer()
+  server!: Server;
+
+  constructor(private readonly mangadexService: MangaDexService) {
+    logger.info('MangaDexGateway initialized');
+  }
+
+  @SubscribeMessage(MangaDexEvents.SEARCH)
+  handleSearch(@MessageBody() payload: MangaDexSearchPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'mangadex:search',
+      defaultResult: { results: [] },
+      handler: async () => {
+        const results = await this.mangadexService.search(payload.query, payload.filters);
+        return { results };
+      },
+    });
+  }
+
+  @SubscribeMessage(MangaDexEvents.GET_SERIES)
+  handleGetSeries(@MessageBody() payload: MangaDexGetSeriesPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'mangadex:get-series',
+      defaultResult: { series: null },
+      handler: async () => {
+        const series = await this.mangadexService.getSeries(payload.mangadexId);
+        return { series };
+      },
+    });
+  }
+
+  @SubscribeMessage(MangaDexEvents.GET_CHAPTERS)
+  handleGetChapters(@MessageBody() payload: MangaDexGetChaptersPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'mangadex:get-chapters',
+      defaultResult: { chapters: [] },
+      handler: async () => {
+        const chapters = await this.mangadexService.getChapters(payload.mangadexId, payload.lang);
+        return { chapters };
+      },
+    });
+  }
+
+  @SubscribeMessage(MangaDexEvents.GET_PAGES)
+  handleGetPages(@MessageBody() payload: MangaDexGetPagesPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'mangadex:get-pages',
+      defaultResult: { pages: [] },
+      handler: async () => {
+        const pages = await this.mangadexService.getPages(payload.chapterId);
+        return { pages };
+      },
+    });
+  }
+
+  @SubscribeMessage(MangaDexEvents.DOWNLOAD_CHAPTER)
+  handleDownloadChapter(@MessageBody() payload: MangaDexDownloadChapterPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'mangadex:download-chapter',
+      defaultResult: { success: false },
+      handler: async () => {
+        await this.mangadexService.downloadChapter(payload.chapterId);
+        return { success: true };
+      },
+    });
+  }
+
+  @SubscribeMessage(MangaDexEvents.CHECK_UPDATES)
+  handleCheckUpdates() {
+    return handleGatewayRequest({
+      logger,
+      action: 'mangadex:check-updates',
+      defaultResult: { updates: [] },
+      handler: async () => {
+        const updates = await this.mangadexService.checkUpdates();
+        return { updates };
+      },
+    });
+  }
+}
