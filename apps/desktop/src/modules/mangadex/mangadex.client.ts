@@ -290,20 +290,24 @@ export class MangaDexClient {
 
   /**
    * Paginated chapter feed. Returns every chapter entity (auto-paginates until
-   * `offset >= total` or a hard ceiling of 500 rows).
+   * `offset >= total` or the MangaDex `offset + limit ≤ 10000` cap is reached).
+   * Normalization/filtering/dedupe happens in the service layer.
    */
   async getChapters(seriesId: string, lang?: string): Promise<MangaDexChapterEntity[]> {
     const collected: MangaDexChapterEntity[] = [];
-    const LIMIT = 100;
-    const HARD_CAP = 500;
+    const LIMIT = 500;
+    const MAX_OFFSET = 10000;
     let offset = 0;
 
-    while (collected.length < HARD_CAP) {
+    // MangaDex caps `offset + limit ≤ 10000` on the feed endpoint — bail before
+    // we'd exceed it rather than letting the API 400 us.
+    while (offset + LIMIT <= MAX_OFFSET) {
       const params = new URLSearchParams();
       params.append('limit', String(LIMIT));
       params.append('offset', String(offset));
       params.append('order[volume]', 'asc');
       params.append('order[chapter]', 'asc');
+      params.append('includes[]', 'scanlation_group');
       if (lang) params.append('translatedLanguage[]', lang);
 
       const url = `${API_BASE}/manga/${encodeURIComponent(seriesId)}/feed?${params.toString()}`;
@@ -321,7 +325,7 @@ export class MangaDexClient {
       if (!page.data.length || offset >= page.total) break;
     }
 
-    return collected.slice(0, HARD_CAP);
+    return collected;
   }
 
   /**

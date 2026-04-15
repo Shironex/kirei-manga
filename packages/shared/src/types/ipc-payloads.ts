@@ -1,5 +1,11 @@
-import type { Series, Chapter, ReadingStatus, Bookmark, BoundingBox, SeriesUpdate } from './series';
-import type { MangaDexSeries, SearchFilters, SearchResult, OcrResult } from './mangadex';
+import type { Series, ReadingStatus, Bookmark, BoundingBox, SeriesUpdate } from './series';
+import type {
+  MangaDexSeriesDetail,
+  ChapterListItem,
+  SearchFilters,
+  SearchResult,
+  OcrResult,
+} from './mangadex';
 
 // =============================================================================
 // library:* payloads
@@ -67,7 +73,7 @@ export interface MangaDexGetSeriesPayload {
 }
 
 export interface MangaDexGetSeriesResponse {
-  series: MangaDexSeries | null;
+  series: MangaDexSeriesDetail | null;
   error?: string;
 }
 
@@ -77,7 +83,7 @@ export interface MangaDexGetChaptersPayload {
 }
 
 export interface MangaDexGetChaptersResponse {
-  chapters: Chapter[];
+  chapters: ChapterListItem[];
   error?: string;
 }
 

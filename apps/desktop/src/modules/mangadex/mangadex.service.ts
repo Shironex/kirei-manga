@@ -2,6 +2,8 @@ import { Injectable, NotImplementedException } from '@nestjs/common';
 import { createLogger } from '@kireimanga/shared';
 import type {
   MangaDexSeries,
+  MangaDexSeriesDetail,
+  ChapterListItem,
   SearchFilters,
   SearchResult,
   Chapter,
@@ -13,6 +15,7 @@ import type {
   MangaDexStatus,
   MangaDexContentRating,
   MangaDexDemographic,
+  MangaDexCoverSize,
 } from '@kireimanga/shared';
 import { MangaDexClient } from './mangadex.client';
 
@@ -73,12 +76,30 @@ function getRelationshipName(
  * Build a `kirei-cover://` URL the renderer can consume. The cover protocol
  * proxy (main process) resolves this to cached bytes from uploads.mangadex.org;
  * the renderer must never load that host directly (wrong-image on hotlink).
+ *
+ * `size = 'original'` omits the `.{size}.jpg` suffix — the protocol parser
+ * accepts the bare `{fileName}` form and resolves it as full-size.
  */
-function buildCoverProtocolUrl(mangaId: string, fileName: string, size = 512): string {
+function buildCoverProtocolUrl(
+  mangaId: string,
+  fileName: string,
+  size: MangaDexCoverSize = 512
+): string {
   // We intentionally do not encodeURIComponent the filename because MangaDex
   // filenames are UUID-ish + extension (always URL-safe) and Electron's URL
   // parsing is happier with the raw form.
+  if (size === 'original') {
+    return `kirei-cover://mangadex/${mangaId}/${fileName}`;
+  }
   return `kirei-cover://mangadex/${mangaId}/${fileName}.${size}.jpg`;
+}
+
+/**
+ * Build the full-size `kirei-cover://` URL used for the series-detail banner.
+ * Thin wrapper around `buildCoverProtocolUrl(id, file, 'original')`.
+ */
+function buildBannerProtocolUrl(mangaId: string, fileName: string): string {
+  return buildCoverProtocolUrl(mangaId, fileName, 'original');
 }
 
 function normalizeStatus(s: string | undefined): MangaDexStatus {
@@ -103,6 +124,19 @@ function normalizeContentRating(s: string | undefined): MangaDexContentRating {
     default:
       return 'safe';
   }
+}
+
+/**
+ * Compare two nullable strings with a numeric-aware `localeCompare` so "10"
+ * sorts after "9". Null/undefined sort last.
+ */
+function compareNullableString(a: string | null | undefined, b: string | null | undefined): number {
+  const aEmpty = a === null || a === undefined || a === '';
+  const bEmpty = b === null || b === undefined || b === '';
+  if (aEmpty && bEmpty) return 0;
+  if (aEmpty) return 1;
+  if (bEmpty) return -1;
+  return (a as string).localeCompare(b as string, undefined, { numeric: true });
 }
 
 function normalizeDemographic(s: string | null | undefined): MangaDexDemographic {
@@ -167,6 +201,73 @@ function normalizeToMangaDexSeries(entity: MangaDexMangaEntity): MangaDexSeries 
   };
 }
 
+/**
+ * Superset of `normalizeToMangaDexSeries` — adds the series-detail fields
+ * (banner URL, availableTranslatedLanguages) that the renderer needs for the
+ * detail page. `normalizeToMangaDexSeries` is kept for LibraryService.follow
+ * which upserts into the lighter `Series` row shape.
+ */
+function normalizeToMangaDexSeriesDetail(entity: MangaDexMangaEntity): MangaDexSeriesDetail {
+  const a = entity.attributes;
+  const title = pickLocalized(a.title) ?? 'Untitled';
+  const titleJapanese = a.title['ja'] ?? a.altTitles.find(t => 'ja' in t)?.['ja'];
+  const alternativeTitles = a.altTitles
+    .map(t => pickLocalized(t))
+    .filter((v): v is string => Boolean(v));
+  const fileName = getCoverFileName(entity);
+  const coverUrl = fileName ? buildCoverProtocolUrl(entity.id, fileName, 512) : undefined;
+  const bannerUrl = fileName ? buildBannerProtocolUrl(entity.id, fileName) : undefined;
+  const availableTranslatedLanguages = (a.availableTranslatedLanguages ?? []).filter(
+    (l): l is string => typeof l === 'string'
+  );
+
+  return {
+    id: entity.id,
+    title,
+    titleJapanese,
+    alternativeTitles,
+    description: pickLocalized(a.description, DEFAULT_DESC_LANG_ORDER) ?? '',
+    author: getRelationshipName(entity, 'author'),
+    artist: getRelationshipName(entity, 'artist'),
+    coverUrl,
+    bannerUrl,
+    status: normalizeStatus(a.status),
+    contentRating: normalizeContentRating(a.contentRating),
+    demographic: normalizeDemographic(a.publicationDemographic),
+    tags: a.tags.map(t => pickLocalized(t.attributes.name) ?? t.id).filter(Boolean),
+    originalLanguage: a.originalLanguage,
+    availableTranslatedLanguages,
+    year: a.year ?? undefined,
+    lastChapter: a.lastChapter ?? undefined,
+    // totalChapters / latestChapterUpdatedAt intentionally left undefined in phase 2 —
+    // resolving them would require a second feed call. The phase-4 chapter list hook
+    // supplies the count to the UI separately.
+    updatedAt: a.updatedAt,
+  };
+}
+
+/**
+ * Normalize a raw chapter entity into the renderer-facing `ChapterListItem`.
+ * Preserves `volume`/`chapter`/`title`/`externalUrl` as `string | null` — the
+ * UI formats them; do not coerce (MangaDex uses values like "Extra" or "7.5").
+ */
+function normalizeToChapterListItem(entity: MangaDexChapterEntity): ChapterListItem {
+  const a = entity.attributes;
+  const scanlationGroup = entity.relationships?.find(r => r.type === 'scanlation_group')
+    ?.attributes?.name;
+  return {
+    id: entity.id,
+    volume: a.volume,
+    chapter: a.chapter,
+    title: a.title,
+    translatedLanguage: a.translatedLanguage,
+    publishAt: a.publishAt,
+    pages: a.pages,
+    scanlationGroup: scanlationGroup || undefined,
+    externalUrl: a.externalUrl,
+  };
+}
+
 function normalizeToChapter(entity: MangaDexChapterEntity, seriesId: string): Chapter {
   const a = entity.attributes;
   const chapterNumber = a.chapter ? Number(a.chapter) : NaN;
@@ -206,14 +307,47 @@ export class MangaDexService {
     return response.data.map(normalizeToSearchResult);
   }
 
-  async getSeries(mangadexId: string): Promise<MangaDexSeries> {
+  async getSeries(mangadexId: string): Promise<MangaDexSeriesDetail> {
     const response = await this.client.getSeries(mangadexId);
-    return normalizeToMangaDexSeries(response.data);
+    return normalizeToMangaDexSeriesDetail(response.data);
   }
 
-  async getChapters(mangadexId: string, lang?: string): Promise<Chapter[]> {
+  async getChapters(mangadexId: string, lang?: string): Promise<ChapterListItem[]> {
     const raw = await this.client.getChapters(mangadexId, lang);
-    return raw.map(entity => normalizeToChapter(entity, mangadexId));
+
+    // 1. Drop entries hosted off-MangaDex or with zero pages — the reader
+    //    can't open them, and they'd clutter the chapter list.
+    const usable = raw.filter(e => !e.attributes.externalUrl && e.attributes.pages !== 0);
+
+    // 2. Dedupe by (language, volume, chapter) — MangaDex sometimes returns
+    //    multiple uploads for the same chapter; keep the most recent.
+    const byKey = new Map<string, MangaDexChapterEntity>();
+    for (const entity of usable) {
+      const a = entity.attributes;
+      const key = `${a.translatedLanguage}|${a.volume ?? ''}|${a.chapter ?? ''}`;
+      const existing = byKey.get(key);
+      if (!existing) {
+        byKey.set(key, entity);
+        continue;
+      }
+      const existingAt = existing.attributes.readableAt ?? existing.attributes.publishAt;
+      const candidateAt = a.readableAt ?? a.publishAt;
+      if (candidateAt > existingAt) {
+        byKey.set(key, entity);
+      }
+    }
+
+    // 3. Re-sort ascending by (volume, chapter) with numeric-aware compare.
+    //    null/undefined last within each position.
+    const sorted = Array.from(byKey.values()).sort((x, y) => {
+      const vx = x.attributes.volume;
+      const vy = y.attributes.volume;
+      const vCmp = compareNullableString(vx, vy);
+      if (vCmp !== 0) return vCmp;
+      return compareNullableString(x.attributes.chapter, y.attributes.chapter);
+    });
+
+    return sorted.map(normalizeToChapterListItem);
   }
 
   async getPages(_chapterId: string): Promise<string[]> {
@@ -234,6 +368,10 @@ export const __test = {
   pickLocalized,
   normalizeToSearchResult,
   normalizeToMangaDexSeries,
+  normalizeToMangaDexSeriesDetail,
   normalizeToChapter,
+  normalizeToChapterListItem,
   buildCoverProtocolUrl,
+  buildBannerProtocolUrl,
+  compareNullableString,
 };
