@@ -32,8 +32,13 @@ export function TopBar() {
     }
   };
 
+  const isMac = typeof window !== 'undefined' && window.electronAPI?.platform === 'darwin';
+
   return (
-    <header className="app-drag relative flex h-12 shrink-0 items-center gap-6 border-b border-border bg-background pr-4 pl-6">
+    <header
+      className="app-drag relative flex h-12 shrink-0 items-center gap-6 border-b border-border bg-background pr-4"
+      style={{ paddingLeft: isMac ? 84 : 24 }}
+    >
       <div className="flex items-center gap-2.5">
         <span
           className="font-kanji text-[15px] leading-none text-[var(--color-accent)]"
