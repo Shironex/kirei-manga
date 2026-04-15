@@ -1,0 +1,82 @@
+{
+  "result": "ok",
+  "response": "collection",
+  "limit": 2,
+  "offset": 0,
+  "total": 2,
+  "data": [
+    {
+      "id": "aa6c76f7-5f5f-4b7a-9e8c-111111111111",
+      "type": "manga",
+      "attributes": {
+        "title": { "en": "Berserk", "ja": "ベルセルク" },
+        "altTitles": [{ "ja-ro": "Beruseruku" }],
+        "description": {
+          "en": "Guts, a wandering swordsman, cleaves a path through a dark fantasy world.",
+          "ja": "剣を振るう流浪の戦士ガッツの物語。"
+        },
+        "originalLanguage": "ja",
+        "lastChapter": "374",
+        "publicationDemographic": "seinen",
+        "status": "ongoing",
+        "year": 1989,
+        "contentRating": "suggestive",
+        "tags": [
+          {
+            "id": "tag-action",
+            "type": "tag",
+            "attributes": {
+              "name": { "en": "Action" },
+              "group": "genre",
+              "version": 1
+            }
+          }
+        ],
+        "availableTranslatedLanguages": ["en", "pl"],
+        "updatedAt": "2024-05-01T00:00:00+00:00"
+      },
+      "relationships": [
+        {
+          "id": "cover-1",
+          "type": "cover_art",
+          "attributes": { "fileName": "cover-berserk.jpg" }
+        },
+        {
+          "id": "author-1",
+          "type": "author",
+          "attributes": { "name": "Kentaro Miura" }
+        }
+      ]
+    },
+    {
+      "id": "bb6c76f7-5f5f-4b7a-9e8c-222222222222",
+      "type": "manga",
+      "attributes": {
+        "title": { "ja": "葬送のフリーレン" },
+        "altTitles": [
+          { "ja-ro": "Sousou no Frieren" },
+          { "en": "Frieren: Beyond Journey's End" }
+        ],
+        "description": {
+          "ja": "旅の終わりを見届けたフリーレンの、次の旅が始まる。"
+        },
+        "originalLanguage": "ja",
+        "lastChapter": null,
+        "publicationDemographic": "shounen",
+        "status": "ongoing",
+        "year": 2020,
+        "contentRating": "safe",
+        "tags": [],
+        "availableTranslatedLanguages": ["en", "ja"],
+        "updatedAt": "2024-06-01T00:00:00+00:00"
+      },
+      "relationships": [
+        {
+          "id": "cover-2",
+          "type": "cover_art",
+          "attributes": { "fileName": "cover-frieren.png" }
+        }
+      ]
+    }
+  ]
+}
