@@ -9,7 +9,8 @@
   "private": true,
   "main": "dist/main/index.js",
   "scripts": {
-    "predev": "node scripts/native-build.mjs",
+    "predev": "node ../../scripts/native-build.mjs",
+    "dev": "node esbuild.config.mjs && cross-env NODE_ENV=development electron .",
     "build:dev": "node esbuild.config.mjs",
     "build": "pnpm native:build && node esbuild.config.mjs",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",

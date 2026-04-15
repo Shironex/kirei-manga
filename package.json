@@ -19,6 +19,8 @@
     }
   },
   "scripts": {
+    "dev": "pnpm build:packages && concurrently -k -n web,desktop -c magenta,yellow \"pnpm dev:web\" \"wait-on -t 30000 -i 1000 http-get://localhost:15175 && pnpm --filter @kireimanga/desktop dev\"",
+    "dev:web": "pnpm build:packages && pnpm --filter @kireimanga/web dev",
     "build": "pnpm build:packages && pnpm --filter @kireimanga/web build && pnpm --filter @kireimanga/desktop build",
     "build:packages": "pnpm --filter @kireimanga/shared build",
     "package": "pnpm build && pnpm --filter @kireimanga/desktop package",
@@ -41,11 +43,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "concurrently": "^9.2.1",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.4.0",
     "prettier": "^3.8.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.57.0"
+    "typescript-eslint": "^8.57.0",
+    "wait-on": "^9.0.4"
   }
 }
