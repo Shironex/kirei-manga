@@ -188,6 +188,61 @@ export interface MangaDexSeries {
 }
 
 /**
+ * Normalized MangaDex series detail — superset of `MangaDexSeries` used by the
+ * series detail page. Adds fields required for the editorial meta row, tag
+ * chips, synopsis, and language filter (Slice B phase 4).
+ */
+export interface MangaDexSeriesDetail {
+  id: string;
+  title: string;
+  titleJapanese?: string;
+  alternativeTitles: string[];
+  /** Synopsis — resolved from the localized description map (en → ja-ro → ja → first). */
+  description: string;
+  author?: string;
+  artist?: string;
+  /** `kirei-cover://mangadex/{id}/{file}.512.jpg` */
+  coverUrl?: string;
+  /** `kirei-cover://mangadex/{id}/{file}` (original size) for the banner. */
+  bannerUrl?: string;
+  status: MangaDexStatus;
+  contentRating: MangaDexContentRating;
+  demographic: MangaDexDemographic;
+  /** Human-readable tag names, already localized. */
+  tags: string[];
+  originalLanguage?: string;
+  /** ISO 639-1 codes with upstream chapter translations. Nulls from upstream filtered out. */
+  availableTranslatedLanguages: string[];
+  year?: number;
+  /** Upstream `lastChapter` attribute (string — may be decimal e.g. "123.5"). */
+  lastChapter?: string;
+  /** Count of chapter entities returned by the feed for this series (any language). */
+  totalChapters?: number;
+  /** ISO timestamp of the most recently uploaded chapter (upstream `latestUploadedChapter` resolvedAt, or feed max). */
+  latestChapterUpdatedAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * One row in the series-detail chapter list. Normalized from `MangaDexChapterEntity`.
+ * `volume`/`chapter`/`title` preserved as strings (upstream may be null or non-numeric
+ * e.g. "Extra", "7.5") — the UI formats them; do not coerce to number here.
+ */
+export interface ChapterListItem {
+  id: string;
+  volume: string | null;
+  chapter: string | null;
+  title: string | null;
+  translatedLanguage: string;
+  /** ISO timestamp. */
+  publishAt: string;
+  pages: number;
+  scanlationGroup?: string;
+  /** Set when the chapter is hosted off-MangaDex (e.g. MangaPlus); renderer should link out, not open reader. */
+  externalUrl: string | null;
+}
+
+/**
  * Ordering configuration for the search endpoint. Each key maps to `asc` / `desc`.
  * See https://api.mangadex.org/docs/swagger.html#/Manga/get-search-manga
  */
