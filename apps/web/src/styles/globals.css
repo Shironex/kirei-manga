@@ -1,23 +1,84 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+@custom-variant light (&:where([data-theme='light'], [data-theme='light'] *));
+
+/* ------------------------------------------------------------------
+   綺麗漫画 · KireiManga — editorial ink-and-paper design system.
+   Palette draws from traditional Japanese pigments:
+     sumi    — ink black   (backgrounds)
+     kinari  — unbleached  (foregrounds, "bone")
+     bengara — iron-oxide  (single restrained accent)
+   Dark-first. Light theme flips to washi paper + sumi ink.
+------------------------------------------------------------------ */
 
 @theme {
-  /* Neutral palette — the real design pass happens in a later phase. */
-  --color-background: #0a0a0f;
-  --color-foreground: #f5f5f5;
-  --color-muted: #1a1a22;
-  --color-muted-foreground: #a1a1aa;
-  --color-border: #27272a;
-  --color-accent: #6366f1;
-  --color-accent-foreground: #ffffff;
+  /* --- Dark (default) --- */
+  --color-ink: oklch(14% 0.008 55);           /* deep warm off-black */
+  --color-ink-raised: oklch(18% 0.008 55);
+  --color-ink-sunken: oklch(11% 0.008 55);
+  --color-bone: oklch(93% 0.014 82);          /* warm ivory text */
+  --color-bone-muted: oklch(68% 0.012 75);
+  --color-bone-faint: oklch(48% 0.010 70);
+  --color-rule: oklch(26% 0.008 55);          /* hairline */
+  --color-rule-strong: oklch(34% 0.010 55);
+  --color-bengara: oklch(58% 0.138 35);       /* iron-oxide red accent */
+  --color-bengara-ink: oklch(96% 0.012 80);
 
+  /* Semantic aliases (used by components) */
+  --color-background: var(--color-ink);
+  --color-surface: var(--color-ink-raised);
+  --color-surface-sunken: var(--color-ink-sunken);
+  --color-foreground: var(--color-bone);
+  --color-muted-foreground: var(--color-bone-muted);
+  --color-faint-foreground: var(--color-bone-faint);
+  --color-border: var(--color-rule);
+  --color-border-strong: var(--color-rule-strong);
+  --color-accent: var(--color-bengara);
+  --color-accent-foreground: var(--color-bengara-ink);
+
+  /* Typography */
+  --font-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
-  --font-serif:
-    ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-  --font-mono:
-    ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, Consolas, monospace;
+    'Geist', ui-sans-serif, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-kanji: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Rhythm */
+  --radius-hairline: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* Light theme — washi paper + sumi ink */
+[data-theme='light'] {
+  --color-ink: oklch(95% 0.012 85);
+  --color-ink-raised: oklch(98% 0.010 88);
+  --color-ink-sunken: oklch(91% 0.014 82);
+  --color-bone: oklch(22% 0.008 55);
+  --color-bone-muted: oklch(42% 0.010 60);
+  --color-bone-faint: oklch(62% 0.012 65);
+  --color-rule: oklch(82% 0.012 75);
+  --color-rule-strong: oklch(70% 0.014 70);
+  --color-bengara: oklch(46% 0.15 32);
+  --color-bengara-ink: oklch(97% 0.010 85);
+
+  --color-background: var(--color-ink);
+  --color-surface: var(--color-ink-raised);
+  --color-surface-sunken: var(--color-ink-sunken);
+  --color-foreground: var(--color-bone);
+  --color-muted-foreground: var(--color-bone-muted);
+  --color-faint-foreground: var(--color-bone-faint);
+  --color-border: var(--color-rule);
+  --color-border-strong: var(--color-rule-strong);
+  --color-accent: var(--color-bengara);
+  --color-accent-foreground: var(--color-bengara-ink);
+}
+
+/* ------------------------------------------------------------------ */
 
 html,
 body,
@@ -32,5 +93,119 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
+  font-feature-settings: 'ss01', 'cv11';
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+
+/* Selection */
+::selection {
+  background: color-mix(in oklch, var(--color-accent) 40%, transparent);
+  color: var(--color-foreground);
+}
+
+/* Scrollbar — thin, unobtrusive, rule-colored */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-rule-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-rule);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-rule-strong);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+}
+
+/* Focus — thin bengara ring */
+:focus-visible {
+  outline: 1.5px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Drag region for frameless Electron window (set on top-bar element) */
+.app-drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+.app-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+/* Typography utilities */
+@utility font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: 'SOFT' 50, 'opsz' 96;
+  letter-spacing: -0.02em;
+}
+
+@utility font-kanji {
+  font-family: var(--font-kanji);
+  font-feature-settings: 'palt';
+}
+
+/* A single hairline rule with a subtle gradient fade toward edges */
+@utility rule-x {
+  background-image: linear-gradient(
+    to right,
+    transparent,
+    var(--color-border) 8%,
+    var(--color-border) 92%,
+    transparent
+  );
+  height: 1px;
+  width: 100%;
+}
+
+@utility rule-y {
+  background-image: linear-gradient(
+    to bottom,
+    transparent,
+    var(--color-border) 8%,
+    var(--color-border) 92%,
+    transparent
+  );
+  width: 1px;
+  height: 100%;
+}
+
+/* Fine-grained dotted texture, used sparingly for emphasis */
+@utility paper-grain {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in oklch, var(--color-foreground) 4%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 18px 18px;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-fade-up {
+  animation: fade-up 480ms var(--ease-out-expo) both;
 }
