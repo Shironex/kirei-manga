@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.shironex.kireimanga",
+  "productName": "KireiManga",
+  "directories": {
+    "output": "release",
+    "buildResources": "resources"
+  },
+  "files": ["dist/**/*", "package.json", "!**/*.map", "!**/*.d.ts", "!dist/**/*.d.ts"],
+  "asarUnpack": ["**/node_modules/better-sqlite3/**", "**/build/Release/*.node"],
+  "artifactName": "${productName}-${version}-${arch}.${ext}",
+  "nodeGypRebuild": false,
+  "npmRebuild": false,
+  "publish": {
+    "provider": "github",
+    "owner": "Shironex",
+    "repo": "kirei-manga"
+  },
+  "mac": {
+    "category": "public.app-category.entertainment",
+    "target": ["dmg"]
+  },
+  "win": {
+    "target": ["nsis"]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
+  "electronFuses": {
+    "runAsNode": false,
+    "enableNodeCliInspectArguments": false,
+    "enableNodeOptionsEnvironmentVariable": false,
+    "onlyLoadAppFromAsar": true
+  }
+}
