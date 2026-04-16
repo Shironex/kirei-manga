@@ -1,11 +1,43 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';
 import { createLogger } from '@kireimanga/shared';
 import { MangaDexClient } from '../mangadex/mangadex.client';
+import { pruneDiskCache, type DiskCacheBounds } from '../../main/shared/protocol-cache';
 
 const logger = createLogger('LibraryCacheService');
+
+// Why: pages cap sized for a generous offline reader (≈2000 pages at ~500 KiB
+// each ≈ 1 GiB). Either ceiling triggers eviction, so very small archives can
+// still cache a lot of pages and very large ones don't blow past 1 GiB.
+const PAGE_CACHE_BOUNDS: DiskCacheBounds = {
+  maxBytes: 1024 * 1024 * 1024,
+  maxFiles: 2000,
+};
+
+// Why: cover cap is 1/4 of the pages cap. Covers are smaller (~30-80 KiB at
+// .512.jpg) but hit rate is higher per-file because every library card + every
+// search result caches one — 1000 files covers a very large library catalog.
+const COVER_CACHE_BOUNDS: DiskCacheBounds = {
+  maxBytes: 256 * 1024 * 1024,
+  maxFiles: 1000,
+};
+
+// Why: sweep every hour. Writes accumulate at a modest pace (one file per page
+// read or download), so an hourly sweep is responsive enough without beating
+// the disk. An initial sweep runs shortly after boot to reclaim space carried
+// over from previous sessions.
+const SWEEP_INTERVAL_MS = 60 * 60 * 1000;
+const INITIAL_SWEEP_DELAY_MS = 30_000;
+
+function resolveCacheRoot(subdir: string): string {
+  try {
+    return path.join(app.getPath('userData'), subdir);
+  } catch {
+    return path.join(process.cwd(), '.userData', subdir);
+  }
+}
 
 /**
  * Resolve the on-disk cache root for chapter pages. Mirrors the path that
@@ -13,11 +45,11 @@ const logger = createLogger('LibraryCacheService');
  * relative to cwd in non-Electron environments (Jest).
  */
 function getPagesRoot(): string {
-  try {
-    return path.join(app.getPath('userData'), 'pages');
-  } catch {
-    return path.join(process.cwd(), '.userData', 'pages');
-  }
+  return resolveCacheRoot('pages');
+}
+
+function getCoversRoot(): string {
+  return resolveCacheRoot('covers');
 }
 
 /**
@@ -53,20 +85,71 @@ async function dirSize(dir: string): Promise<number> {
 }
 
 /**
- * Disk-cache management for the kirei-page chapter cache. Lives under
- * `userData/pages/mangadex/` — the same directory the page protocol reads
- * from and `MangaDexService.executeDownload` writes into.
+ * Disk-cache management for the kirei-page chapter cache and kirei-cover
+ * cover cache. Owns the periodic LRU sweep so the protocol handlers stay
+ * thin — they only read/write, never decide what to evict.
  */
 @Injectable()
-export class LibraryCacheService {
+export class LibraryCacheService implements OnModuleInit, OnModuleDestroy {
+  private initialTimer: ReturnType<typeof setTimeout> | null = null;
+  private sweepTimer: ReturnType<typeof setInterval> | null = null;
+
   constructor(private readonly mangadexClient: MangaDexClient) {
     logger.info('LibraryCacheService initialized');
   }
 
+  onModuleInit(): void {
+    this.initialTimer = setTimeout(() => {
+      void this.sweep();
+      this.sweepTimer = setInterval(() => void this.sweep(), SWEEP_INTERVAL_MS);
+      if (this.sweepTimer && typeof this.sweepTimer === 'object' && 'unref' in this.sweepTimer) {
+        this.sweepTimer.unref();
+      }
+    }, INITIAL_SWEEP_DELAY_MS);
+    if (this.initialTimer && typeof this.initialTimer === 'object' && 'unref' in this.initialTimer) {
+      this.initialTimer.unref();
+    }
+  }
+
+  onModuleDestroy(): void {
+    if (this.initialTimer) {
+      clearTimeout(this.initialTimer);
+      this.initialTimer = null;
+    }
+    if (this.sweepTimer) {
+      clearInterval(this.sweepTimer);
+      this.sweepTimer = null;
+    }
+  }
+
   /** Total size in bytes of every cached chapter page across all sources. */
   async getCacheSize(): Promise<number> {
-    const root = getPagesRoot();
-    return dirSize(root);
+    return dirSize(getPagesRoot());
+  }
+
+  /**
+   * Run one LRU sweep over both on-disk caches. Safe to call concurrently
+   * with live protocol writes because eviction uses mtime (which `writeAtomic`
+   * sets on the final rename, not on the .tmp staging file) and skips files
+   * whose name contains `.tmp-` defensively.
+   */
+  async sweep(): Promise<void> {
+    try {
+      const pages = await pruneDiskCache(getPagesRoot(), PAGE_CACHE_BOUNDS);
+      if (pages.filesRemoved > 0) {
+        logger.info(
+          `kirei-page LRU sweep: removed ${pages.filesRemoved} file(s), freed ${pages.bytesRemoved} bytes`
+        );
+      }
+      const covers = await pruneDiskCache(getCoversRoot(), COVER_CACHE_BOUNDS);
+      if (covers.filesRemoved > 0) {
+        logger.info(
+          `kirei-cover LRU sweep: removed ${covers.filesRemoved} file(s), freed ${covers.bytesRemoved} bytes`
+        );
+      }
+    } catch (err) {
+      logger.error(`Disk cache sweep failed: ${(err as Error).message}`);
+    }
   }
 
   /**

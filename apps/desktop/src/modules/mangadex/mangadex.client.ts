@@ -40,6 +40,13 @@ const MAX_RETRIES = 3;
 const DEFAULT_TTL_MS = 5 * 60_000;
 const AT_HOME_TTL_MS = 15 * 60_000;
 
+// Why: MangaDex responses here are small JSON envelopes (cover/series/chapter
+// metadata + at-home URLs), so 500 live entries is well under a few MB while
+// being ample for a typical browse-then-read session without evicting the
+// current series' feed pages. TTL semantics are unchanged — LRU only bounds
+// memory when the user rapidly traverses many series.
+const MAX_CACHE_ENTRIES = 500;
+
 /** Minimum interval gate serialized via a promise chain. */
 class MinIntervalGate {
   private next = Promise.resolve();
@@ -236,7 +243,7 @@ export class MangaDexClient {
     throw new Error(`MangaDex request exhausted retries: ${url}`);
   }
 
-  /** GET with a simple TTL cache keyed by `key`. */
+  /** GET with a TTL+LRU cache keyed by `key`. */
   private async cachedGet<T>(
     key: string,
     url: string,
@@ -246,11 +253,30 @@ export class MangaDexClient {
     const hit = this.cache.get(key);
     const now = Date.now();
     if (hit && hit.expiresAt > now) {
+      // Promote to MRU by re-inserting — Map preserves insertion order,
+      // so the oldest key returned by keys().next() is the LRU victim.
+      this.cache.delete(key);
+      this.cache.set(key, hit);
       return hit.data as T;
     }
+    if (hit) {
+      // Expired entry — drop before refetch so it doesn't linger as LRU.
+      this.cache.delete(key);
+    }
     const data = await this.get<T>(url, gate);
-    this.cache.set(key, { data, expiresAt: now + ttlMs });
+    this.setCacheEntry(key, { data, expiresAt: now + ttlMs });
     return data;
+  }
+
+  /** Insert an entry, evicting the LRU victim if we're at the cap. */
+  private setCacheEntry(key: string, entry: CacheEntry<unknown>): void {
+    if (this.cache.size >= MAX_CACHE_ENTRIES && !this.cache.has(key)) {
+      const oldest = this.cache.keys().next();
+      if (!oldest.done) {
+        this.cache.delete(oldest.value);
+      }
+    }
+    this.cache.set(key, entry);
   }
 
   /** Clear the internal TTL cache. Primarily useful in tests. */
@@ -354,9 +380,15 @@ export class MangaDexClient {
    * `{baseUrl, hash}` synchronously on cache hits.
    */
   getCachedAtHome(chapterId: string): MangaDexAtHomeResponse | null {
-    const hit = this.cache.get(`athome:${chapterId}`);
+    const key = `athome:${chapterId}`;
+    const hit = this.cache.get(key);
     if (!hit) return null;
-    if (hit.expiresAt <= Date.now()) return null;
+    if (hit.expiresAt <= Date.now()) {
+      this.cache.delete(key);
+      return null;
+    }
+    this.cache.delete(key);
+    this.cache.set(key, hit);
     return hit.data as MangaDexAtHomeResponse;
   }
 
