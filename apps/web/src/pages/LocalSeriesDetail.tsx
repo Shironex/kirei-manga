@@ -226,6 +226,14 @@ export function LocalSeriesDetailPage() {
               <dt>Read</dt>
               <dd className="text-foreground">{readCount}</dd>
             </div>
+            {series.mangadexId && (
+              <div className="flex items-baseline gap-2">
+                <dt>MangaDex</dt>
+                <dd className="font-kanji text-[var(--color-accent)] normal-case">
+                  linked
+                </dd>
+              </div>
+            )}
             {series.localRootPath && (
               <div className="flex min-w-0 items-baseline gap-2">
                 <dt>Root</dt>
