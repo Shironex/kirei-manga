@@ -28,11 +28,23 @@ async function toggleFullscreen(): Promise<void> {
   }
 }
 
-export function ReaderPage() {
-  const { mangadexSeriesId, chapterId } = useParams<{
-    mangadexSeriesId: string;
-    chapterId: string;
+interface ReaderPageProps {
+  source?: 'mangadex' | 'local';
+}
+
+export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
+  const params = useParams<{
+    mangadexSeriesId?: string;
+    localSeriesId?: string;
+    chapterId?: string;
   }>();
+  const seriesId = source === 'local' ? params.localSeriesId : params.mangadexSeriesId;
+  const chapterId = params.chapterId;
+  // MangaDex ids flow through the existing progress / bookmarks channels;
+  // local ids don't have a mangadex equivalent, so we pass null and the
+  // hooks no-op gracefully. Local progress tracking lands in a follow-up
+  // slice once the reader's core flow is verified.
+  const mangadexSeriesId = source === 'mangadex' ? params.mangadexSeriesId : undefined;
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -53,12 +65,13 @@ export function ReaderPage() {
   const hideChrome = useReaderStore(s => s.hideChrome);
 
   // Hydrates store from desktop-persisted prefs and exposes a debounced
-  // setter that writes back through the socket bridge.
+  // setter that writes back through the socket bridge. Local reader prefs
+  // land in a follow-up — for now local series use the global defaults.
   const { setPrefs } = useReaderPrefs(mangadexSeriesId);
 
   const { isPageBookmarked, toggle: toggleBookmark } = useChapterBookmarks(
     mangadexSeriesId ?? null,
-    chapterId ?? null
+    source === 'mangadex' ? (chapterId ?? null) : null
   );
 
   // Chapter metadata surfaces through router state (set by ChapterList). It's
@@ -96,20 +109,20 @@ export function ReaderPage() {
     mode,
   });
 
-  const { pages, loading, error, retry } = useChapterPages(chapterId);
+  const { pages, loading, error, retry } = useChapterPages(chapterId, source);
 
   const { startPage } = useReaderProgress({
-    mangadexSeriesId: mangadexSeriesId ?? null,
-    mangadexChapterId: chapterId ?? null,
+    mangadexSeriesId: source === 'mangadex' ? (mangadexSeriesId ?? null) : null,
+    mangadexChapterId: source === 'mangadex' ? (chapterId ?? null) : null,
     pageCount: pages.length,
     pageIndex,
     chapterMeta,
   });
 
   useEffect(() => {
-    if (!chapterId || !mangadexSeriesId) return;
-    reset({ chapterId, seriesId: mangadexSeriesId });
-  }, [chapterId, mangadexSeriesId, reset]);
+    if (!chapterId || !seriesId) return;
+    reset({ chapterId, seriesId });
+  }, [chapterId, seriesId, reset]);
 
   useEffect(() => {
     setTotalPages(pages.length);

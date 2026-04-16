@@ -19,6 +19,7 @@ export const router = createHashRouter([
       { path: 'series/local/:id', element: <LocalSeriesDetailPage /> },
       { path: 'series/:mangadexId', element: <SeriesDetailPage /> },
       { path: 'settings', element: <SettingsPage /> },
+      { path: 'reader/local/:localSeriesId/:chapterId', element: <ReaderPage source="local" /> },
       { path: 'reader/:mangadexSeriesId/:chapterId', element: <ReaderPage /> },
     ],
   },
