@@ -1,8 +1,13 @@
-import { registerKireiCoverProtocol } from './kirei-cover';
-import { registerKireiPageProtocol } from './kirei-page';
+import { registerKireiCoverProtocol, setMangaDexClient as setCoverMangaDexClient } from './kirei-cover';
+import type { MangaDexCoverFetcher } from './kirei-cover';
+import {
+  registerKireiPageProtocol,
+  setMangaDexClient as setPageMangaDexClient,
+} from './kirei-page';
+import type { MangaDexPageFetcher } from './kirei-page';
 
-export { toCoverUrl, toMangaDexCoverUrl, setMangaDexClient } from './kirei-cover';
-export { toPageUrl } from './kirei-page';
+export { toCoverUrl, toMangaDexCoverUrl } from './kirei-cover';
+export { toPageUrl, toMangaDexPageUrl } from './kirei-page';
 
 /**
  * Register all KireiManga custom protocols. Must be called after app.ready.
@@ -12,4 +17,13 @@ export { toPageUrl } from './kirei-page';
 export function registerProtocols(): void {
   registerKireiCoverProtocol();
   registerKireiPageProtocol();
+}
+
+/**
+ * Wire the shared MangaDexClient into both protocol handlers. The same
+ * concrete instance satisfies both the cover and page fetcher surfaces.
+ */
+export function setMangaDexClient(client: MangaDexCoverFetcher & MangaDexPageFetcher): void {
+  setCoverMangaDexClient(client);
+  setPageMangaDexClient(client);
 }

@@ -121,14 +121,14 @@ async function bootstrap(): Promise<void> {
 
   await bootstrapNestApp();
 
-  // Wire the MangaDex client into the cover protocol proxy before registering
-  // protocols so the first render never hits a 503.
+  // Wire the MangaDex client into the cover + page protocol proxies before
+  // registering protocols so the first render never hits a 503.
   if (nestApp) {
     try {
       const mangadexClient = nestApp.get(MangaDexClient);
       setMangaDexClient(mangadexClient);
     } catch (error) {
-      logger.error('Failed to resolve MangaDexClient for cover protocol:', error);
+      logger.error('Failed to resolve MangaDexClient for kirei protocols:', error);
     }
   }
 

@@ -395,4 +395,48 @@ export class MangaDexClient {
     const contentType = response.headers.get('content-type') ?? 'image/jpeg';
     return { buffer: Buffer.from(arrayBuffer), contentType };
   }
+
+  /**
+   * Fetch a chapter page image from a fully-resolved at-home mirror URL. The
+   * caller (kirei-page protocol handler) is responsible for building the URL
+   * from `getChapterPages` output. Returns the raw bytes plus the upstream
+   * status so the handler can distinguish 403/404 (rotated baseUrl — needs
+   * refetch + retry) from other failures.
+   */
+  async fetchPageImage(url: string): Promise<{
+    ok: boolean;
+    status: number;
+    buffer: Buffer;
+    contentType: string;
+  }> {
+    const fetchFn = getFetch();
+    const response = await this.generalGate.schedule(() =>
+      fetchFn(url, {
+        method: 'GET',
+        headers: { 'User-Agent': USER_AGENT },
+      })
+    );
+    if (!response.ok) {
+      // Drain the body so the connection can be reused.
+      try {
+        await response.arrayBuffer();
+      } catch {
+        // ignore
+      }
+      return {
+        ok: false,
+        status: response.status,
+        buffer: Buffer.alloc(0),
+        contentType: response.headers.get('content-type') ?? '',
+      };
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') ?? 'image/jpeg';
+    return {
+      ok: true,
+      status: response.status,
+      buffer: Buffer.from(arrayBuffer),
+      contentType,
+    };
+  }
 }
