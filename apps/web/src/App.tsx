@@ -3,8 +3,10 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { ToastContainer } from './components/system/ToastContainer';
 import { SplashScreen } from './components/splash';
+import { OnboardingOverlay } from './components/onboarding/OnboardingOverlay';
 import { TooltipProvider } from './components/ui/Tooltip';
 import { useAppearance } from './hooks/useAppearance';
+import { useSettingsStore } from './stores/settings-store';
 import { useSocketStore } from './stores/socket-store';
 import { useUpdateStore } from './stores/update-store';
 
@@ -27,6 +29,13 @@ export default function App() {
   // before the user opens Settings. The store's own action is stable.
   useEffect(() => useUpdateStore.getState().initListeners(), []);
 
+  // First-run gate. Stays false until settings hydrate so we never flash
+  // the overlay against an unloaded settings store. Re-runs from Settings
+  // simply patch `onboarding.completed = false`, which flips this back on.
+  const onboardingNeeded = useSettingsStore(
+    s => s.settings !== null && s.settings.onboarding.completed === false
+  );
+
   return (
     <TooltipProvider delayDuration={300} skipDelayDuration={150}>
       <SplashScreen ready={ready} error={null} onDismissed={handleDismissed} />
@@ -36,6 +45,7 @@ export default function App() {
       <div className="h-full" aria-hidden={!splashDone}>
         <RouterProvider router={router} />
       </div>
+      {splashDone && onboardingNeeded && <OnboardingOverlay />}
       <ToastContainer />
     </TooltipProvider>
   );

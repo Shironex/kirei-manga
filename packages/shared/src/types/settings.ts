@@ -56,6 +56,12 @@ export interface ReaderDefaults {
 export interface LibrarySettings {
   /** ISO 639-1 chapter language used when seeding the SeriesDetail filter. */
   defaultChapterLanguage: string;
+  /**
+   * Absolute paths the user has imported as local manga roots. Persisted so
+   * the polling watcher can rescan on launch and the onboarding flow can
+   * surface "you've already pointed us at these" copy on re-runs.
+   */
+  localRoots: string[];
 }
 
 /**
@@ -65,21 +71,37 @@ export interface LibrarySettings {
  */
 export type Shortcuts = Record<string, string>;
 
+/**
+ * First-run onboarding state. `completed` flips to true on every exit path
+ * (finish, skip-step, "I'll explore on my own") so the overlay never
+ * reappears unless the user explicitly chooses "Run setup again" in
+ * Settings → About. `version` lets a future onboarding revision force a
+ * replay by bumping past the persisted value.
+ */
+export interface OnboardingSettings {
+  completed: boolean;
+  /** ISO timestamp recorded when `completed` flipped true. Null until then. */
+  completedAt: string | null;
+  version: number;
+}
+
 export interface AppSettings {
   appearance: AppearanceSettings;
   reader: ReaderDefaults;
   library: LibrarySettings;
   language: Language;
   shortcuts: Shortcuts;
+  onboarding: OnboardingSettings;
 }
 
 /** Defaults written to the store on first boot and used as merge base. */
 export const DEFAULT_APP_SETTINGS: AppSettings = {
   appearance: { theme: 'sumi', fontSize: 'md', readingFont: 'fraunces', cardSize: 'cozy' },
   reader: { mode: 'single', direction: 'rtl', fit: 'width', language: 'en' },
-  library: { defaultChapterLanguage: 'en' },
+  library: { defaultChapterLanguage: 'en', localRoots: [] },
   language: 'en',
   shortcuts: {},
+  onboarding: { completed: false, completedAt: null, version: 1 },
 };
 
 /**

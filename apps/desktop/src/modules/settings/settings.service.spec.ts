@@ -95,4 +95,44 @@ describe('SettingsService', () => {
 
     expect(service.get().appearance.theme).toBe('sumi');
   });
+
+  it('backfills onboarding + library.localRoots when missing from stored shape', () => {
+    // Simulate a store written by an older app version that predates the
+    // onboarding section and the localRoots field.
+    storeData.set('app.settings', {
+      appearance: { ...DEFAULT_APP_SETTINGS.appearance },
+      reader: { ...DEFAULT_APP_SETTINGS.reader },
+      library: { defaultChapterLanguage: 'en' },
+      language: 'en',
+      shortcuts: {},
+    });
+
+    const service = new SettingsService();
+    const settings = service.get();
+
+    expect(settings.onboarding).toEqual(DEFAULT_APP_SETTINGS.onboarding);
+    expect(settings.library.localRoots).toEqual([]);
+
+    const stored = storeData.get('app.settings') as typeof DEFAULT_APP_SETTINGS;
+    expect(stored.onboarding.completed).toBe(false);
+    expect(stored.library.localRoots).toEqual([]);
+  });
+
+  it('set patches onboarding + library.localRoots through to the store', () => {
+    const service = new SettingsService();
+    const completedAt = '2026-04-16T12:00:00.000Z';
+
+    const next = service.set({
+      onboarding: { completed: true, completedAt },
+      library: { localRoots: ['C:/manga'] },
+    });
+
+    expect(next.onboarding.completed).toBe(true);
+    expect(next.onboarding.completedAt).toBe(completedAt);
+    expect(next.library.localRoots).toEqual(['C:/manga']);
+
+    const stored = storeData.get('app.settings') as typeof DEFAULT_APP_SETTINGS;
+    expect(stored.onboarding.completed).toBe(true);
+    expect(stored.library.localRoots).toEqual(['C:/manga']);
+  });
 });

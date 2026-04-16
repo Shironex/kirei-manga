@@ -44,9 +44,10 @@ function applyPatch(base: AppSettings, patch: DeepPartial<AppSettings>): AppSett
   const next: AppSettings = {
     appearance: { ...base.appearance },
     reader: { ...base.reader },
-    library: { ...base.library },
+    library: { ...base.library, localRoots: [...base.library.localRoots] },
     language: base.language,
     shortcuts: { ...base.shortcuts },
+    onboarding: { ...base.onboarding },
   };
   if (patch.appearance) {
     next.appearance = { ...next.appearance, ...patch.appearance } as AppSettings['appearance'];
@@ -56,12 +57,21 @@ function applyPatch(base: AppSettings, patch: DeepPartial<AppSettings>): AppSett
   }
   if (patch.library) {
     next.library = { ...next.library, ...patch.library } as AppSettings['library'];
+    if (patch.library.localRoots !== undefined) {
+      // localRoots is overwritten as a whole array, mirroring the desktop
+      // service. Append/remove logic happens at the call site so the patch
+      // payload always carries the intended final list.
+      next.library.localRoots = [...(patch.library.localRoots as string[])];
+    }
   }
   if (patch.language !== undefined) {
     next.language = patch.language as AppSettings['language'];
   }
   if (patch.shortcuts) {
     next.shortcuts = { ...next.shortcuts, ...patch.shortcuts } as AppSettings['shortcuts'];
+  }
+  if (patch.onboarding) {
+    next.onboarding = { ...next.onboarding, ...patch.onboarding } as AppSettings['onboarding'];
   }
   return next;
 }

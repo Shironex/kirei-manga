@@ -174,6 +174,8 @@ export const en = {
   'settings.about.credits.prefix': 'Made with',
   'settings.about.logs.action': 'Open logs folder',
   'settings.about.logs.error': 'Could not open the logs folder.',
+  'settings.about.onboarding.action': 'Run setup again',
+  'settings.about.onboarding.error': 'Could not restart setup.',
 
   // Settings — Keyboard
   'settings.keyboard.title': 'Keyboard',
@@ -359,4 +361,75 @@ export const en = {
   'splash.msg.5': 'Opening the covers…',
   'splash.msg.6': 'Sorting bookmarks…',
   'splash.msg.7': 'Kirei is reading quietly…',
+
+  // Onboarding — first-run overlay
+  'onboarding.aria.dialog': 'KireiManga setup',
+  'onboarding.topbar.brand': 'KireiManga · setup',
+  'onboarding.topbar.step': 'Step {current} of {total}',
+  'onboarding.action.back': 'Back',
+  'onboarding.action.next': 'Next',
+  'onboarding.action.skipStep': 'Skip step',
+  'onboarding.action.skipRest': 'Skip rest',
+
+  // Onboarding — Welcome
+  'onboarding.welcome.eyebrow': 'Welcome',
+  'onboarding.welcome.title': 'A quiet shelf, kept the way you like it.',
+  'onboarding.welcome.description':
+    'Three short steps to make KireiManga feel like yours — appearance, reader defaults, and (optionally) your local manga folder.',
+  'onboarding.welcome.point.appearance':
+    'Pick a theme, font size, and reading face. Sumi by default — washi if you read in daylight.',
+  'onboarding.welcome.point.reader':
+    'Set how chapters open: page mode, direction, fit, and your default chapter language.',
+  'onboarding.welcome.point.shelf':
+    'Optional — point us at a folder of CBZ or image directories and we’ll bring them in.',
+  'onboarding.welcome.begin': 'Begin setup',
+  'onboarding.welcome.skip': 'I’ll explore on my own',
+
+  // Onboarding — Appearance step
+  'onboarding.appearance.eyebrow': 'Appearance',
+  'onboarding.appearance.title': 'Tune the room.',
+  'onboarding.appearance.description':
+    'Every choice here saves the moment you make it. You can change all of this later in Settings → Appearance.',
+  'onboarding.appearance.language.hint': 'KireiManga ships in English and Polish.',
+
+  // Onboarding — Reader step
+  'onboarding.reader.eyebrow': 'Reader',
+  'onboarding.reader.title': 'How chapters should open.',
+  'onboarding.reader.description':
+    'These become defaults for new series. Each series remembers its own preference once you read it.',
+
+  // Onboarding — Local shelf step
+  'onboarding.shelf.eyebrow': 'Add your shelf',
+  'onboarding.shelf.title': 'Bring your manga in (optional).',
+  'onboarding.shelf.description':
+    'Point at a folder. Each subfolder under it becomes a series. CBZ archives or numbered image directories — the scanner figures out which.',
+  'onboarding.shelf.action.pick': 'Pick folder',
+  'onboarding.shelf.action.pickAnother': 'Choose another folder',
+  'onboarding.shelf.action.import': 'Import {count}',
+  'onboarding.shelf.action.importing': 'Importing…',
+  'onboarding.shelf.hint': 'You can always add more folders later from the Library.',
+  'onboarding.shelf.scan.scanning': 'Scanning',
+  'onboarding.shelf.scan.readingArchives': 'Reading archives',
+  'onboarding.shelf.review.empty':
+    'Nothing detected under that folder. Pick a different root or check that each series is in its own subfolder.',
+  'onboarding.shelf.review.detected': 'Review · {count} series detected',
+  'onboarding.shelf.review.selected': '{count} selected',
+  'onboarding.shelf.toast.empty.title': 'Nothing selected',
+  'onboarding.shelf.toast.empty.body': 'Pick at least one series before importing.',
+  'onboarding.shelf.toast.done.title': 'Import finished',
+  'onboarding.shelf.toast.done.body': '{added} added · {skipped} skipped',
+  'onboarding.shelf.done.eyebrow': 'Imported',
+  'onboarding.shelf.done.body':
+    '{count} series added to your shelf. Continue to wrap up — they’ll be waiting in the Library.',
+
+  // Onboarding — Finish step
+  'onboarding.finish.eyebrow': 'Done',
+  'onboarding.finish.title': 'Where would you like to start?',
+  'onboarding.finish.description':
+    'Browse MangaDex to find new series, or open the Library to pick up what’s already on your shelf.',
+  'onboarding.finish.body':
+    'You can revisit any of these choices in Settings — and re-run this setup from Settings → About if anything changes.',
+  'onboarding.finish.tagline': 'Welcome to the shelf.',
+  'onboarding.finish.action.browse': 'Browse MangaDex',
+  'onboarding.finish.action.library': 'Open Library',
 } as const;

@@ -180,6 +180,8 @@ export const pl = {
   'settings.about.credits.prefix': 'Stworzone z',
   'settings.about.logs.action': 'Otwórz folder z logami',
   'settings.about.logs.error': 'Nie udało się otworzyć folderu z logami.',
+  'settings.about.onboarding.action': 'Uruchom konfigurację ponownie',
+  'settings.about.onboarding.error': 'Nie udało się uruchomić konfiguracji.',
 
   // Settings — Keyboard
   'settings.keyboard.title': 'Klawiatura',
@@ -368,4 +370,75 @@ export const pl = {
   'splash.msg.5': 'Otwieramy okładki…',
   'splash.msg.6': 'Sortujemy zakładki…',
   'splash.msg.7': 'Kirei czyta cichutko…',
+
+  // Onboarding — pierwsze uruchomienie
+  'onboarding.aria.dialog': 'Konfiguracja KireiManga',
+  'onboarding.topbar.brand': 'KireiManga · konfiguracja',
+  'onboarding.topbar.step': 'Krok {current} z {total}',
+  'onboarding.action.back': 'Wstecz',
+  'onboarding.action.next': 'Dalej',
+  'onboarding.action.skipStep': 'Pomiń krok',
+  'onboarding.action.skipRest': 'Pomiń resztę',
+
+  // Onboarding — Powitanie
+  'onboarding.welcome.eyebrow': 'Witaj',
+  'onboarding.welcome.title': 'Cicha półka, dopasowana do Ciebie.',
+  'onboarding.welcome.description':
+    'Trzy krótkie kroki, by KireiManga była Twoja — wygląd, ustawienia czytnika i (opcjonalnie) Twój folder z mangą.',
+  'onboarding.welcome.point.appearance':
+    'Wybierz motyw, rozmiar pisma i krój. Sumi domyślnie — washi, gdy czytasz w dzień.',
+  'onboarding.welcome.point.reader':
+    'Ustal, jak otwierają się rozdziały: tryb stron, kierunek, dopasowanie i język.',
+  'onboarding.welcome.point.shelf':
+    'Opcjonalnie — wskaż folder z plikami CBZ lub katalogami obrazów, a zaimportujemy je za Ciebie.',
+  'onboarding.welcome.begin': 'Rozpocznij',
+  'onboarding.welcome.skip': 'Sam się rozejrzę',
+
+  // Onboarding — Wygląd
+  'onboarding.appearance.eyebrow': 'Wygląd',
+  'onboarding.appearance.title': 'Dostrój pokój.',
+  'onboarding.appearance.description':
+    'Każdy wybór zapisuje się od razu. Wszystko można zmienić później w Ustawienia → Wygląd.',
+  'onboarding.appearance.language.hint': 'KireiManga jest po angielsku i polsku.',
+
+  // Onboarding — Czytnik
+  'onboarding.reader.eyebrow': 'Czytnik',
+  'onboarding.reader.title': 'Jak mają się otwierać rozdziały.',
+  'onboarding.reader.description':
+    'Te ustawienia stają się domyślne dla nowych serii. Każda seria zapamiętuje własne preferencje po pierwszym czytaniu.',
+
+  // Onboarding — Lokalna półka
+  'onboarding.shelf.eyebrow': 'Dodaj swoją półkę',
+  'onboarding.shelf.title': 'Dodaj swoje pliki (opcjonalnie).',
+  'onboarding.shelf.description':
+    'Wskaż folder. Każdy podfolder w nim staje się serią. Pliki CBZ albo katalogi z numerowanymi obrazami — skaner sobie poradzi.',
+  'onboarding.shelf.action.pick': 'Wybierz folder',
+  'onboarding.shelf.action.pickAnother': 'Wybierz inny folder',
+  'onboarding.shelf.action.import': 'Importuj {count}',
+  'onboarding.shelf.action.importing': 'Importowanie…',
+  'onboarding.shelf.hint': 'Kolejne foldery dodasz później z poziomu Biblioteki.',
+  'onboarding.shelf.scan.scanning': 'Skanowanie',
+  'onboarding.shelf.scan.readingArchives': 'Czytanie archiwów',
+  'onboarding.shelf.review.empty':
+    'Nic nie znaleziono w tym folderze. Wybierz inny lub sprawdź, czy każda seria jest w osobnym podfolderze.',
+  'onboarding.shelf.review.detected': 'Przegląd · znaleziono {count} serii',
+  'onboarding.shelf.review.selected': 'Zaznaczono {count}',
+  'onboarding.shelf.toast.empty.title': 'Nic nie zaznaczono',
+  'onboarding.shelf.toast.empty.body': 'Zaznacz co najmniej jedną serię przed importem.',
+  'onboarding.shelf.toast.done.title': 'Import zakończony',
+  'onboarding.shelf.toast.done.body': 'Dodano {added} · pominięto {skipped}',
+  'onboarding.shelf.done.eyebrow': 'Zaimportowano',
+  'onboarding.shelf.done.body':
+    'Dodano {count} serii do półki. Przejdź dalej — będą czekały w Bibliotece.',
+
+  // Onboarding — Zakończenie
+  'onboarding.finish.eyebrow': 'Gotowe',
+  'onboarding.finish.title': 'Od czego zacząć?',
+  'onboarding.finish.description':
+    'Przeglądaj MangaDex w poszukiwaniu nowych serii lub otwórz Bibliotekę, by sięgnąć po to, co już masz.',
+  'onboarding.finish.body':
+    'Wszystkie wybory zmienisz w Ustawieniach — a tę konfigurację uruchomisz ponownie z Ustawienia → O programie.',
+  'onboarding.finish.tagline': 'Witaj na półce.',
+  'onboarding.finish.action.browse': 'Przeglądaj MangaDex',
+  'onboarding.finish.action.library': 'Otwórz Bibliotekę',
 } as const;

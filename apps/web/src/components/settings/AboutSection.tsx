@@ -1,13 +1,16 @@
-import { FolderOpen, Heart } from 'lucide-react';
+import { FolderOpen, Heart, Wand2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import mascotWave from '@/assets/chibi_wave.png';
 import { useAppVersion } from '@/hooks/useAppVersion';
 import { useT } from '@/hooks/useT';
 import { useToast } from '@/hooks/useToast';
+import { useSettingsStore } from '@/stores/settings-store';
 import { SettingsSection } from './SettingsSection';
 
 export function AboutSection() {
   const t = useT();
   const toast = useToast();
+  const navigate = useNavigate();
   const version = useAppVersion();
 
   const openLogsFolder = async () => {
@@ -16,6 +19,21 @@ export function AboutSection() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err), {
         title: t('settings.about.logs.error'),
+      });
+    }
+  };
+
+  const replayOnboarding = async () => {
+    try {
+      await useSettingsStore.getState().set({
+        onboarding: { completed: false, completedAt: null },
+      });
+      // Navigate home so the user sees the overlay against a known-good
+      // backdrop (Library) rather than the Settings page they were just on.
+      navigate('/');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err), {
+        title: t('settings.about.onboarding.error'),
       });
     }
   };
@@ -62,14 +80,24 @@ export function AboutSection() {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={openLogsFolder}
-        className="inline-flex w-fit items-center gap-2 rounded-sm border border-border bg-[var(--color-ink-sunken)] px-3 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--color-bone-muted)] transition-colors hover:border-[var(--color-accent)] hover:text-foreground"
-      >
-        <FolderOpen className="h-3.5 w-3.5" />
-        {t('settings.about.logs.action')}
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={openLogsFolder}
+          className="inline-flex w-fit items-center gap-2 rounded-sm border border-border bg-[var(--color-ink-sunken)] px-3 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--color-bone-muted)] transition-colors hover:border-[var(--color-accent)] hover:text-foreground"
+        >
+          <FolderOpen className="h-3.5 w-3.5" />
+          {t('settings.about.logs.action')}
+        </button>
+        <button
+          type="button"
+          onClick={replayOnboarding}
+          className="inline-flex w-fit items-center gap-2 rounded-sm border border-border bg-[var(--color-ink-sunken)] px-3 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--color-bone-muted)] transition-colors hover:border-[var(--color-accent)] hover:text-foreground"
+        >
+          <Wand2 className="h-3.5 w-3.5" />
+          {t('settings.about.onboarding.action')}
+        </button>
+      </div>
     </SettingsSection>
   );
 }

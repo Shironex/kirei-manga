@@ -25,7 +25,7 @@ function mergeWithDefaults(stored: unknown): { merged: AppSettings; mutated: boo
   const input = stored as Partial<AppSettings>;
   let mutated = false;
 
-  const sectionKeys = ['appearance', 'reader', 'library'] as const;
+  const sectionKeys = ['appearance', 'reader', 'library', 'onboarding'] as const;
   const merged: AppSettings = { ...DEFAULT_APP_SETTINGS };
 
   for (const key of sectionKeys) {
@@ -68,9 +68,10 @@ function applyPatch(base: AppSettings, patch: DeepPartial<AppSettings>): AppSett
   const next: AppSettings = {
     appearance: { ...base.appearance },
     reader: { ...base.reader },
-    library: { ...base.library },
+    library: { ...base.library, localRoots: [...base.library.localRoots] },
     language: base.language,
     shortcuts: { ...base.shortcuts },
+    onboarding: { ...base.onboarding },
   };
 
   if (patch.appearance) {
@@ -81,12 +82,20 @@ function applyPatch(base: AppSettings, patch: DeepPartial<AppSettings>): AppSett
   }
   if (patch.library) {
     next.library = { ...next.library, ...patch.library } as AppSettings['library'];
+    if (patch.library.localRoots !== undefined) {
+      // Always overwrite localRoots wholesale — patches are expected to send
+      // the new full array (append happens client-side from the prior state).
+      next.library.localRoots = [...(patch.library.localRoots as string[])];
+    }
   }
   if (patch.language !== undefined) {
     next.language = patch.language as AppSettings['language'];
   }
   if (patch.shortcuts) {
     next.shortcuts = { ...next.shortcuts, ...patch.shortcuts } as AppSettings['shortcuts'];
+  }
+  if (patch.onboarding) {
+    next.onboarding = { ...next.onboarding, ...patch.onboarding } as AppSettings['onboarding'];
   }
 
   return next;
@@ -131,7 +140,17 @@ export class SettingsService {
 
   /** Restore defaults and persist. */
   reset(): AppSettings {
-    this.settings = { ...DEFAULT_APP_SETTINGS, shortcuts: { ...DEFAULT_APP_SETTINGS.shortcuts } };
+    this.settings = {
+      ...DEFAULT_APP_SETTINGS,
+      appearance: { ...DEFAULT_APP_SETTINGS.appearance },
+      reader: { ...DEFAULT_APP_SETTINGS.reader },
+      library: {
+        ...DEFAULT_APP_SETTINGS.library,
+        localRoots: [...DEFAULT_APP_SETTINGS.library.localRoots],
+      },
+      shortcuts: { ...DEFAULT_APP_SETTINGS.shortcuts },
+      onboarding: { ...DEFAULT_APP_SETTINGS.onboarding },
+    };
     store.set(STORE_KEY, this.settings);
     return this.get();
   }
