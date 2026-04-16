@@ -44,6 +44,7 @@ export const MangaDexEvents = {
 export const ChapterEvents = {
   ADD_BOOKMARK: 'chapter:add-bookmark',
   GET_BOOKMARKS: 'chapter:get-bookmarks',
+  REMOVE_BOOKMARK: 'chapter:remove-bookmark',
 } as const;
 
 // ============================================

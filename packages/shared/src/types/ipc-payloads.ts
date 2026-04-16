@@ -1,4 +1,10 @@
-import type { Series, ReadingStatus, Bookmark, BoundingBox, SeriesUpdate } from './series';
+import type {
+  Series,
+  ReadingStatus,
+  BookmarkWithChapter,
+  BoundingBox,
+  SeriesUpdate,
+} from './series';
 import type { ReaderSettings } from './reader';
 import type {
   MangaDexSeriesDetail,
@@ -81,14 +87,17 @@ export type LibraryUpdatedAction =
   | 'unfollowed'
   | 'status-changed'
   | 'progress-changed'
-  | 'prefs-changed';
+  | 'prefs-changed'
+  | 'bookmark-added'
+  | 'bookmark-removed';
 
 /**
  * Payload broadcast on `LibraryEvents.UPDATED` after any library mutation.
  * `series` is populated for follow/status-changed; `id` for unfollow and
  * progress-changed (where the caller can re-fetch if it cares). `chapter`
  * rides along on `progress-changed` so renderer caches can patch without a
- * refetch.
+ * refetch. `bookmark` / `bookmarkId` ride along on bookmark-added /
+ * bookmark-removed so renderer caches can patch in place.
  */
 export interface LibraryUpdatedEvent {
   action: LibraryUpdatedAction;
@@ -100,6 +109,8 @@ export interface LibraryUpdatedEvent {
     isRead: boolean;
     pageCount: number;
   };
+  bookmark?: BookmarkWithChapter;
+  bookmarkId?: string;
 }
 
 // =============================================================================
@@ -262,17 +273,35 @@ export interface LibraryUpdatesAvailableEvent {
 // =============================================================================
 
 export interface ChapterAddBookmarkPayload {
-  chapterId: string;
+  mangadexSeriesId: string;
+  mangadexChapterId: string;
   page: number;
   note?: string;
+  chapterNumber?: number;
+  volumeNumber?: number;
+  chapterTitle?: string;
+}
+
+export interface ChapterAddBookmarkResponse {
+  bookmark: BookmarkWithChapter | null;
+  error?: string;
 }
 
 export interface ChapterGetBookmarksPayload {
-  chapterId: string;
+  mangadexSeriesId: string;
 }
 
 export interface ChapterGetBookmarksResponse {
-  bookmarks: Bookmark[];
+  bookmarks: BookmarkWithChapter[];
+  error?: string;
+}
+
+export interface ChapterRemoveBookmarkPayload {
+  bookmarkId: string;
+}
+
+export interface ChapterRemoveBookmarkResponse {
+  success: boolean;
   error?: string;
 }
 

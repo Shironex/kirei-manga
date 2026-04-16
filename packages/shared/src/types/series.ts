@@ -65,7 +65,9 @@ export interface Chapter {
 }
 
 /**
- * A bookmark placed on a specific page of a chapter.
+ * A bookmark placed on a specific page of a chapter. `chapterId` and
+ * `seriesId` are LOCAL database ids — the renderer never holds these;
+ * see `BookmarkWithChapter` for the hydrated shape used over IPC.
  */
 export interface Bookmark {
   id: string;
@@ -74,6 +76,20 @@ export interface Bookmark {
   page: number;
   note?: string;
   createdAt: Date;
+}
+
+/**
+ * Bookmark enriched with its source chapter's MangaDex identifiers and
+ * display metadata (chapter / volume number, title). This is the shape the
+ * renderer receives and caches — it can locate chapters by MangaDex id
+ * without needing to resolve local ids.
+ */
+export interface BookmarkWithChapter extends Bookmark {
+  mangadexChapterId: string;
+  mangadexSeriesId: string;
+  chapterNumber?: number;
+  volumeNumber?: number;
+  chapterTitle?: string;
 }
 
 /**

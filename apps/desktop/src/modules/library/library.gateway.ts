@@ -21,6 +21,7 @@ import {
   type LibraryUpdatesAvailableEvent,
   type ChapterAddBookmarkPayload,
   type ChapterGetBookmarksPayload,
+  type ChapterRemoveBookmarkPayload,
   type ReaderGetPrefsPayload,
   type ReaderSetPrefsPayload,
   type ReaderUpdateProgressPayload,
@@ -250,11 +251,7 @@ export class LibraryGateway {
       action: 'chapter:add-bookmark',
       defaultResult: { bookmark: null },
       handler: async () => {
-        const bookmark = await this.libraryService.addBookmark(
-          payload.chapterId,
-          payload.page,
-          payload.note
-        );
+        const bookmark = await this.libraryService.addBookmark(payload);
         return { bookmark };
       },
     });
@@ -267,8 +264,21 @@ export class LibraryGateway {
       action: 'chapter:get-bookmarks',
       defaultResult: { bookmarks: [] },
       handler: async () => {
-        const bookmarks = await this.libraryService.getBookmarks(payload.chapterId);
+        const bookmarks = await this.libraryService.getBookmarks(payload.mangadexSeriesId);
         return { bookmarks };
+      },
+    });
+  }
+
+  @SubscribeMessage(ChapterEvents.REMOVE_BOOKMARK)
+  handleRemoveBookmark(@MessageBody() payload: ChapterRemoveBookmarkPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'chapter:remove-bookmark',
+      defaultResult: { success: false },
+      handler: async () => {
+        const result = await this.libraryService.removeBookmark(payload.bookmarkId);
+        return { success: result.success };
       },
     });
   }

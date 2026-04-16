@@ -4,7 +4,8 @@ import { createLogger } from '@kireimanga/shared';
 import type {
   Series,
   ReadingStatus,
-  Bookmark,
+  BookmarkWithChapter,
+  ChapterAddBookmarkPayload,
   ReaderSettings,
   ReaderMode,
   ReaderDirection,
@@ -505,11 +506,15 @@ export class LibraryService {
       .run(localSeriesId);
   }
 
-  async addBookmark(_chapterId: string, _page: number, _note?: string): Promise<Bookmark> {
+  async addBookmark(_payload: ChapterAddBookmarkPayload): Promise<BookmarkWithChapter> {
     throw new NotImplementedException('chapter:add-bookmark not implemented yet');
   }
 
-  async getBookmarks(_chapterId: string): Promise<Bookmark[]> {
+  async getBookmarks(_mangadexSeriesId: string): Promise<BookmarkWithChapter[]> {
     throw new NotImplementedException('chapter:get-bookmarks not implemented yet');
+  }
+
+  async removeBookmark(_bookmarkId: string): Promise<{ success: boolean }> {
+    throw new NotImplementedException('chapter:remove-bookmark not implemented yet');
   }
 }
