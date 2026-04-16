@@ -243,6 +243,34 @@ export class LocalGateway {
     });
   }
 
+  /**
+   * Rescan a followed series' root folder for newly-added chapters.
+   * Broadcasts `library:updates-available` alongside a per-series
+   * `library:updated` so badge counts and list ordering both refresh
+   * immediately — the renderer keys the badge on `newChapterCount` and
+   * refetches the series to pick up the new chapter rows.
+   */
+  @SubscribeMessage(LocalEvents.RESCAN_SERIES)
+  handleRescanSeries(@MessageBody() payload: { id: string }) {
+    return handleGatewayRequest({
+      logger,
+      action: 'local:rescan-series',
+      defaultResult: { newChapterCount: 0 },
+      handler: async () => {
+        const result = await this.library.rescanSeries(payload.id);
+        if (result.newChapterCount > 0) {
+          const series = await this.library.getSeries(payload.id);
+          this.server.emit(LibraryEvents.UPDATED, {
+            action: 'status-changed',
+            id: payload.id,
+            series: series ?? undefined,
+          } satisfies LibraryUpdatedEvent);
+        }
+        return result;
+      },
+    });
+  }
+
   @SubscribeMessage(LocalEvents.DELETE_SERIES)
   handleDeleteSeries(@MessageBody() payload: LocalDeleteSeriesPayload) {
     return handleGatewayRequest({

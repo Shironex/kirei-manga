@@ -58,8 +58,8 @@ describe('LocalLibraryService (integration)', () => {
 
     const db = await createTestDatabase();
     dbService = { db } as unknown as DatabaseService;
-    service = new LocalLibraryService(dbService);
     scanner = new LocalScannerService();
+    service = new LocalLibraryService(dbService, scanner);
   });
 
   afterEach(async () => {
@@ -194,6 +194,36 @@ describe('LocalLibraryService (integration)', () => {
 
   it('getChapterResumePage returns 0 for unknown chapters', () => {
     expect(service.getChapterResumePage('unknown-id')).toBe(0);
+  });
+
+  it('rescanSeries detects newly-added chapters and bumps newChapterCount', async () => {
+    await writeZip(path.join(tmp, 'My Series', 'Chapter 1.cbz'), ['001.png']);
+    const firstScan = await scanner.scan(tmp);
+    const { createdSeriesIds } = await service.import({
+      rootPath: tmp,
+      candidates: firstScan.candidates,
+    });
+    const [seriesId] = createdSeriesIds;
+
+    // No changes on disk — rescan is a no-op.
+    const unchanged = await service.rescanSeries(seriesId);
+    expect(unchanged.newChapterCount).toBe(0);
+
+    // Add a new chapter file, then rescan — should pick it up.
+    await writeZip(path.join(tmp, 'My Series', 'Chapter 2.cbz'), ['001.png', '002.png']);
+    const updated = await service.rescanSeries(seriesId);
+    expect(updated.newChapterCount).toBe(1);
+
+    const chapters = await service.getChapters(seriesId);
+    expect(chapters).toHaveLength(2);
+
+    const series = await service.getSeries(seriesId);
+    expect(series?.newChapterCount).toBe(1);
+  });
+
+  it('rescanSeries returns zero for a series without a local root', async () => {
+    const result = await service.rescanSeries('unknown-id');
+    expect(result.newChapterCount).toBe(0);
   });
 
   it('updateSeries merges a patch and clamps score to 1..10', async () => {

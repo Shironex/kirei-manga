@@ -16,6 +16,7 @@ import {
 } from '@kireimanga/shared';
 import { DatabaseService } from '../database';
 import { openArchive, type PageEntry } from './archive';
+import { LocalScannerService } from './scanner';
 
 const logger = createLogger('LocalLibraryService');
 
@@ -118,7 +119,10 @@ export interface LocalChapterArchive {
  */
 @Injectable()
 export class LocalLibraryService {
-  constructor(private readonly db: DatabaseService) {
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly scanner: LocalScannerService
+  ) {
     logger.info('LocalLibraryService initialized');
   }
 
@@ -267,6 +271,81 @@ export class LocalLibraryService {
   }
 
   /**
+   * Rescan a followed series' root folder and insert rows for any new
+   * chapters. `lastCheckedAt` is bumped unconditionally; `newChapterCount`
+   * reflects the cumulative unread additions since the last time the user
+   * opened the series (`library:mark-seen` resets it). Returns the number
+   * of brand-new chapters detected during *this* rescan — the UI uses
+   * that for its toast, while the cumulative count drives the badge.
+   *
+   * Missing-on-disk chapters are left alone: users might just have moved
+   * the folder temporarily, and silent deletion would be too aggressive.
+   */
+  async rescanSeries(localSeriesId: string): Promise<{ newChapterCount: number }> {
+    const series = await this.getSeries(localSeriesId);
+    if (!series) return { newChapterCount: 0 };
+    if (!series.localRootPath) return { newChapterCount: 0 };
+
+    const candidate = await this.scanner.scanSeriesFolder(series.localRootPath);
+    if (!candidate) return { newChapterCount: 0 };
+
+    const existing = this.db.db
+      .prepare(
+        `SELECT local_path FROM chapters
+         WHERE series_id = ? AND source = 'local'`
+      )
+      .all(localSeriesId) as Array<{ local_path: string | null }>;
+    const existingPaths = new Set(
+      existing.map(r => r.local_path).filter((p): p is string => !!p)
+    );
+
+    let inserted = 0;
+    const tx = this.db.db.transaction(() => {
+      for (const chapter of candidate.chapters) {
+        const absolutePath = path.join(candidate.absolutePath, chapter.relativePath);
+        if (existingPaths.has(absolutePath)) continue;
+        this.db.db
+          .prepare(
+            `INSERT INTO chapters (
+               id, series_id, source,
+               chapter_number, volume_number,
+               local_path, local_archive_format, page_count,
+               is_downloaded, is_read, last_read_page
+             ) VALUES (?, ?, 'local', ?, ?, ?, ?, ?, 1, 0, 0)`
+          )
+          .run(
+            randomUUID(),
+            localSeriesId,
+            chapter.chapterNumber ?? 0,
+            chapter.volumeNumber ?? null,
+            absolutePath,
+            chapter.format,
+            chapter.pageCount
+          );
+        inserted += 1;
+      }
+
+      if (inserted > 0) {
+        this.db.db
+          .prepare(
+            `UPDATE series
+             SET new_chapter_count = COALESCE(new_chapter_count, 0) + ?,
+                 last_checked_at = datetime('now')
+             WHERE id = ?`
+          )
+          .run(inserted, localSeriesId);
+      } else {
+        this.db.db
+          .prepare("UPDATE series SET last_checked_at = datetime('now') WHERE id = ?")
+          .run(localSeriesId);
+      }
+    });
+    tx();
+
+    return { newChapterCount: inserted };
+  }
+
+  /**
    * Delete a local series and cascade (chapters / bookmarks / reading
    * sessions drop via ON DELETE CASCADE). Also tries to unlink the cover
    * file on disk — a failure there is logged but not fatal since the row
@@ -309,6 +388,9 @@ export class LocalLibraryService {
       notes: (row.notes as string | null) ?? undefined,
       addedAt: new Date(row.added_at as string),
       lastReadAt: row.last_read_at ? new Date(row.last_read_at as string) : undefined,
+      lastChapterId: (row.last_chapter_id as string | null) ?? undefined,
+      lastCheckedAt: row.last_checked_at ? new Date(row.last_checked_at as string) : undefined,
+      newChapterCount: (row.new_chapter_count as number | null) ?? undefined,
       localRootPath: (row.local_root_path as string | null) ?? undefined,
       localContentHash: (row.local_content_hash as string | null) ?? undefined,
     };

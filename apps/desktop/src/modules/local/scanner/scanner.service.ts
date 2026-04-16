@@ -127,6 +127,32 @@ export class LocalScannerService {
   }
 
   /**
+   * Targeted rescan for a single known series folder. Unlike `scan`, this
+   * treats `seriesFolderPath` as the series directly — no root-level
+   * layout detection. Used by the rescan flow (Slice L) to diff the
+   * current on-disk chapter set against what SQLite knows about. Returns
+   * `null` when the folder no longer exists or holds no readable
+   * chapters.
+   */
+  async scanSeriesFolder(seriesFolderPath: string): Promise<ScanCandidateSeries | null> {
+    const normalized = path.resolve(seriesFolderPath);
+    const detected = await this.detectChaptersInSeries(normalized);
+    if (detected.length === 0) return null;
+
+    const probed = await this.probeChapters(detected, () => {
+      /* no progress for single-folder rescans */
+    });
+    if (probed.length === 0) return null;
+
+    return {
+      absolutePath: normalized,
+      suggestedTitle: cleanTitle(path.basename(normalized)) || path.basename(normalized),
+      coverCandidatePath: probed[0].coverCandidatePath,
+      chapters: probed.map(p => p.candidate),
+    };
+  }
+
+  /**
    * Walk `rootPath` one or two levels deep to classify what kind of layout
    * the user has. The three supported shapes:
    *   - Single-series: root directly contains archive files → root = series.
