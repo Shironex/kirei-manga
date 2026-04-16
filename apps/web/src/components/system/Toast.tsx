@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useToastStore, type Toast as ToastModel } from '@/stores/toast-store';
+import { useT } from '@/hooks/useT';
 
-const EYEBROW_LABEL: Record<ToastModel['variant'], string> = {
-  error: 'ERROR',
-  info: 'NOTICE',
-  success: 'DONE',
+const EYEBROW_KEY: Record<ToastModel['variant'], string> = {
+  error: 'toast.eyebrow.error',
+  info: 'toast.eyebrow.notice',
+  success: 'toast.eyebrow.done',
 };
 
 interface ToastProps {
@@ -12,6 +13,7 @@ interface ToastProps {
 }
 
 export function Toast({ toast }: ToastProps) {
+  const t = useT();
   const dismiss = useToastStore(s => s.dismiss);
   const handle = useRef<number | null>(null);
   const remaining = useRef<number>(toast.ttlMs);
@@ -59,7 +61,7 @@ export function Toast({ toast }: ToastProps) {
       className={`relative animate-fade-up overflow-hidden rounded-[2px] border border-border border-l-2 bg-[var(--color-ink-raised)] py-3 pr-3 pl-4 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] ${borderLeft}`}
     >
       <p className={`font-mono text-[10px] tracking-[0.24em] uppercase ${eyebrowColor}`}>
-        {EYEBROW_LABEL[toast.variant]}
+        {t(EYEBROW_KEY[toast.variant])}
       </p>
       {toast.title ? (
         <p className="font-display mt-1 text-[14px] font-[360]">{toast.title}</p>
@@ -69,7 +71,7 @@ export function Toast({ toast }: ToastProps) {
         <button
           type="button"
           onClick={() => dismiss(toast.id)}
-          aria-label="Dismiss"
+          aria-label={t('toast.dismiss')}
           className="absolute top-2 right-2 font-mono text-[11px] text-[var(--color-bone-faint)] hover:text-foreground"
         >
           ×

@@ -1,5 +1,12 @@
-import type { AppearanceSettings, FontSize, ReadingFont, Theme } from '@kireimanga/shared';
+import type {
+  AppearanceSettings,
+  FontSize,
+  Language,
+  ReadingFont,
+  Theme,
+} from '@kireimanga/shared';
 import { useSettingsStore } from '@/stores/settings-store';
+import { useT } from '@/hooks/useT';
 import { Segmented, type SegmentedOption } from './Segmented';
 import { SettingRow, SettingsSection } from './SettingsSection';
 
@@ -24,17 +31,28 @@ const READING_FONT_OPTIONS: ReadonlyArray<SegmentedOption<ReadingFont>> = [
 ];
 
 export function AppearanceSection() {
+  const t = useT();
   const appearance = useSettingsStore(s => s.settings?.appearance);
-  if (!appearance) return null;
+  const language = useSettingsStore(s => s.settings?.language);
+  if (!appearance || !language) return null;
 
   const patch = (partial: Partial<AppearanceSettings>) => {
     void useSettingsStore.getState().set({ appearance: partial });
   };
 
+  const setLanguage = (next: Language) => {
+    void useSettingsStore.getState().set({ language: next });
+  };
+
+  const LANGUAGE_OPTIONS: ReadonlyArray<SegmentedOption<Language>> = [
+    { value: 'en', label: t('settings.language.option.en') },
+    { value: 'pl', label: t('settings.language.option.pl') },
+  ];
+
   return (
     <SettingsSection
       kanji="色"
-      eyebrow="Appearance"
+      eyebrow={t('settings.section.appearance')}
       title="Theme & typography"
       description="Switch between sumi (ink-dark) and washi (paper-light). Tune the app font size and pick the family used for narrative copy."
     >
@@ -65,6 +83,15 @@ export function AppearanceSection() {
           value={appearance.readingFont}
           options={READING_FONT_OPTIONS}
           onChange={value => patch({ readingFont: value })}
+        />
+      </SettingRow>
+
+      <SettingRow label={t('settings.language.label')}>
+        <Segmented<Language>
+          ariaLabel={t('settings.language.label')}
+          value={language}
+          options={LANGUAGE_OPTIONS}
+          onChange={setLanguage}
         />
       </SettingRow>
     </SettingsSection>

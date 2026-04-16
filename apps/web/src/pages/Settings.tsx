@@ -4,16 +4,18 @@ import { KeyboardSection } from '../components/settings/KeyboardSection';
 import { LibrarySection } from '../components/settings/LibrarySection';
 import { ReaderDefaultsSection } from '../components/settings/ReaderDefaultsSection';
 import { useSettingsStore } from '../stores/settings-store';
+import { useT } from '@/hooks/useT';
 
 export function SettingsPage() {
+  const t = useT();
   const loaded = useSettingsStore(s => s.settings !== null);
 
   return (
     <>
       <PageHeader
-        eyebrow="Settings"
+        eyebrow={t('settings.eyebrow')}
         kanji="設定"
-        title="Everything, tuned to you."
+        title={t('settings.title')}
         subtitle="KireiManga is local-first. Your library, keys, and translation cache never leave this machine unless you ask."
       />
 

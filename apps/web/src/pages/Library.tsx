@@ -8,6 +8,7 @@ import { LibraryControls } from '../components/library/LibraryControls';
 import { useLibraryStore } from '@/stores/library-store';
 import { useLibraryViewStore, type LibrarySort } from '@/stores/library-view-store';
 import { fuzzyIncludes } from '@/lib/fuzzyMatch';
+import { useT } from '@/hooks/useT';
 
 function toTime(value: Date | string | undefined): number {
   if (!value) return 0;
@@ -31,6 +32,7 @@ function compareSeries(a: Series, b: Series, sort: LibrarySort): number {
 }
 
 export function LibraryPage() {
+  const t = useT();
   const series = useLibraryStore(s => s.series);
   const mode = useLibraryViewStore(s => s.mode);
   const sort = useLibraryViewStore(s => s.sort);
@@ -65,36 +67,36 @@ export function LibraryPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Library"
+        eyebrow={t('library.eyebrow')}
         kanji="書架"
-        title="Your shelf, quiet and kept."
+        title={t('library.title')}
         subtitle={
           <span className="font-mono text-[10px] tracking-[0.22em] uppercase">
-            {totalCount} series
+            {t('library.subtitle.count', { count: totalCount })}
           </span>
         }
       />
       {totalCount === 0 ? (
         <EmptyState
           glyph="書"
-          title="No series followed yet."
-          body="Start by browsing MangaDex to follow a series, or drop a folder of CBZ files into Settings → Local Library."
+          title={t('library.empty.title')}
+          body={t('library.empty.body')}
           action={
             <Link
               to="/browse"
               className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
             >
-              Browse MangaDex
+              {t('library.empty.cta')}
             </Link>
           }
-          hint="Ctrl + B  ·  Browse"
+          hint={t('library.empty.hint')}
         />
       ) : (
         <>
           <LibraryControls />
           {visibleCount === 0 ? (
             <p className="py-10 text-center font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
-              No series match your filters
+              {t('library.filters.empty')}
             </p>
           ) : mode === 'grid' ? (
             <LibraryGrid series={visible} />

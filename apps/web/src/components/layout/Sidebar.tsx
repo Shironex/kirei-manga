@@ -1,22 +1,24 @@
 import { NavLink } from 'react-router-dom';
 import { BookOpen, Compass, Settings2 } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
+import { useT } from '@/hooks/useT';
 
 type NavItem = {
   to: string;
-  label: string;
+  labelKey: string;
   kanji: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   end?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Library', kanji: '書', icon: BookOpen, end: true },
-  { to: '/browse', label: 'Browse', kanji: '探', icon: Compass },
-  { to: '/settings', label: 'Settings', kanji: '設', icon: Settings2 },
+  { to: '/', labelKey: 'nav.library', kanji: '書', icon: BookOpen, end: true },
+  { to: '/browse', labelKey: 'nav.browse', kanji: '探', icon: Compass },
+  { to: '/settings', labelKey: 'nav.settings', kanji: '設', icon: Settings2 },
 ];
 
 export function Sidebar() {
+  const t = useT();
   return (
     <aside className="relative flex w-[232px] shrink-0 flex-col bg-[var(--color-ink-sunken)]">
       {/* Tategaki rail — vertical wordmark */}
@@ -63,7 +65,7 @@ export function Sidebar() {
                   >
                     {item.kanji}
                   </span>
-                  <span className="flex-1 tracking-wide">{item.label}</span>
+                  <span className="flex-1 tracking-wide">{t(item.labelKey)}</span>
                   <item.icon
                     className={[
                       'h-3.5 w-3.5 stroke-[1.25] transition-opacity',
@@ -79,7 +81,7 @@ export function Sidebar() {
         <div className="mt-auto px-6 pb-6">
           <div className="mb-3 h-px w-6 bg-[var(--color-rule-strong)]" />
           <p className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-bone-faint)] uppercase">
-            v0.1 · draft
+            {t('nav.footer')}
           </p>
         </div>
       </div>

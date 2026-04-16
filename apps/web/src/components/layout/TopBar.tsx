@@ -3,8 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 import { useBrowseStore } from '@/stores/browse-store';
 import { useLibraryViewStore } from '@/stores/library-view-store';
+import { useT } from '@/hooks/useT';
 
 export function TopBar() {
+  const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
   const browseQuery = useBrowseStore(s => s.query);
@@ -77,7 +79,11 @@ export function TopBar() {
             type="search"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder={onLibrary ? 'Filter library…' : 'Search library or MangaDex…'}
+            placeholder={
+              onLibrary
+                ? t('topbar.placeholder.library')
+                : t('topbar.placeholder.global')
+            }
             className="flex-1 bg-transparent text-[12px] tracking-wide text-foreground placeholder:text-[var(--color-bone-faint)] focus:outline-none"
           />
           <kbd className="font-mono text-[9px] tracking-wider text-[var(--color-bone-faint)]">
@@ -88,7 +94,7 @@ export function TopBar() {
         {/* Reserved slot for future window controls (frameless Electron). */}
         <span aria-hidden className="h-4 w-px bg-[var(--color-border)]" />
         <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-bone-faint)] uppercase">
-          Offline
+          {t('topbar.status.offline')}
         </span>
       </div>
     </header>

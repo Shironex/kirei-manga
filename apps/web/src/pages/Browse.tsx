@@ -1,3 +1,6 @@
+// TODO(i18n): cover Browse, SeriesBanner, ChapterList, Reader chrome, and the
+// remaining Settings section labels in a follow-up `chore(web): complete i18n
+// pass`. The scaffolding (apps/web/src/i18n + useT()) is already in place.
 import { useMemo } from 'react';
 import { PageHeader } from '../components/layout/PageHeader';
 import { EmptyState } from '../components/layout/EmptyState';
