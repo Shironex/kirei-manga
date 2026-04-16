@@ -32,9 +32,10 @@ assistant** — reserved, focused, always mid-read.
 4. Style Prompt:
    ```
    clean chibi anime illustration, black outline art, flat colors, minimal shading,
-   cream ivory and deep ink and iron-oxide red color palette, serene literary
-   character design, sticker style, simple clean lines, editorial ink-and-paper
-   aesthetic, no bright pinks, no neon, no saturated colors
+   deep sumi ink and cream ivory and iron-oxide red color palette, dark-toned
+   knitwear giving the character visual mass against dark backgrounds, serene
+   literary character design, sticker style, simple clean lines, editorial
+   ink-and-paper aesthetic, no bright pinks, no neon, no saturated colors
    ```
 5. Save as "KireiManga Chibi" — **use for every pose generation**
 
@@ -44,20 +45,23 @@ Matches the app's OKLCH tokens in `apps/web/src/styles/globals.css` — keep the
 mascot anchored to this palette so she reads as part of the same object as the
 app itself.
 
-| Color              | Hex       | Used For                                               |
-| ------------------ | --------- | ------------------------------------------------------ |
-| Sumi (deep ink)    | `#14120E` | Outlines, skirt, hair ribbon accent, book cover, shoes |
-| Kinari (paper)     | `#F6F0E4` | Sweater, skin base, open book page                     |
-| Bengara (red clay) | `#B44A3A` | Eyes, embroidered kanji, bookmark ribbon, cheek dots   |
-| Bone muted         | `#A59F92` | Knee-high socks, secondary line shading                |
-| Ink shadow         | `#0A0906` | Hair deep shadow, shoe sole                            |
+| Color              | Hex       | Used For                                                              |
+| ------------------ | --------- | --------------------------------------------------------------------- |
+| Sumi (deep ink)    | `#14120E` | Outlines, **sweater body**, skirt, book cover, shoes                  |
+| Kinari (paper)     | `#F6F0E4` | Sweater collar, cuff trim, skin base, open book page, knee-high socks |
+| Bengara (red clay) | `#B44A3A` | Eyes, embroidered kanji on chest, hair ribbon, bookmark, cheek dots   |
+| Bone muted         | `#A59F92` | Secondary line shading, sock ribbing                                  |
+| Ink shadow         | `#0A0906` | Hair deep shadow, shoe sole                                           |
 
 **No pink**. **No purple**. Bengara is the only warm accent and it's used
-sparingly — think of it as the single red stamp on a letterpress page.
+sparingly — think of it as the single red stamp on a letterpress page. The
+sweater is intentionally **sumi dark** (not cream) so the character has visual
+mass against the app's dark theme — cream stays for the collar trim, skin,
+socks, and open book page.
 
 ## Character Anchor (use in EVERY prompt)
 
-> chibi anime girl character, 2-head-tall proportions with oversized head and tiny body, long flowing white hair gathered in a single low side-ponytail tied with a thin bengara iron-oxide red silk ribbon, long side-swept bangs framing the face, small vampire fang on lower lip, gentle half-closed eyes in a soft bengara red, oval wire-rim reading glasses perched on the bridge of her nose, pale cream skin with tiny faint bengara red dots on her cheeks instead of blush, wearing an oversized cream ivory high-collar ribbed knit sweater with long sleeves covering her hands slightly, small bengara red embroidered kanji characters 綺麗 on the chest reading vertically, long pleated sumi black ankle-length skirt, cream bone knee-high socks, plain dark mary-jane shoes
+> chibi anime girl character, 2-head-tall proportions with oversized head and tiny body, long flowing white hair gathered in a single low side-ponytail tied with a thin bengara iron-oxide red silk ribbon, long side-swept bangs framing the face, small vampire fang on lower lip, gentle half-closed eyes in a soft bengara red, oval wire-rim reading glasses perched on the bridge of her nose, pale cream skin with tiny faint bengara red dots on her cheeks instead of blush, wearing an oversized deep sumi ink ribbed knit sweater with a soft cream ivory high-collar peeking at the neckline and narrow cream cuffs at the wrists, long sleeves covering her hands slightly, small bengara red embroidered kanji characters 綺麗 on the chest reading vertically, long pleated sumi black ankle-length skirt, cream bone knee-high socks, plain dark mary-jane shoes
 
 ---
 
@@ -77,8 +81,9 @@ red silk ribbon, long side-swept bangs framing the face, small vampire fang on
 lower lip, gentle half-closed eyes in a soft bengara red looking downward at a
 book, oval wire-rim reading glasses perched on the bridge of her nose, pale
 cream skin with tiny faint bengara red dots on her cheeks, wearing an oversized
-cream ivory high-collar ribbed knit sweater with long sleeves covering her hands
-slightly, small bengara red embroidered kanji characters 綺麗 on the chest
+deep sumi ink ribbed knit sweater with a soft cream ivory high-collar peeking
+at the neckline and narrow cream cuffs at the wrists, long sleeves covering her
+hands slightly, small bengara red embroidered kanji characters 綺麗 on the chest
 reading vertically, long pleated sumi black ankle-length skirt, cream bone
 knee-high socks, plain dark mary-jane shoes. She is sitting cross-legged on the
 floor, holding a small open manga volume in both hands close to her lap, head
@@ -101,10 +106,11 @@ hair gathered in a single low side-ponytail tied with a thin bengara iron-oxide
 red silk ribbon, long side-swept bangs framing the face, small vampire fang on
 lower lip, gentle soft bengara red eyes with a calm welcoming expression, oval
 wire-rim reading glasses, pale cream skin with tiny faint bengara red dots on
-her cheeks, wearing an oversized cream ivory high-collar ribbed knit sweater
-with long sleeves, small bengara red embroidered kanji characters 綺麗 on the
-chest, long pleated sumi black ankle-length skirt, cream bone knee-high socks,
-plain dark mary-jane shoes. She is standing politely with a small book tucked
+her cheeks, wearing an oversized deep sumi ink ribbed knit sweater with a soft
+cream ivory high-collar peeking at the neckline and narrow cream cuffs at the
+wrists, long sleeves, small bengara red embroidered kanji characters 綺麗 on
+the chest, long pleated sumi black ankle-length skirt, cream bone knee-high
+socks, plain dark mary-jane shoes. She is standing politely with a small book tucked
 under one arm, raising her free hand near her shoulder in a quiet reserved
 wave, open palm facing forward, head tilted slightly in a tiny welcoming bow,
 soft closed-mouth smile, gentle librarian-like welcoming pose. Clean black
@@ -125,7 +131,8 @@ red silk ribbon, long side-swept bangs framing the face, small vampire fang on
 lower lip, eyes closed peacefully with curved sleepy line eyelids behind her
 oval wire-rim reading glasses that have slipped slightly down her nose, pale
 cream skin with tiny faint bengara red dots on her cheeks, wearing an oversized
-cream ivory high-collar ribbed knit sweater with long sleeves, small bengara
+deep sumi ink ribbed knit sweater with a soft cream ivory high-collar peeking at
+the neckline and narrow cream cuffs at the wrists, long sleeves, small bengara
 red embroidered kanji characters 綺麗 on the chest, long pleated sumi black
 ankle-length skirt, cream bone knee-high socks, plain dark mary-jane shoes.
 She is sitting on the floor dozed off with her head resting on a small stack of
@@ -149,8 +156,9 @@ hair gathered in a single low side-ponytail tied with a thin bengara iron-oxide
 red silk ribbon, long side-swept bangs framing the face, small vampire fang on
 lower lip, soft bengara red eyes looking upward and slightly to the side
 thoughtfully, oval wire-rim reading glasses, pale cream skin with tiny faint
-bengara red dots on her cheeks, wearing an oversized cream ivory high-collar
-ribbed knit sweater with long sleeves, small bengara red embroidered kanji
+bengara red dots on her cheeks, wearing an oversized deep sumi ink ribbed knit
+sweater with a soft cream ivory high-collar peeking at the neckline and narrow
+cream cuffs at the wrists, long sleeves, small bengara red embroidered kanji
 characters 綺麗 on the chest, long pleated sumi black ankle-length skirt, cream
 bone knee-high socks, plain dark mary-jane shoes. She is standing in a thinking
 pose with a small closed manga volume held in one hand at her side, the other
@@ -173,8 +181,9 @@ hair gathered in a single low side-ponytail tied with a thin bengara iron-oxide
 red silk ribbon, long side-swept bangs framing the face, small vampire fang on
 lower lip, soft bengara red eyes looking toward the direction she is pointing
 with a quiet attentive expression, oval wire-rim reading glasses, pale cream
-skin with tiny faint bengara red dots on her cheeks, wearing an oversized cream
-ivory high-collar ribbed knit sweater with long sleeves, small bengara red
+skin with tiny faint bengara red dots on her cheeks, wearing an oversized deep
+sumi ink ribbed knit sweater with a soft cream ivory high-collar peeking at the
+neckline and narrow cream cuffs at the wrists, long sleeves, small bengara red
 embroidered kanji characters 綺麗 on the chest, long pleated sumi black
 ankle-length skirt, cream bone knee-high socks, plain dark mary-jane shoes. She
 is standing turned slightly to the right, one hand holding a small closed manga
@@ -201,10 +210,11 @@ hair gathered in a single low side-ponytail tied with a thin bengara iron-oxide
 red silk ribbon, long side-swept bangs framing the face, small vampire fang on
 lower lip, soft bengara red eyes looking downward in focused reading, oval
 wire-rim reading glasses, pale cream skin with tiny faint bengara red dots on
-her cheeks, wearing an oversized cream ivory high-collar ribbed knit sweater
-with long sleeves, small bengara red embroidered kanji characters 綺麗 on the
-chest, long pleated sumi black ankle-length skirt, cream bone knee-high socks,
-plain dark mary-jane shoes. She is sitting seiza on the floor with a larger
+her cheeks, wearing an oversized deep sumi ink ribbed knit sweater with a soft
+cream ivory high-collar peeking at the neckline and narrow cream cuffs at the
+wrists, long sleeves, small bengara red embroidered kanji characters 綺麗 on
+the chest, long pleated sumi black ankle-length skirt, cream bone knee-high
+socks, plain dark mary-jane shoes. She is sitting seiza on the floor with a larger
 open manga volume resting on her lap, one hand pinching the corner of a page
 mid-turn, the page caught in motion arcing from right to left in the japanese
 right-to-left reading direction, bengara red silk bookmark ribbon trailing from
@@ -246,10 +256,12 @@ single character, centered composition, transparent background.
 ## What to reject during review
 
 - Hair coloured cream / yellow / any warm tint — hair must read as **pure white** against the sumi background
+- **Sweater rendered cream or any light colour** — the sweater body must be dark (deep sumi ink) so the character has mass on the app's dark theme; only the collar trim and cuffs are cream
 - Pink blush on the cheeks — replace with the small bengara dots from the anchor
 - Chunky sneakers, hoodie, or graphic-tee wardrobe (that's ShiroAni / Shiranami, not KireiManga)
 - Wide open grins or jump poses — the mascot is reserved; body language should never go above a soft half-smile
 - Oversaturated bengara — it should look like iron oxide / dried red clay, not fire-engine red
+- Sweater fully bengara red — bengara stays a single accent (embroidery, ribbon, bookmark, eyes, glasses); a full red sweater breaks the "single stamp on a letterpress page" rule
 
 ---
 
