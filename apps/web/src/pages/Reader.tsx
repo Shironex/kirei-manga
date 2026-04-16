@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import type { FitMode, ReaderDirection, ReaderMode } from '@kireimanga/shared';
 import { useChapterPages } from '@/hooks/useChapterPages';
 import { useImagePreload } from '@/hooks/useImagePreload';
 import { useReaderKeyboard } from '@/hooks/useReaderKeyboard';
+import { useReaderPrefs } from '@/hooks/useReaderPrefs';
 import { useReaderStore } from '@/stores/reader-store';
 import { SinglePageView } from '@/components/reader/SinglePageView';
 import { DoublePageView } from '@/components/reader/DoublePageView';
@@ -43,19 +43,20 @@ export function ReaderPage() {
   const prev = useReaderStore(s => s.prev);
   const first = useReaderStore(s => s.first);
   const last = useReaderStore(s => s.last);
-  const setFit = useReaderStore(s => s.setFit);
-  const setMode = useReaderStore(s => s.setMode);
-  const setDirection = useReaderStore(s => s.setDirection);
   const chromeVisible = useReaderStore(s => s.chromeVisible);
   const showChrome = useReaderStore(s => s.showChrome);
   const hideChrome = useReaderStore(s => s.hideChrome);
+
+  // Hydrates store from desktop-persisted prefs and exposes a debounced
+  // setter that writes back through the socket bridge.
+  const { setPrefs } = useReaderPrefs(mangadexSeriesId);
 
   useReaderKeyboard({
     onNext: next,
     onPrev: prev,
     onFirst: first,
     onLast: last,
-    onSetFit: setFit,
+    onSetFit: fit => setPrefs({ fit }),
     onToggleFullscreen: () => void toggleFullscreen(),
     direction,
     mode,
@@ -108,15 +109,6 @@ export function ReaderPage() {
   // Warm the next pages. Webtoon benefits from a deeper window since the user
   // can scroll quickly; single/double only need the immediate next few.
   useImagePreload(pages, pageIndex, mode === 'webtoon' ? 5 : 3);
-
-  const onPrefsChange = useCallback(
-    (partial: { mode?: ReaderMode; direction?: ReaderDirection; fit?: FitMode }) => {
-      if (partial.mode !== undefined) setMode(partial.mode);
-      if (partial.direction !== undefined) setDirection(partial.direction);
-      if (partial.fit !== undefined) setFit(partial.fit);
-    },
-    [setMode, setDirection, setFit]
-  );
 
   if (loading) {
     return (
@@ -197,7 +189,7 @@ export function ReaderPage() {
         mode={mode}
         direction={direction}
         fit={fit}
-        onPrefsChange={onPrefsChange}
+        onPrefsChange={setPrefs}
       />
     </div>
   );
