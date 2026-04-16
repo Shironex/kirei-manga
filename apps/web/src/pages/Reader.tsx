@@ -6,6 +6,8 @@ import { useImagePreload } from '@/hooks/useImagePreload';
 import { useReaderKeyboard } from '@/hooks/useReaderKeyboard';
 import { useReaderStore } from '@/stores/reader-store';
 import { SinglePageView } from '@/components/reader/SinglePageView';
+import { DoublePageView } from '@/components/reader/DoublePageView';
+import { WebtoonView } from '@/components/reader/WebtoonView';
 
 async function toggleFullscreen(): Promise<void> {
   try {
@@ -69,8 +71,9 @@ export function ReaderPage() {
     };
   }, []);
 
-  // Warm the next 3 pages.
-  useImagePreload(pages, pageIndex, 3);
+  // Warm the next pages. Webtoon benefits from a deeper window since the user
+  // can scroll quickly; single/double only need the immediate next few.
+  useImagePreload(pages, pageIndex, mode === 'webtoon' ? 5 : 3);
 
   if (loading) {
     return (
@@ -123,16 +126,26 @@ export function ReaderPage() {
   }
 
   const safeIndex = Math.min(pageIndex, pages.length - 1);
-  const pageUrl = pages[safeIndex];
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[var(--color-ink-sunken)]">
-      <SinglePageView
-        pageUrl={pageUrl}
-        pageNumber={safeIndex + 1}
-        totalPages={pages.length}
-        fit={fit}
-      />
+      {mode === 'single' && (
+        <SinglePageView
+          pageUrl={pages[safeIndex]}
+          pageNumber={safeIndex + 1}
+          totalPages={pages.length}
+          fit={fit}
+        />
+      )}
+      {mode === 'double' && (
+        <DoublePageView
+          pages={pages}
+          primaryIndex={safeIndex}
+          fit={fit}
+          direction={direction}
+        />
+      )}
+      {mode === 'webtoon' && <WebtoonView pages={pages} />}
       <header className="app-drag pointer-events-none absolute inset-x-0 top-0 flex h-11 items-center justify-between border-b border-border bg-[var(--color-ink)]/70 px-5 backdrop-blur">
         <button
           type="button"
