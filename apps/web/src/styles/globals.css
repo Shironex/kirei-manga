@@ -229,6 +229,67 @@ body {
   animation: skeleton-pulse 2200ms var(--ease-out-quart) infinite;
 }
 
+/*
+ * Splash screen animations — a quieter vocabulary than ShiroAni's pop splash.
+ * No bounce-in on the mascot (she's already sitting calmly), no fast twinkle;
+ * instead a slow drift for paper-flake particles and a simple fade-up for the
+ * branding stack. `splash-msg-swap` cross-fades rotating loading messages.
+ */
+@keyframes splash-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes splash-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splash-msg-swap {
+  0% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/*
+ * Paper flakes — tiny bengara specks that drift downward past the mascot.
+ * Each flake uses its own `animation-delay` so the set looks organic; the
+ * `from/to` keyframes only translate on the Y axis so they never collide
+ * with the mascot horizontally.
+ */
+@keyframes splash-flake-drift {
+  0% {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+  15% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(160px);
+  }
+}
+
 /* Simple four-line clamp for descriptions in the masthead. */
 @utility line-clamp-4 {
   display: -webkit-box;
