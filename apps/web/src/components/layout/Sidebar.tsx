@@ -5,6 +5,7 @@ import { useT } from '@/hooks/useT';
 import { useAppVersion } from '@/hooks/useAppVersion';
 import { useUIStore } from '@/stores/ui-store';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { cn } from '@/lib/utils';
 
 type NavItem = {
   to: string;
@@ -21,7 +22,6 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const COLLAPSED_SIDEBAR_WIDTH = 56;
-const COLLAPSED_NAV_ITEM_SIZE = 36;
 
 export function Sidebar() {
   const t = useT();
@@ -40,7 +40,7 @@ export function Sidebar() {
           <span className="font-kanji text-[28px] leading-none tracking-[0.2em] [writing-mode:vertical-rl]">
             綺麗
           </span>
-          <span className="mt-2 block h-12 w-px bg-[var(--color-rule)]" />
+          <span className="mt-2 block h-6 w-px bg-[var(--color-rule)]" />
         </div>
       )}
 
@@ -53,17 +53,22 @@ export function Sidebar() {
                 end={item.end}
                 style={
                   collapsed
-                    ? { width: COLLAPSED_NAV_ITEM_SIZE, height: COLLAPSED_NAV_ITEM_SIZE }
+                    ? {
+                        width: 36,
+                        height: 36,
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }
                     : undefined
                 }
                 className={({ isActive }) =>
-                  [
+                  cn(
                     'group relative rounded-sm text-[13px] transition-colors duration-200',
-                    collapsed
-                      ? 'grid place-items-center'
-                      : 'flex w-full items-center gap-3 py-2 pr-3 pl-5',
-                    isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
-                  ].join(' ')
+                    collapsed ? '' : 'flex w-full items-center gap-3 py-2 pr-3 pl-5',
+                    isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  )
                 }
               >
                 {({ isActive }) => (
@@ -118,7 +123,12 @@ export function Sidebar() {
             return (
               <div
                 key={item.to}
-                className={['flex w-full', collapsed ? 'justify-center' : ''].join(' ')}
+                style={
+                  collapsed
+                    ? { display: 'flex', width: '100%', justifyContent: 'center' }
+                    : undefined
+                }
+                className={collapsed ? '' : 'flex w-full'}
               >
                 {collapsed ? (
                   <Tooltip content={t(item.labelKey)} side="right">
