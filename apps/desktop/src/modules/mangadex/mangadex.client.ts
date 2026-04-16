@@ -14,7 +14,21 @@ const logger = createLogger('MangaDexClient');
 
 const API_BASE = 'https://api.mangadex.org';
 const UPLOADS_BASE = 'https://uploads.mangadex.org';
-const USER_AGENT = 'KireiManga/0.1.0 (https://github.com/Shironex/kirei-manga)';
+
+function getAppVersion(): string {
+  try {
+    const mod = require('electron') as { app?: { getVersion?: () => string } };
+    const v = mod?.app?.getVersion?.();
+    if (v) return v;
+  } catch {
+    // not in Electron runtime
+  }
+  const envVersion = process.env.npm_package_version;
+  if (envVersion) return envVersion;
+  return '0.0.0';
+}
+
+const USER_AGENT = `KireiManga/${getAppVersion()} (https://github.com/Shironex/kirei-manga)`;
 
 // Rate limit intervals.
 // - general bucket: api.mangadex.org global cap ~5 rps/IP → leave headroom at ~4.5 rps (220ms).
