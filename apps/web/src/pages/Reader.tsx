@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import type { FitMode, ReaderDirection, ReaderMode } from '@kireimanga/shared';
 import { useChapterPages } from '@/hooks/useChapterPages';
 import { useImagePreload } from '@/hooks/useImagePreload';
 import { useReaderKeyboard } from '@/hooks/useReaderKeyboard';
@@ -8,6 +9,10 @@ import { useReaderStore } from '@/stores/reader-store';
 import { SinglePageView } from '@/components/reader/SinglePageView';
 import { DoublePageView } from '@/components/reader/DoublePageView';
 import { WebtoonView } from '@/components/reader/WebtoonView';
+import { ReaderChrome } from '@/components/reader/ReaderChrome';
+
+const CHROME_HOTZONE_PX = 72;
+const CHROME_AUTO_HIDE_MS = 2000;
 
 async function toggleFullscreen(): Promise<void> {
   try {
@@ -39,6 +44,11 @@ export function ReaderPage() {
   const first = useReaderStore(s => s.first);
   const last = useReaderStore(s => s.last);
   const setFit = useReaderStore(s => s.setFit);
+  const setMode = useReaderStore(s => s.setMode);
+  const setDirection = useReaderStore(s => s.setDirection);
+  const chromeVisible = useReaderStore(s => s.chromeVisible);
+  const showChrome = useReaderStore(s => s.showChrome);
+  const hideChrome = useReaderStore(s => s.hideChrome);
 
   useReaderKeyboard({
     onNext: next,
@@ -71,9 +81,42 @@ export function ReaderPage() {
     };
   }, []);
 
+  // Auto-hide chrome unless the cursor enters the top hotzone.
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const scheduleHide = () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(() => hideChrome(), CHROME_AUTO_HIDE_MS);
+    };
+
+    const onMove = (e: MouseEvent) => {
+      if (e.clientY <= CHROME_HOTZONE_PX) {
+        showChrome();
+        scheduleHide();
+      }
+    };
+
+    scheduleHide();
+    window.addEventListener('mousemove', onMove);
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+      window.removeEventListener('mousemove', onMove);
+    };
+  }, [showChrome, hideChrome]);
+
   // Warm the next pages. Webtoon benefits from a deeper window since the user
   // can scroll quickly; single/double only need the immediate next few.
   useImagePreload(pages, pageIndex, mode === 'webtoon' ? 5 : 3);
+
+  const onPrefsChange = useCallback(
+    (partial: { mode?: ReaderMode; direction?: ReaderDirection; fit?: FitMode }) => {
+      if (partial.mode !== undefined) setMode(partial.mode);
+      if (partial.direction !== undefined) setDirection(partial.direction);
+      if (partial.fit !== undefined) setFit(partial.fit);
+    },
+    [setMode, setDirection, setFit]
+  );
 
   if (loading) {
     return (
@@ -146,19 +189,16 @@ export function ReaderPage() {
         />
       )}
       {mode === 'webtoon' && <WebtoonView pages={pages} />}
-      <header className="app-drag pointer-events-none absolute inset-x-0 top-0 flex h-11 items-center justify-between border-b border-border bg-[var(--color-ink)]/70 px-5 backdrop-blur">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="app-no-drag pointer-events-auto group inline-flex items-center gap-2 text-[12px] tracking-wide text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5 stroke-[1.4] transition-transform group-hover:-translate-x-0.5" />
-          Back
-        </button>
-        <span className="font-mono text-[11px] tracking-[0.18em] text-[var(--color-bone-faint)] uppercase">
-          Page {safeIndex + 1} / {pages.length}
-        </span>
-      </header>
+
+      <ReaderChrome
+        pageNumber={safeIndex + 1}
+        totalPages={pages.length}
+        visible={chromeVisible}
+        mode={mode}
+        direction={direction}
+        fit={fit}
+        onPrefsChange={onPrefsChange}
+      />
     </div>
   );
 }
