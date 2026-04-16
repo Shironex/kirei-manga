@@ -15,7 +15,7 @@ export const router = createHashRouter([
       { path: 'browse', element: <BrowsePage /> },
       { path: 'series/:mangadexId', element: <SeriesDetailPage /> },
       { path: 'settings', element: <SettingsPage /> },
-      { path: 'reader/:chapterId', element: <ReaderPage /> },
+      { path: 'reader/:mangadexSeriesId/:chapterId', element: <ReaderPage /> },
     ],
   },
 ]);

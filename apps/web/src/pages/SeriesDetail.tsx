@@ -65,6 +65,7 @@ export function SeriesDetailPage() {
         languages={series.availableTranslatedLanguages}
         lang={lang}
         onLangChange={setLang}
+        mangadexSeriesId={series.id}
       />
     </>
   );

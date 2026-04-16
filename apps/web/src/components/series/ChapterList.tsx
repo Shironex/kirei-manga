@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { ChapterListItem } from '@kireimanga/shared';
 import { relativeFromIso } from '@/lib/relativeTime';
 
@@ -10,6 +11,7 @@ interface Props {
   languages: string[];
   lang: string | undefined;
   onLangChange: (lang: string) => void;
+  mangadexSeriesId: string;
 }
 
 export function ChapterList({
@@ -20,6 +22,7 @@ export function ChapterList({
   languages,
   lang,
   onLangChange,
+  mangadexSeriesId,
 }: Props) {
   return (
     <section className="mt-14 flex flex-col">
@@ -75,7 +78,7 @@ export function ChapterList({
         {!loading && !error && chapters.length > 0 && (
           <div role="table" className="flex flex-col">
             {chapters.map(ch => (
-              <Row key={ch.id} chapter={ch} />
+              <Row key={ch.id} chapter={ch} mangadexSeriesId={mangadexSeriesId} />
             ))}
           </div>
         )}
@@ -84,10 +87,17 @@ export function ChapterList({
   );
 }
 
-function Row({ chapter }: { chapter: ChapterListItem }) {
+function Row({
+  chapter,
+  mangadexSeriesId,
+}: {
+  chapter: ChapterListItem;
+  mangadexSeriesId: string;
+}) {
   const dash = <span className="text-[var(--color-bone-faint)]">—</span>;
   return (
-    <div
+    <Link
+      to={`/reader/${mangadexSeriesId}/${chapter.id}`}
       role="row"
       className="grid grid-cols-[3rem_1fr] items-center gap-x-4 gap-y-1 border-b border-border py-2.5 text-[13px] hover:bg-[var(--color-ink-raised)] last:border-b-0 md:grid-cols-[3rem_3rem_1fr_14rem_6rem_1rem] md:gap-y-0"
     >
@@ -108,7 +118,7 @@ function Row({ chapter }: { chapter: ChapterListItem }) {
       </span>
       {/* TODO(slice-e): read-state dot */}
       <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full" />
-    </div>
+    </Link>
   );
 }
 
