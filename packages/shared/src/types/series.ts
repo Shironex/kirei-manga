@@ -39,6 +39,10 @@ export interface Series {
   readerDirection?: ReaderDirection;
   /** Per-series page fit mode. `undefined` = use `DEFAULT_READER_SETTINGS.fit`. */
   readerFit?: FitMode;
+  /** ISO timestamp of the last update check for this series. */
+  lastCheckedAt?: Date;
+  /** Number of new chapters found since the last time the user opened this series. */
+  newChapterCount?: number;
 }
 
 /**

@@ -17,6 +17,8 @@ import {
   type LibraryUpdateStatusPayload,
   type LibraryGetChapterStatesPayload,
   type LibraryUpdatedEvent,
+  type LibraryMarkSeenPayload,
+  type LibraryUpdatesAvailableEvent,
   type ChapterAddBookmarkPayload,
   type ChapterGetBookmarksPayload,
   type ReaderGetPrefsPayload,
@@ -31,6 +33,8 @@ import { CORS_CONFIG } from '../shared/cors.config';
 import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
 import { handleGatewayRequest } from '../shared/gateway-handler';
 import { LibraryService } from './library.service';
+import { MangaDexService } from '../mangadex/mangadex.service';
+import { DatabaseService } from '../database';
 
 const logger = createLogger('LibraryGateway');
 
@@ -40,7 +44,11 @@ export class LibraryGateway {
   @WebSocketServer()
   server!: Server;
 
-  constructor(private readonly libraryService: LibraryService) {
+  constructor(
+    private readonly libraryService: LibraryService,
+    private readonly mangadexService: MangaDexService,
+    private readonly databaseService: DatabaseService,
+  ) {
     logger.info('LibraryGateway initialized');
   }
 
@@ -261,6 +269,39 @@ export class LibraryGateway {
       handler: async () => {
         const bookmarks = await this.libraryService.getBookmarks(payload.chapterId);
         return { bookmarks };
+      },
+    });
+  }
+
+  @SubscribeMessage(LibraryEvents.CHECK_UPDATES)
+  handleCheckUpdates() {
+    return handleGatewayRequest({
+      logger,
+      action: 'library:check-updates',
+      defaultResult: { results: [] },
+      handler: async () => {
+        const results = await this.mangadexService.checkUpdates(this.databaseService);
+        this.server.emit(LibraryEvents.UPDATES_AVAILABLE, {
+          results,
+        } satisfies LibraryUpdatesAvailableEvent);
+        return { results };
+      },
+    });
+  }
+
+  @SubscribeMessage(LibraryEvents.MARK_SEEN)
+  handleMarkSeen(@MessageBody() payload: LibraryMarkSeenPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'library:mark-seen',
+      defaultResult: { success: false },
+      handler: async () => {
+        await this.libraryService.markSeen(payload.seriesId);
+        this.server.emit(LibraryEvents.UPDATED, {
+          action: 'status-changed',
+          id: payload.seriesId,
+        } satisfies LibraryUpdatedEvent);
+        return { success: true };
       },
     });
   }

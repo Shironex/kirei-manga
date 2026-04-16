@@ -1,4 +1,4 @@
-import { Injectable, NotImplementedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
@@ -12,7 +12,6 @@ import type {
   SearchFilters,
   SearchResult,
   Chapter,
-  SeriesUpdate,
   MangaDexMangaEntity,
   MangaDexChapterEntity,
   MangaDexLocalizedString,
@@ -543,8 +542,57 @@ export class MangaDexService {
     logger.info(`Download complete for chapter ${chapterId} (${total} pages)`);
   }
 
-  async checkUpdates(): Promise<SeriesUpdate[]> {
-    throw new NotImplementedException('mangadex:check-updates not implemented yet');
+  /**
+   * Check for new chapters across all followed MangaDex series. For each
+   * series, counts chapters published after `last_checked_at` and persists
+   * the count in `series.new_chapter_count`.
+   *
+   * @param db - The DatabaseService instance for querying followed series.
+   */
+  async checkUpdates(
+    db?: { db: { prepare(sql: string): { run(...args: unknown[]): unknown; get(...args: unknown[]): unknown; all(...args: unknown[]): unknown[] } } }
+  ): Promise<Array<{ seriesId: string; newCount: number }>> {
+    if (!db) {
+      logger.warn('checkUpdates called without database — skipping');
+      return [];
+    }
+
+    const rows = db.db
+      .prepare("SELECT id, mangadex_id, last_checked_at FROM series WHERE source = 'mangadex'")
+      .all() as Array<{ id: string; mangadex_id: string; last_checked_at: string | null }>;
+
+    const results: Array<{ seriesId: string; newCount: number }> = [];
+
+    for (const row of rows) {
+      try {
+        const chapters = await this.client.getChapters(row.mangadex_id, 'en');
+        let newCount: number;
+
+        if (row.last_checked_at) {
+          // Count chapters published after the last check.
+          newCount = chapters.filter(
+            ch => ch.attributes.publishAt > row.last_checked_at!
+          ).length;
+        } else {
+          // First check — don't flood the user with notifications for all
+          // existing chapters. Set count to 0 and record the checkpoint.
+          newCount = 0;
+        }
+
+        db.db
+          .prepare(
+            "UPDATE series SET new_chapter_count = ?, last_checked_at = datetime('now') WHERE id = ?"
+          )
+          .run(newCount, row.id);
+
+        results.push({ seriesId: row.id, newCount });
+        logger.info(`Update check for ${row.mangadex_id}: ${newCount} new chapter(s)`);
+      } catch (err) {
+        logger.error(`Update check failed for series ${row.mangadex_id}:`, err);
+      }
+    }
+
+    return results;
   }
 }
 

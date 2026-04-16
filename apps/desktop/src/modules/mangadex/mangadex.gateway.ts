@@ -111,8 +111,8 @@ export class MangaDexGateway implements OnGatewayInit {
       action: 'mangadex:check-updates',
       defaultResult: { updates: [] },
       handler: async () => {
-        const updates = await this.mangadexService.checkUpdates();
-        return { updates };
+        const results = await this.mangadexService.checkUpdates(this.databaseService);
+        return { updates: results };
       },
     });
   }

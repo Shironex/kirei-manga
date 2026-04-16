@@ -108,6 +108,14 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE series ADD COLUMN last_chapter_id TEXT;
     `,
   },
+  {
+    version: 5,
+    description: 'Add update-check tracking columns to series',
+    up: `
+      ALTER TABLE series ADD COLUMN last_checked_at TEXT;
+      ALTER TABLE series ADD COLUMN new_chapter_count INTEGER DEFAULT 0;
+    `,
+  },
 ];
 
 /**

@@ -40,6 +40,8 @@ interface SeriesRow {
   reader_direction: ReaderDirection | null;
   reader_fit: FitMode | null;
   last_chapter_id: string | null;
+  last_checked_at: string | null;
+  new_chapter_count: number | null;
 }
 
 /**
@@ -78,6 +80,8 @@ export class LibraryService {
       readerDirection: row.reader_direction ?? undefined,
       readerFit: row.reader_fit ?? undefined,
       lastChapterId: row.last_chapter_id ?? undefined,
+      lastCheckedAt: row.last_checked_at ? new Date(row.last_checked_at) : undefined,
+      newChapterCount: row.new_chapter_count ?? undefined,
     };
   }
 
@@ -487,6 +491,16 @@ export class LibraryService {
       logger.warn(`reader:session-end — no session matched id=${params.sessionId}`);
     }
     return { success: true };
+  }
+
+  /**
+   * Reset the new-chapter badge for a series. Called when the user opens a
+   * series detail page, signalling they've "seen" the update notification.
+   */
+  async markSeen(localSeriesId: string): Promise<void> {
+    this.db.db
+      .prepare('UPDATE series SET new_chapter_count = 0 WHERE id = ?')
+      .run(localSeriesId);
   }
 
   async addBookmark(_chapterId: string, _page: number, _note?: string): Promise<Bookmark> {

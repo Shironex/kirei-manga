@@ -238,6 +238,24 @@ export interface MangaDexCheckUpdatesResponse {
   error?: string;
 }
 
+export interface LibraryCheckUpdatesResponse {
+  results: Array<{ seriesId: string; newCount: number }>;
+  error?: string;
+}
+
+export interface LibraryMarkSeenPayload {
+  seriesId: string;
+}
+
+export interface LibraryMarkSeenResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface LibraryUpdatesAvailableEvent {
+  results: Array<{ seriesId: string; newCount: number }>;
+}
+
 // =============================================================================
 // chapter:* payloads
 // =============================================================================

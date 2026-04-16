@@ -15,9 +15,12 @@ export const LibraryEvents = {
   UNFOLLOW: 'library:unfollow',
   UPDATE_STATUS: 'library:update-status',
   GET_CHAPTER_STATES: 'library:get-chapter-states',
+  CHECK_UPDATES: 'library:check-updates',
+  MARK_SEEN: 'library:mark-seen',
 
   // Broadcasts
   UPDATED: 'library:updated',
+  UPDATES_AVAILABLE: 'library:updates-available',
 } as const;
 
 // ============================================

@@ -422,4 +422,21 @@ describe('LibraryService (integration)', () => {
       expect(await service.getSeries(followed.id)).toBeNull();
     });
   });
+
+  describe('markSeen', () => {
+    it('resets new_chapter_count to 0', async () => {
+      const followed = await service.follow('mxid-1');
+
+      // Simulate an update check having set new_chapter_count.
+      db.prepare('UPDATE series SET new_chapter_count = 5 WHERE id = ?').run(followed.id);
+
+      const before = await service.getSeries(followed.id);
+      expect(before!.newChapterCount).toBe(5);
+
+      await service.markSeen(followed.id);
+
+      const after = await service.getSeries(followed.id);
+      expect(after!.newChapterCount).toBe(0);
+    });
+  });
 });
