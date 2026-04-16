@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
+  LocalEvents,
   MangaDexEvents,
+  type LocalGetPagesPayload,
+  type LocalGetPagesResponse,
   type MangaDexGetPagesPayload,
   type MangaDexGetPagesResponse,
 } from '@kireimanga/shared';
@@ -14,12 +17,43 @@ interface HookState {
   retry: () => void;
 }
 
+export type ChapterSource = 'mangadex' | 'local';
+
+/**
+ * Route the page-list fetch to the right channel for the given source.
+ * Returns `kirei-page://...` proxy URLs either way — the reader doesn't
+ * need to know which backend served them.
+ */
+async function fetchPages(id: string, source: ChapterSource): Promise<string[]> {
+  if (source === 'local') {
+    const response = await emitWithResponse<LocalGetPagesPayload, LocalGetPagesResponse>(
+      LocalEvents.GET_PAGES,
+      { localChapterId: id }
+    );
+    if (response.error) throw new Error(response.error);
+    return response.pages;
+  }
+  const response = await emitWithResponse<MangaDexGetPagesPayload, MangaDexGetPagesResponse>(
+    MangaDexEvents.GET_PAGES,
+    { chapterId: id }
+  );
+  if (response.error) throw new Error(response.error);
+  return response.pages;
+}
+
 /**
  * Fetch the page URL list for a chapter over the socket bridge. Mirrors
  * `useMangaDexSeries`'s stale-response / cleanup pattern. Each returned URL is
  * a `kirei-page://...` proxy address served by the desktop main process.
+ *
+ * `source` decides which channel carries the request — MangaDex chapter
+ * ids route to `mangadex:get-pages`; local chapter ids (UUIDs from the
+ * SQLite `chapters.id` column) route to `local:get-pages`.
  */
-export function useChapterPages(chapterId: string | undefined): HookState {
+export function useChapterPages(
+  chapterId: string | undefined,
+  source: ChapterSource = 'mangadex'
+): HookState {
   const status = useSocketStore(s => s.status);
 
   const [pages, setPages] = useState<string[]>([]);
@@ -47,18 +81,9 @@ export function useChapterPages(chapterId: string | undefined): HookState {
       setLoading(true);
       setError(null);
       try {
-        const payload: MangaDexGetPagesPayload = { chapterId: id };
-        const response = await emitWithResponse<
-          MangaDexGetPagesPayload,
-          MangaDexGetPagesResponse
-        >(MangaDexEvents.GET_PAGES, payload);
+        const fetched = await fetchPages(id, source);
         if (!mountedRef.current || rid !== requestIdRef.current) return;
-        if (response.error) {
-          setError(response.error);
-          setPages([]);
-        } else {
-          setPages(response.pages);
-        }
+        setPages(fetched);
       } catch (err) {
         if (!mountedRef.current || rid !== requestIdRef.current) return;
         setError(err instanceof Error ? err.message : String(err));
@@ -69,7 +94,7 @@ export function useChapterPages(chapterId: string | undefined): HookState {
         }
       }
     },
-    [status]
+    [status, source]
   );
 
   useEffect(() => {
