@@ -101,6 +101,13 @@ export const MIGRATIONS: Migration[] = [
         CHECK (reader_fit IS NULL OR reader_fit IN ('width','height','original'));
     `,
   },
+  {
+    version: 4,
+    description: 'Track most recently read chapter on series',
+    up: `
+      ALTER TABLE series ADD COLUMN last_chapter_id TEXT;
+    `,
+  },
 ];
 
 /**

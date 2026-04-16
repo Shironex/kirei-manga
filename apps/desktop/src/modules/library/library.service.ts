@@ -9,6 +9,9 @@ import type {
   ReaderMode,
   ReaderDirection,
   FitMode,
+  ReaderUpdateProgressPayload,
+  ReaderMarkReadPayload,
+  LibraryChapterStatePatch,
 } from '@kireimanga/shared';
 import { DEFAULT_READER_SETTINGS } from '@kireimanga/shared';
 import { DatabaseService } from '../database';
@@ -36,6 +39,7 @@ interface SeriesRow {
   reader_mode: ReaderMode | null;
   reader_direction: ReaderDirection | null;
   reader_fit: FitMode | null;
+  last_chapter_id: string | null;
 }
 
 /**
@@ -73,6 +77,7 @@ export class LibraryService {
       readerMode: row.reader_mode ?? undefined,
       readerDirection: row.reader_direction ?? undefined,
       readerFit: row.reader_fit ?? undefined,
+      lastChapterId: row.last_chapter_id ?? undefined,
     };
   }
 
@@ -197,24 +202,215 @@ export class LibraryService {
   }
 
   /**
-   * Record reading progress for a chapter. Slice B minimal path: bumps the
-   * chapter's `last_read_page` and the series' `last_read_at`. Slice E owns
-   * auto-marking chapters as read (`is_read` / `read_at`).
+   * Resolve a MangaDex series id to the local `series.id`. Throws when the
+   * user hasn't followed the series yet — the reader never talks to MangaDex
+   * directly for progress updates, so a miss here is a genuine error.
    */
-  async updateProgress(id: string, chapterId: string, page: number): Promise<void> {
-    const tx = this.db.db.transaction((seriesId: string, chId: string, pg: number) => {
-      this.db.db
-        .prepare('UPDATE chapters SET last_read_page = ? WHERE id = ? AND series_id = ?')
-        .run(pg, chId, seriesId);
-      this.db.db
-        .prepare("UPDATE series SET last_read_at = datetime('now') WHERE id = ?")
-        .run(seriesId);
-    });
-    tx(id, chapterId, page);
+  private resolveLocalSeriesId(mangadexSeriesId: string): string {
+    const row = this.db.db
+      .prepare('SELECT id FROM series WHERE mangadex_id = ?')
+      .get(mangadexSeriesId) as { id: string } | undefined;
+    if (!row) {
+      throw new Error(`series not in library (mangadexId=${mangadexSeriesId})`);
+    }
+    return row.id;
   }
 
-  async markChapterRead(_chapterId: string): Promise<void> {
-    throw new NotImplementedException('chapter:mark-read not implemented yet');
+  /**
+   * Upsert a chapter row for the given progress update, keyed on
+   * `mangadex_chapter_id`. `last_read_page` overwrites (renderer is source of
+   * truth for current page), `page_count` takes the max (protects against a
+   * renderer that reports a short count before images finish resolving), and
+   * `is_read` monotonically rises (OR). Fixed columns like chapter_number /
+   * volume_number / title use COALESCE so we don't clobber real metadata with
+   * incidental nulls from a later progress tick.
+   */
+  private upsertProgressRow(params: {
+    localSeriesId: string;
+    mangadexChapterId: string;
+    page: number;
+    pageCount: number;
+    isRead: boolean;
+    chapterNumber?: number;
+    volumeNumber?: number;
+    title?: string;
+  }): void {
+    const {
+      localSeriesId,
+      mangadexChapterId,
+      page,
+      pageCount,
+      isRead,
+      chapterNumber,
+      volumeNumber,
+      title,
+    } = params;
+
+    this.db.db
+      .prepare(
+        `INSERT INTO chapters (
+           id, series_id, source, mangadex_chapter_id,
+           chapter_number, volume_number, title,
+           page_count, last_read_page, is_read, read_at
+         ) VALUES (?, ?, 'mangadex', ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(mangadex_chapter_id) DO UPDATE SET
+           last_read_page = excluded.last_read_page,
+           page_count = MAX(chapters.page_count, excluded.page_count),
+           is_read = excluded.is_read OR chapters.is_read,
+           read_at = CASE
+             WHEN excluded.is_read = 1
+               THEN COALESCE(chapters.read_at, excluded.read_at)
+             ELSE chapters.read_at
+           END,
+           title = COALESCE(chapters.title, excluded.title),
+           chapter_number = COALESCE(chapters.chapter_number, excluded.chapter_number),
+           volume_number = COALESCE(chapters.volume_number, excluded.volume_number)`
+      )
+      .run(
+        randomUUID(),
+        localSeriesId,
+        mangadexChapterId,
+        chapterNumber ?? 0,
+        volumeNumber ?? null,
+        title ?? null,
+        pageCount,
+        page,
+        isRead ? 1 : 0,
+        isRead ? new Date().toISOString() : null
+      );
+  }
+
+  /**
+   * Record reader progress for a MangaDex chapter. Upserts a chapters row,
+   * auto-marks the chapter read when `page >= pageCount - 1`, and bumps both
+   * `series.last_read_at` and `series.last_chapter_id`. Throws if the series
+   * isn't in the library.
+   */
+  async updateProgress(payload: ReaderUpdateProgressPayload): Promise<{
+    isRead: boolean;
+    chapter: {
+      mangadexChapterId: string;
+      lastReadPage: number;
+      isRead: boolean;
+      pageCount: number;
+    };
+    localSeriesId: string;
+  }> {
+    const localSeriesId = this.resolveLocalSeriesId(payload.mangadexSeriesId);
+    const isRead = payload.page >= payload.pageCount - 1;
+
+    const tx = this.db.db.transaction(() => {
+      this.upsertProgressRow({
+        localSeriesId,
+        mangadexChapterId: payload.mangadexChapterId,
+        page: payload.page,
+        pageCount: payload.pageCount,
+        isRead,
+        chapterNumber: payload.chapterNumber,
+        volumeNumber: payload.volumeNumber,
+        title: payload.title,
+      });
+      this.db.db
+        .prepare(
+          "UPDATE series SET last_read_at = datetime('now'), last_chapter_id = ? WHERE id = ?"
+        )
+        .run(payload.mangadexChapterId, localSeriesId);
+    });
+    tx();
+
+    return {
+      isRead,
+      chapter: {
+        mangadexChapterId: payload.mangadexChapterId,
+        lastReadPage: payload.page,
+        isRead,
+        pageCount: payload.pageCount,
+      },
+      localSeriesId,
+    };
+  }
+
+  /**
+   * Mark a MangaDex chapter read in one shot — same upsert path as
+   * `updateProgress` with `page = pageCount - 1` and `isRead = true`.
+   */
+  async markChapterRead(payload: ReaderMarkReadPayload): Promise<{
+    localSeriesId: string;
+    chapter: {
+      mangadexChapterId: string;
+      lastReadPage: number;
+      isRead: boolean;
+      pageCount: number;
+    };
+  }> {
+    const localSeriesId = this.resolveLocalSeriesId(payload.mangadexSeriesId);
+    const lastReadPage = Math.max(0, payload.pageCount - 1);
+
+    const tx = this.db.db.transaction(() => {
+      this.upsertProgressRow({
+        localSeriesId,
+        mangadexChapterId: payload.mangadexChapterId,
+        page: lastReadPage,
+        pageCount: payload.pageCount,
+        isRead: true,
+        chapterNumber: payload.chapterNumber,
+        volumeNumber: payload.volumeNumber,
+        title: payload.title,
+      });
+      this.db.db
+        .prepare(
+          "UPDATE series SET last_read_at = datetime('now'), last_chapter_id = ? WHERE id = ?"
+        )
+        .run(payload.mangadexChapterId, localSeriesId);
+    });
+    tx();
+
+    return {
+      localSeriesId,
+      chapter: {
+        mangadexChapterId: payload.mangadexChapterId,
+        lastReadPage,
+        isRead: true,
+        pageCount: payload.pageCount,
+      },
+    };
+  }
+
+  /**
+   * Bulk lookup of chapter read-state patches for rendering chapter lists.
+   * Returns a map keyed by `mangadex_chapter_id`; chapters with no row are
+   * simply absent from the map (caller treats as unread at page 0).
+   */
+  async getChapterStates(
+    localSeriesId: string,
+    mangadexChapterIds: string[]
+  ): Promise<Record<string, LibraryChapterStatePatch>> {
+    if (mangadexChapterIds.length === 0) {
+      return {};
+    }
+    const placeholders = mangadexChapterIds.map(() => '?').join(', ');
+    const rows = this.db.db
+      .prepare(
+        `SELECT mangadex_chapter_id, is_read, last_read_page, page_count
+         FROM chapters
+         WHERE series_id = ? AND mangadex_chapter_id IN (${placeholders})`
+      )
+      .all(localSeriesId, ...mangadexChapterIds) as Array<{
+      mangadex_chapter_id: string;
+      is_read: number;
+      last_read_page: number;
+      page_count: number;
+    }>;
+
+    const out: Record<string, LibraryChapterStatePatch> = {};
+    for (const r of rows) {
+      out[r.mangadex_chapter_id] = {
+        isRead: r.is_read === 1,
+        lastReadPage: r.last_read_page,
+        pageCount: r.page_count,
+      };
+    }
+    return out;
   }
 
   async addBookmark(_chapterId: string, _page: number, _note?: string): Promise<Bookmark> {

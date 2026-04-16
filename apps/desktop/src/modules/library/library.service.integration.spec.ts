@@ -183,6 +183,141 @@ describe('LibraryService (integration)', () => {
     });
   });
 
+  describe('reading progress', () => {
+    it('updateProgress upserts a chapter row and bumps the series', async () => {
+      await service.follow('mxid-1');
+
+      const result = await service.updateProgress({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 3,
+        pageCount: 20,
+      });
+
+      expect(result.isRead).toBe(false);
+      expect(result.chapter).toEqual({
+        mangadexChapterId: 'ch-1',
+        lastReadPage: 3,
+        isRead: false,
+        pageCount: 20,
+      });
+
+      const chapter = db
+        .prepare(
+          'SELECT last_read_page, is_read, read_at FROM chapters WHERE mangadex_chapter_id = ?'
+        )
+        .get('ch-1') as
+        | { last_read_page: number; is_read: number; read_at: string | null }
+        | undefined;
+      expect(chapter).toBeDefined();
+      expect(chapter!.last_read_page).toBe(3);
+      expect(chapter!.is_read).toBe(0);
+      expect(chapter!.read_at).toBeNull();
+
+      const seriesRow = db
+        .prepare(
+          'SELECT last_read_at, last_chapter_id FROM series WHERE mangadex_id = ?'
+        )
+        .get('mxid-1') as { last_read_at: string | null; last_chapter_id: string | null };
+      expect(seriesRow.last_read_at).not.toBeNull();
+      expect(seriesRow.last_chapter_id).toBe('ch-1');
+    });
+
+    it('updateProgress auto-marks a chapter read at the final page', async () => {
+      await service.follow('mxid-1');
+      await service.updateProgress({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 3,
+        pageCount: 20,
+      });
+
+      const result = await service.updateProgress({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 19,
+        pageCount: 20,
+      });
+
+      expect(result.isRead).toBe(true);
+      const chapter = db
+        .prepare(
+          'SELECT is_read, read_at, last_read_page FROM chapters WHERE mangadex_chapter_id = ?'
+        )
+        .get('ch-1') as {
+        is_read: number;
+        read_at: string | null;
+        last_read_page: number;
+      };
+      expect(chapter.is_read).toBe(1);
+      expect(chapter.read_at).not.toBeNull();
+      expect(chapter.last_read_page).toBe(19);
+    });
+
+    it('markChapterRead upserts a read chapter in one shot', async () => {
+      await service.follow('mxid-1');
+
+      const result = await service.markChapterRead({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-2',
+        pageCount: 10,
+      });
+
+      expect(result.chapter.isRead).toBe(true);
+      expect(result.chapter.lastReadPage).toBe(9);
+
+      const chapter = db
+        .prepare(
+          'SELECT is_read, last_read_page FROM chapters WHERE mangadex_chapter_id = ?'
+        )
+        .get('ch-2') as { is_read: number; last_read_page: number };
+      expect(chapter.is_read).toBe(1);
+      expect(chapter.last_read_page).toBe(9);
+    });
+
+    it('getChapterStates returns a map of only known chapters', async () => {
+      const followed = await service.follow('mxid-1');
+      await service.updateProgress({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 3,
+        pageCount: 20,
+      });
+      await service.markChapterRead({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-2',
+        pageCount: 10,
+      });
+
+      const states = await service.getChapterStates(followed.id, [
+        'ch-1',
+        'ch-2',
+        'ch-missing',
+      ]);
+
+      expect(Object.keys(states).sort()).toEqual(['ch-1', 'ch-2']);
+      expect(states['ch-1']).toEqual({ isRead: false, lastReadPage: 3, pageCount: 20 });
+      expect(states['ch-2']).toEqual({ isRead: true, lastReadPage: 9, pageCount: 10 });
+    });
+
+    it('getChapterStates returns {} for an empty id list', async () => {
+      const followed = await service.follow('mxid-1');
+      const states = await service.getChapterStates(followed.id, []);
+      expect(states).toEqual({});
+    });
+
+    it('updateProgress throws when the series is not in the library', async () => {
+      await expect(
+        service.updateProgress({
+          mangadexSeriesId: 'nope',
+          mangadexChapterId: 'ch-1',
+          page: 0,
+          pageCount: 5,
+        })
+      ).rejects.toThrow(/series not in library/);
+    });
+  });
+
   describe('round-trip', () => {
     it('follow → getAll → getSeries → unfollow → getAll transitions cleanly', async () => {
       expect(await service.getAll()).toHaveLength(0);

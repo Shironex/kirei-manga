@@ -31,6 +31,8 @@ export interface Series {
   notes?: string;
   addedAt: Date;
   lastReadAt?: Date;
+  /** MangaDex chapter id of the most recent chapter the user touched. */
+  lastChapterId?: string;
   /** Per-series reader layout mode. `undefined` = use `DEFAULT_READER_SETTINGS.mode`. */
   readerMode?: ReaderMode;
   /** Per-series page-turn direction. `undefined` = use `DEFAULT_READER_SETTINGS.direction`. */

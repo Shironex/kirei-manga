@@ -14,7 +14,7 @@ export const LibraryEvents = {
   FOLLOW: 'library:follow',
   UNFOLLOW: 'library:unfollow',
   UPDATE_STATUS: 'library:update-status',
-  UPDATE_PROGRESS: 'library:update-progress',
+  GET_CHAPTER_STATES: 'library:get-chapter-states',
 
   // Broadcasts
   UPDATED: 'library:updated',
@@ -39,7 +39,6 @@ export const MangaDexEvents = {
 // Chapter Events
 // ============================================
 export const ChapterEvents = {
-  MARK_READ: 'chapter:mark-read',
   ADD_BOOKMARK: 'chapter:add-bookmark',
   GET_BOOKMARKS: 'chapter:get-bookmarks',
 } as const;
@@ -60,6 +59,10 @@ export const TranslationEvents = {
 export const ReaderEvents = {
   SET_PREFS: 'reader:set-prefs',
   GET_PREFS: 'reader:get-prefs',
+  UPDATE_PROGRESS: 'reader:update-progress',
+  MARK_READ: 'reader:mark-read',
+  SESSION_START: 'reader:session-start',
+  SESSION_END: 'reader:session-end',
 } as const;
 
 // ============================================

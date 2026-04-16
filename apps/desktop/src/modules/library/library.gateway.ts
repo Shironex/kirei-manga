@@ -15,13 +15,14 @@ import {
   type LibraryFollowPayload,
   type LibraryUnfollowPayload,
   type LibraryUpdateStatusPayload,
-  type LibraryUpdateProgressPayload,
+  type LibraryGetChapterStatesPayload,
   type LibraryUpdatedEvent,
-  type ChapterMarkReadPayload,
   type ChapterAddBookmarkPayload,
   type ChapterGetBookmarksPayload,
   type ReaderGetPrefsPayload,
   type ReaderSetPrefsPayload,
+  type ReaderUpdateProgressPayload,
+  type ReaderMarkReadPayload,
 } from '@kireimanga/shared';
 import { DEFAULT_READER_SETTINGS } from '@kireimanga/shared';
 import { CORS_CONFIG } from '../shared/cors.config';
@@ -120,19 +121,54 @@ export class LibraryGateway {
     });
   }
 
-  @SubscribeMessage(LibraryEvents.UPDATE_PROGRESS)
-  handleUpdateProgress(@MessageBody() payload: LibraryUpdateProgressPayload) {
+  @SubscribeMessage(ReaderEvents.UPDATE_PROGRESS)
+  handleUpdateProgress(@MessageBody() payload: ReaderUpdateProgressPayload) {
     return handleGatewayRequest({
       logger,
-      action: 'library:update-progress',
-      defaultResult: { success: false },
+      action: 'reader:update-progress',
+      defaultResult: { success: false, isRead: false },
       handler: async () => {
-        await this.libraryService.updateProgress(payload.id, payload.chapterId, payload.page);
+        const result = await this.libraryService.updateProgress(payload);
         this.server.emit(LibraryEvents.UPDATED, {
           action: 'progress-changed',
-          id: payload.id,
+          id: result.localSeriesId,
+          chapter: result.chapter,
+        } satisfies LibraryUpdatedEvent);
+        return { success: true, isRead: result.isRead };
+      },
+    });
+  }
+
+  @SubscribeMessage(ReaderEvents.MARK_READ)
+  handleMarkRead(@MessageBody() payload: ReaderMarkReadPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'reader:mark-read',
+      defaultResult: { success: false },
+      handler: async () => {
+        const result = await this.libraryService.markChapterRead(payload);
+        this.server.emit(LibraryEvents.UPDATED, {
+          action: 'progress-changed',
+          id: result.localSeriesId,
+          chapter: result.chapter,
         } satisfies LibraryUpdatedEvent);
         return { success: true };
+      },
+    });
+  }
+
+  @SubscribeMessage(LibraryEvents.GET_CHAPTER_STATES)
+  handleGetChapterStates(@MessageBody() payload: LibraryGetChapterStatesPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'library:get-chapter-states',
+      defaultResult: { states: {} },
+      handler: async () => {
+        const states = await this.libraryService.getChapterStates(
+          payload.seriesId,
+          payload.chapterIds
+        );
+        return { states };
       },
     });
   }
@@ -167,19 +203,6 @@ export class LibraryGateway {
           series: series ?? undefined,
         } satisfies LibraryUpdatedEvent);
         return { series };
-      },
-    });
-  }
-
-  @SubscribeMessage(ChapterEvents.MARK_READ)
-  handleMarkRead(@MessageBody() payload: ChapterMarkReadPayload) {
-    return handleGatewayRequest({
-      logger,
-      action: 'chapter:mark-read',
-      defaultResult: { success: false },
-      handler: async () => {
-        await this.libraryService.markChapterRead(payload.chapterId);
-        return { success: true };
       },
     });
   }

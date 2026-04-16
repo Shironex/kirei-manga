@@ -54,14 +54,19 @@ export interface LibraryUpdateStatusResponse {
   error?: string;
 }
 
-export interface LibraryUpdateProgressPayload {
-  id: string;
-  chapterId: string;
-  page: number;
+export interface LibraryGetChapterStatesPayload {
+  seriesId: string;
+  chapterIds: string[];
 }
 
-export interface LibraryUpdateProgressResponse {
-  success: boolean;
+export interface LibraryChapterStatePatch {
+  isRead: boolean;
+  lastReadPage: number;
+  pageCount: number;
+}
+
+export interface LibraryGetChapterStatesResponse {
+  states: Record<string, LibraryChapterStatePatch>;
   error?: string;
 }
 
@@ -80,12 +85,20 @@ export type LibraryUpdatedAction =
 /**
  * Payload broadcast on `LibraryEvents.UPDATED` after any library mutation.
  * `series` is populated for follow/status-changed; `id` for unfollow and
- * progress-changed (where the caller can re-fetch if it cares).
+ * progress-changed (where the caller can re-fetch if it cares). `chapter`
+ * rides along on `progress-changed` so renderer caches can patch without a
+ * refetch.
  */
 export interface LibraryUpdatedEvent {
   action: LibraryUpdatedAction;
   id?: string;
   series?: Series;
+  chapter?: {
+    mangadexChapterId: string;
+    lastReadPage: number;
+    isRead: boolean;
+    pageCount: number;
+  };
 }
 
 // =============================================================================
@@ -108,6 +121,36 @@ export interface ReaderSetPrefsPayload {
 
 export interface ReaderSetPrefsResponse {
   series: Series | null;
+  error?: string;
+}
+
+export interface ReaderUpdateProgressPayload {
+  mangadexSeriesId: string;
+  mangadexChapterId: string;
+  page: number;
+  pageCount: number;
+  chapterNumber?: number;
+  volumeNumber?: number;
+  title?: string;
+}
+
+export interface ReaderUpdateProgressResponse {
+  success: boolean;
+  isRead: boolean;
+  error?: string;
+}
+
+export interface ReaderMarkReadPayload {
+  mangadexSeriesId: string;
+  mangadexChapterId: string;
+  pageCount: number;
+  chapterNumber?: number;
+  volumeNumber?: number;
+  title?: string;
+}
+
+export interface ReaderMarkReadResponse {
+  success: boolean;
   error?: string;
 }
 
@@ -167,10 +210,6 @@ export interface MangaDexCheckUpdatesResponse {
 // =============================================================================
 // chapter:* payloads
 // =============================================================================
-
-export interface ChapterMarkReadPayload {
-  chapterId: string;
-}
 
 export interface ChapterAddBookmarkPayload {
   chapterId: string;
