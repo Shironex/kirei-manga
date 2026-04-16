@@ -1,3 +1,5 @@
+import type { ReaderMode, ReaderDirection, FitMode } from './reader';
+
 /**
  * Reading status for a series in the local library.
  */
@@ -29,6 +31,12 @@ export interface Series {
   notes?: string;
   addedAt: Date;
   lastReadAt?: Date;
+  /** Per-series reader layout mode. `undefined` = use `DEFAULT_READER_SETTINGS.mode`. */
+  readerMode?: ReaderMode;
+  /** Per-series page-turn direction. `undefined` = use `DEFAULT_READER_SETTINGS.direction`. */
+  readerDirection?: ReaderDirection;
+  /** Per-series page fit mode. `undefined` = use `DEFAULT_READER_SETTINGS.fit`. */
+  readerFit?: FitMode;
 }
 
 /**

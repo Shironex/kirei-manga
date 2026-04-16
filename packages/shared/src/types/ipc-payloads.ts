@@ -1,4 +1,5 @@
 import type { Series, ReadingStatus, Bookmark, BoundingBox, SeriesUpdate } from './series';
+import type { ReaderSettings } from './reader';
 import type {
   MangaDexSeriesDetail,
   ChapterListItem,
@@ -73,7 +74,8 @@ export type LibraryUpdatedAction =
   | 'followed'
   | 'unfollowed'
   | 'status-changed'
-  | 'progress-changed';
+  | 'progress-changed'
+  | 'prefs-changed';
 
 /**
  * Payload broadcast on `LibraryEvents.UPDATED` after any library mutation.
@@ -84,6 +86,29 @@ export interface LibraryUpdatedEvent {
   action: LibraryUpdatedAction;
   id?: string;
   series?: Series;
+}
+
+// =============================================================================
+// reader:* payloads
+// =============================================================================
+
+export interface ReaderGetPrefsPayload {
+  seriesId: string;
+}
+
+export interface ReaderGetPrefsResponse {
+  prefs: ReaderSettings;
+  error?: string;
+}
+
+export interface ReaderSetPrefsPayload {
+  seriesId: string;
+  prefs: Partial<ReaderSettings>;
+}
+
+export interface ReaderSetPrefsResponse {
+  series: Series | null;
+  error?: string;
 }
 
 // =============================================================================

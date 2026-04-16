@@ -89,6 +89,18 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_sessions_started ON reading_sessions(started_at);
     `,
   },
+  {
+    version: 3,
+    description: 'Add reader preferences to series',
+    up: `
+      ALTER TABLE series ADD COLUMN reader_mode TEXT
+        CHECK (reader_mode IS NULL OR reader_mode IN ('single','double','webtoon'));
+      ALTER TABLE series ADD COLUMN reader_direction TEXT
+        CHECK (reader_direction IS NULL OR reader_direction IN ('rtl','ltr'));
+      ALTER TABLE series ADD COLUMN reader_fit TEXT
+        CHECK (reader_fit IS NULL OR reader_fit IN ('width','height','original'));
+    `,
+  },
 ];
 
 /**

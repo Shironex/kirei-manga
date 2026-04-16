@@ -148,6 +148,41 @@ describe('LibraryService (integration)', () => {
     });
   });
 
+  describe('reader preferences', () => {
+    it('getReaderPrefs returns DEFAULT_READER_SETTINGS for a freshly followed series', async () => {
+      const followed = await service.follow('mxid-1');
+
+      const prefs = await service.getReaderPrefs(followed.id);
+
+      expect(prefs).toEqual({ mode: 'single', direction: 'rtl', fit: 'width' });
+    });
+
+    it('updateReaderPrefs persists a partial change and returns the updated Series', async () => {
+      const followed = await service.follow('mxid-1');
+
+      const updated = await service.updateReaderPrefs(followed.id, { mode: 'webtoon' });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.readerMode).toBe('webtoon');
+      expect(updated!.readerDirection).toBeUndefined();
+      expect(updated!.readerFit).toBeUndefined();
+    });
+
+    it('getReaderPrefs merges stored values with defaults for unset fields', async () => {
+      const followed = await service.follow('mxid-1');
+      await service.updateReaderPrefs(followed.id, { mode: 'webtoon' });
+
+      const prefs = await service.getReaderPrefs(followed.id);
+
+      expect(prefs).toEqual({ mode: 'webtoon', direction: 'rtl', fit: 'width' });
+    });
+
+    it('updateReaderPrefs returns null for an unknown series id', async () => {
+      const updated = await service.updateReaderPrefs('does-not-exist', { mode: 'double' });
+      expect(updated).toBeNull();
+    });
+  });
+
   describe('round-trip', () => {
     it('follow → getAll → getSeries → unfollow → getAll transitions cleanly', async () => {
       expect(await service.getAll()).toHaveLength(0);

@@ -1,7 +1,16 @@
 import { Injectable, NotImplementedException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { createLogger } from '@kireimanga/shared';
-import type { Series, ReadingStatus, Bookmark } from '@kireimanga/shared';
+import type {
+  Series,
+  ReadingStatus,
+  Bookmark,
+  ReaderSettings,
+  ReaderMode,
+  ReaderDirection,
+  FitMode,
+} from '@kireimanga/shared';
+import { DEFAULT_READER_SETTINGS } from '@kireimanga/shared';
 import { DatabaseService } from '../database';
 import { MangaDexService } from '../mangadex/mangadex.service';
 
@@ -24,6 +33,9 @@ interface SeriesRow {
   notes: string | null;
   added_at: string;
   last_read_at: string | null;
+  reader_mode: ReaderMode | null;
+  reader_direction: ReaderDirection | null;
+  reader_fit: FitMode | null;
 }
 
 /**
@@ -58,7 +70,59 @@ export class LibraryService {
       notes: row.notes ?? undefined,
       addedAt: new Date(row.added_at),
       lastReadAt: row.last_read_at ? new Date(row.last_read_at) : undefined,
+      readerMode: row.reader_mode ?? undefined,
+      readerDirection: row.reader_direction ?? undefined,
+      readerFit: row.reader_fit ?? undefined,
     };
+  }
+
+  /**
+   * Get effective reader preferences for a series. Stored NULL columns mean
+   * "use the default", so they get merged with `DEFAULT_READER_SETTINGS`.
+   * If the series row doesn't exist, defaults are returned verbatim.
+   */
+  async getReaderPrefs(seriesId: string): Promise<ReaderSettings> {
+    const row = this.db.db
+      .prepare(
+        'SELECT reader_mode, reader_direction, reader_fit FROM series WHERE id = ?'
+      )
+      .get(seriesId) as
+      | Pick<SeriesRow, 'reader_mode' | 'reader_direction' | 'reader_fit'>
+      | undefined;
+    if (!row) {
+      return { ...DEFAULT_READER_SETTINGS };
+    }
+    return {
+      mode: row.reader_mode ?? DEFAULT_READER_SETTINGS.mode,
+      direction: row.reader_direction ?? DEFAULT_READER_SETTINGS.direction,
+      fit: row.reader_fit ?? DEFAULT_READER_SETTINGS.fit,
+    };
+  }
+
+  /**
+   * Partially update a series' reader prefs. Unspecified fields are preserved
+   * via `COALESCE(?, existing)`. Returns the updated `Series` (with the new
+   * prefs reflected on `readerMode/readerDirection/readerFit`), or `null` if
+   * the row no longer exists.
+   */
+  async updateReaderPrefs(
+    seriesId: string,
+    prefs: Partial<ReaderSettings>
+  ): Promise<Series | null> {
+    this.db.db
+      .prepare(
+        `UPDATE series
+         SET reader_mode = COALESCE(?, reader_mode),
+             reader_direction = COALESCE(?, reader_direction),
+             reader_fit = COALESCE(?, reader_fit)
+         WHERE id = ?`
+      )
+      .run(prefs.mode ?? null, prefs.direction ?? null, prefs.fit ?? null, seriesId);
+
+    const row = this.db.db
+      .prepare('SELECT * FROM series WHERE id = ?')
+      .get(seriesId) as SeriesRow | undefined;
+    return row ? this.rowToSeries(row) : null;
   }
 
   /** Return every followed series, newest first. */

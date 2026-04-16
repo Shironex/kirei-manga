@@ -55,6 +55,14 @@ export const TranslationEvents = {
 } as const;
 
 // ============================================
+// Reader Events (per-series reader preferences)
+// ============================================
+export const ReaderEvents = {
+  SET_PREFS: 'reader:set-prefs',
+  GET_PREFS: 'reader:get-prefs',
+} as const;
+
+// ============================================
 // System Events
 // ============================================
 export const SystemEvents = {

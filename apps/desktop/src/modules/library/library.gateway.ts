@@ -10,6 +10,7 @@ import {
   createLogger,
   LibraryEvents,
   ChapterEvents,
+  ReaderEvents,
   type LibraryGetSeriesPayload,
   type LibraryFollowPayload,
   type LibraryUnfollowPayload,
@@ -19,7 +20,10 @@ import {
   type ChapterMarkReadPayload,
   type ChapterAddBookmarkPayload,
   type ChapterGetBookmarksPayload,
+  type ReaderGetPrefsPayload,
+  type ReaderSetPrefsPayload,
 } from '@kireimanga/shared';
+import { DEFAULT_READER_SETTINGS } from '@kireimanga/shared';
 import { CORS_CONFIG } from '../shared/cors.config';
 import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
 import { handleGatewayRequest } from '../shared/gateway-handler';
@@ -129,6 +133,40 @@ export class LibraryGateway {
           id: payload.id,
         } satisfies LibraryUpdatedEvent);
         return { success: true };
+      },
+    });
+  }
+
+  @SubscribeMessage(ReaderEvents.GET_PREFS)
+  handleGetReaderPrefs(@MessageBody() payload: ReaderGetPrefsPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'reader:get-prefs',
+      defaultResult: { prefs: { ...DEFAULT_READER_SETTINGS } },
+      handler: async () => {
+        const prefs = await this.libraryService.getReaderPrefs(payload.seriesId);
+        return { prefs };
+      },
+    });
+  }
+
+  @SubscribeMessage(ReaderEvents.SET_PREFS)
+  handleSetReaderPrefs(@MessageBody() payload: ReaderSetPrefsPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'reader:set-prefs',
+      defaultResult: { series: null },
+      handler: async () => {
+        const series = await this.libraryService.updateReaderPrefs(
+          payload.seriesId,
+          payload.prefs
+        );
+        this.server.emit(LibraryEvents.UPDATED, {
+          action: 'prefs-changed',
+          id: payload.seriesId,
+          series: series ?? undefined,
+        } satisfies LibraryUpdatedEvent);
+        return { series };
       },
     });
   }
