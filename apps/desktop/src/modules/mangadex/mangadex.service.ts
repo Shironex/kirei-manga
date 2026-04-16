@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import { app } from 'electron';
 import { Server } from 'socket.io';
 import { createLogger, MangaDexEvents } from '@kireimanga/shared';
+import { writeAtomic } from '../../main/shared/protocol-cache';
 import type {
   MangaDexSeries,
   MangaDexSeriesDetail,
@@ -297,17 +298,6 @@ function normalizeToChapter(entity: MangaDexChapterEntity, seriesId: string): Ch
     lastReadPage: 0,
     readAt: undefined,
   };
-}
-
-/**
- * Write a buffer atomically (temp file + rename) to avoid serving torn files.
- * Mirrors the pattern in kirei-page.ts.
- */
-async function writeAtomic(filePath: string, data: Buffer): Promise<void> {
-  await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-  const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
-  await fs.promises.writeFile(tmp, data);
-  await fs.promises.rename(tmp, filePath);
 }
 
 /**

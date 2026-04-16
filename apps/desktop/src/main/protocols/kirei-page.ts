@@ -1,20 +1,20 @@
-import { app, protocol } from 'electron';
+import { protocol } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '../logger';
+import {
+  SAFE_SEGMENT,
+  buildFreshResponse,
+  getProtocolCacheDir,
+  mimeForFile,
+  parseSegments,
+  serveCachedFile,
+  writeAtomic,
+} from '../shared/protocol-cache';
 import type { MangaDexAtHomeResponse } from '@kireimanga/shared';
 
 const SCHEME = 'kirei-page';
-const SAFE_SEGMENT = /^[a-zA-Z0-9._-]+$/;
-
-const EXT_TO_MIME: Record<string, string> = {
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.webp': 'image/webp',
-  '.gif': 'image/gif',
-  '.bmp': 'image/bmp',
-};
+const CACHE_SUBDIR = 'pages';
 
 /**
  * Minimal surface we need from MangaDexClient. Declared structurally so the
@@ -44,19 +44,11 @@ export interface LocalPageFetcher {
   ): Promise<{ data: Buffer; mime: string } | null>;
 }
 
-let pagesRoot: string | null = null;
 let mangadexClient: MangaDexPageFetcher | null = null;
 let localFetcher: LocalPageFetcher | null = null;
 
 function getPagesRoot(): string {
-  if (!pagesRoot) {
-    pagesRoot = path.join(app.getPath('userData'), 'pages');
-    if (!fs.existsSync(pagesRoot)) {
-      fs.mkdirSync(pagesRoot, { recursive: true });
-      logger.info(`Created pages directory: ${pagesRoot}`);
-    }
-  }
-  return pagesRoot;
+  return getProtocolCacheDir(CACHE_SUBDIR);
 }
 
 /**
@@ -104,43 +96,14 @@ interface ParsedMangaDexPageUrl {
  * Parse URL shape: kirei-page://mangadex/{chapterId}/{fileName}
  */
 function parseMangaDexUrl(pathname: string): ParsedMangaDexPageUrl | null {
-  const stripped = pathname.replace(/^\/+/, '');
-  const parts = stripped.split('/');
-  if (parts.length !== 2) return null;
+  const parts = parseSegments(pathname, 2);
+  if (!parts) return null;
   const [chapterId, fileName] = parts;
-  if (!SAFE_SEGMENT.test(chapterId)) return null;
-  if (!SAFE_SEGMENT.test(fileName)) return null;
   return { chapterId, fileName };
 }
 
 function cachePathFor(parsed: ParsedMangaDexPageUrl): string {
-  // TODO(slice-f): LRU eviction — current cache grows unbounded.
-  const root = getPagesRoot();
-  return path.join(root, 'mangadex', parsed.chapterId, parsed.fileName);
-}
-
-async function writeAtomic(filePath: string, data: Buffer): Promise<void> {
-  await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-  const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
-  await fs.promises.writeFile(tmp, data);
-  await fs.promises.rename(tmp, filePath);
-}
-
-function mimeForFile(fileName: string): string {
-  const ext = path.extname(fileName).toLowerCase();
-  return EXT_TO_MIME[ext] ?? 'application/octet-stream';
-}
-
-async function serveCachedFile(filePath: string, mime: string): Promise<Response> {
-  const data = await fs.promises.readFile(filePath);
-  return new Response(data, {
-    status: 200,
-    headers: {
-      'Content-Type': mime,
-      'Content-Length': String(data.byteLength),
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    },
-  });
+  return path.join(getPagesRoot(), 'mangadex', parsed.chapterId, parsed.fileName);
 }
 
 interface ResolvedUpstream {
@@ -227,14 +190,7 @@ async function fetchAndCache(
 
   await writeAtomic(filePath, fetched.buffer);
 
-  return new Response(fetched.buffer, {
-    status: 200,
-    headers: {
-      'Content-Type': fetched.contentType || mimeForFile(parsed.fileName),
-      'Content-Length': String(fetched.buffer.byteLength),
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    },
-  });
+  return buildFreshResponse(fetched.buffer, fetched.contentType || mimeForFile(parsed.fileName));
 }
 
 interface ParsedLocalPageUrl {
@@ -278,14 +234,7 @@ async function serveLocalPage(pathname: string): Promise<Response> {
     if (!result) {
       return new Response('Not found', { status: 404 });
     }
-    return new Response(result.data, {
-      status: 200,
-      headers: {
-        'Content-Type': result.mime,
-        'Content-Length': String(result.data.byteLength),
-        'Cache-Control': 'public, max-age=31536000, immutable',
-      },
-    });
+    return buildFreshResponse(result.data, result.mime);
   } catch (error) {
     logger.error(`[kirei-page] Local read failed for ${pathname}:`, error);
     return new Response('Internal error', { status: 500 });

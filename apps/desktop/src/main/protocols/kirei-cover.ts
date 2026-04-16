@@ -1,21 +1,21 @@
-import { app, protocol } from 'electron';
+import { protocol } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { logger } from '../logger';
+import {
+  SAFE_SEGMENT,
+  buildFreshResponse,
+  getProtocolCacheDir,
+  mimeForExt,
+  parseSegments,
+  serveCachedFile,
+  writeAtomic,
+} from '../shared/protocol-cache';
 import type { MangaDexCoverSize } from '@kireimanga/shared';
 
 const SCHEME = 'kirei-cover';
+const CACHE_SUBDIR = 'covers';
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp']);
-const SAFE_SEGMENT = /^[a-zA-Z0-9._-]+$/;
-
-const EXT_TO_MIME: Record<string, string> = {
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.webp': 'image/webp',
-  '.gif': 'image/gif',
-  '.bmp': 'image/bmp',
-};
 
 /**
  * Minimal surface we need from MangaDexClient. Declared structurally so the
@@ -29,18 +29,10 @@ export interface MangaDexCoverFetcher {
   ): Promise<{ buffer: Buffer; contentType: string }>;
 }
 
-let coverRoot: string | null = null;
 let mangadexClient: MangaDexCoverFetcher | null = null;
 
 function getCoverRoot(): string {
-  if (!coverRoot) {
-    coverRoot = path.join(app.getPath('userData'), 'covers');
-    if (!fs.existsSync(coverRoot)) {
-      fs.mkdirSync(coverRoot, { recursive: true });
-      logger.info(`Created covers directory: ${coverRoot}`);
-    }
-  }
-  return coverRoot;
+  return getProtocolCacheDir(CACHE_SUBDIR);
 }
 
 /**
@@ -96,28 +88,8 @@ function parseMangaDexUrl(pathname: string): ParsedMangaDexUrl | null {
 }
 
 function cachePathFor(parsed: ParsedMangaDexUrl): string {
-  const root = getCoverRoot();
   const sizeSuffix = parsed.size === 'original' ? '' : `.${parsed.size}.jpg`;
-  return path.join(root, 'mangadex', parsed.mangaId, `${parsed.fileName}${sizeSuffix}`);
-}
-
-async function writeAtomic(filePath: string, data: Buffer): Promise<void> {
-  await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-  const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
-  await fs.promises.writeFile(tmp, data);
-  await fs.promises.rename(tmp, filePath);
-}
-
-async function serveCachedFile(filePath: string, mime: string): Promise<Response> {
-  const data = await fs.promises.readFile(filePath);
-  return new Response(data, {
-    status: 200,
-    headers: {
-      'Content-Type': mime,
-      'Content-Length': String(data.byteLength),
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    },
-  });
+  return path.join(getCoverRoot(), 'mangadex', parsed.mangaId, `${parsed.fileName}${sizeSuffix}`);
 }
 
 interface ParsedLocalCoverUrl {
@@ -133,12 +105,9 @@ interface ParsedLocalCoverUrl {
  * cache directory never sees user-controlled bytes.
  */
 function parseLocalCoverUrl(pathname: string): ParsedLocalCoverUrl | null {
-  const stripped = pathname.replace(/^\/+/, '');
-  const parts = stripped.split('/');
-  if (parts.length !== 2) return null;
+  const parts = parseSegments(pathname, 2);
+  if (!parts) return null;
   const [seriesId, fileName] = parts;
-  if (!SAFE_SEGMENT.test(seriesId)) return null;
-  if (!SAFE_SEGMENT.test(fileName)) return null;
   const ext = path.extname(fileName).toLowerCase();
   if (!ALLOWED_EXTENSIONS.has(ext)) return null;
   return { seriesId, fileName, ext };
@@ -162,8 +131,7 @@ async function serveLocalCover(pathname: string): Promise<Response> {
     if (!stat.isFile() || stat.size === 0) {
       return new Response('Not found', { status: 404 });
     }
-    const mime = EXT_TO_MIME[parsed.ext] ?? 'application/octet-stream';
-    return await serveCachedFile(filePath, mime);
+    return await serveCachedFile(filePath, mimeForExt(parsed.ext));
   } catch {
     return new Response('Not found', { status: 404 });
   }
@@ -205,9 +173,8 @@ export function registerKireiCoverProtocol(): void {
       }
 
       const filePath = cachePathFor(parsed);
-      const mime = EXT_TO_MIME['.jpg'];
+      const mime = mimeForExt('.jpg');
 
-      // Cache hit.
       try {
         const stat = await fs.promises.stat(filePath);
         if (stat.isFile() && stat.size > 0) {
@@ -236,14 +203,7 @@ export function registerKireiCoverProtocol(): void {
 
       await writeAtomic(filePath, fetched.buffer);
 
-      return new Response(fetched.buffer, {
-        status: 200,
-        headers: {
-          'Content-Type': fetched.contentType || mime,
-          'Content-Length': String(fetched.buffer.byteLength),
-          'Cache-Control': 'public, max-age=31536000, immutable',
-        },
-      });
+      return buildFreshResponse(fetched.buffer, fetched.contentType || mime);
     } catch (error) {
       logger.error('[kirei-cover] Error handling request:', error);
       return new Response('Internal error', { status: 500 });
