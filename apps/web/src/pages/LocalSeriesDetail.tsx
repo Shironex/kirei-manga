@@ -11,6 +11,7 @@ import {
   createLogger,
 } from '@kireimanga/shared';
 import { EmptyState } from '../components/layout/EmptyState';
+import { LocalMetadataDrawer } from '../components/local/LocalMetadataDrawer';
 import { emitWithResponse } from '@/lib/socket';
 import { useToastStore } from '@/stores/toast-store';
 
@@ -38,6 +39,7 @@ export function LocalSeriesDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [coverLoaded, setCoverLoaded] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -203,6 +205,13 @@ export function LocalSeriesDetailPage() {
             )}
             <button
               type="button"
+              onClick={() => setEditing(true)}
+              className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
               onClick={() => void handleDelete()}
               disabled={deleting}
               className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-wait disabled:opacity-60"
@@ -212,6 +221,13 @@ export function LocalSeriesDetailPage() {
           </div>
         </div>
       </section>
+
+      <LocalMetadataDrawer
+        open={editing}
+        onClose={() => setEditing(false)}
+        series={series}
+        onSaved={updated => setSeries(updated)}
+      />
 
       <section className="mt-12 animate-fade-up">
         <div className="mb-4 flex items-baseline justify-between border-b border-[var(--color-rule)] pb-3">
