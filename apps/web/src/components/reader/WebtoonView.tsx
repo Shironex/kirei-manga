@@ -3,6 +3,8 @@ import { useReaderStore } from '@/stores/reader-store';
 
 interface Props {
   pages: string[];
+  /** Whether the page at the given index is currently bookmarked. */
+  isBookmarked?: (pageIndex: number) => boolean;
 }
 
 /**
@@ -10,7 +12,7 @@ interface Props {
  * `pageIndex` is updated to the topmost-visible page via IntersectionObserver
  * so chrome indicators stay accurate as the user scrolls.
  */
-export function WebtoonView({ pages }: Props) {
+export function WebtoonView({ pages, isBookmarked }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const goto = useReaderStore(s => s.goto);
 
@@ -46,14 +48,21 @@ export function WebtoonView({ pages }: Props) {
     >
       <div className="mx-auto flex max-w-[900px] flex-col gap-0">
         {pages.map((url, i) => (
-          <img
-            key={`${url}-${i}`}
-            data-page-index={i}
-            src={url}
-            alt={`Page ${i + 1} of ${pages.length}`}
-            draggable={false}
-            className="block w-full select-none"
-          />
+          <div key={`${url}-${i}`} className="relative">
+            <img
+              data-page-index={i}
+              src={url}
+              alt={`Page ${i + 1} of ${pages.length}`}
+              draggable={false}
+              className="block w-full select-none"
+            />
+            {isBookmarked?.(i) && (
+              <span
+                aria-label="Bookmarked"
+                className="pointer-events-none absolute top-3 right-3 h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]"
+              />
+            )}
+          </div>
         ))}
       </div>
     </div>

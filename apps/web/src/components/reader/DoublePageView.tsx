@@ -7,6 +7,8 @@ interface Props {
   primaryIndex: number;
   fit: FitMode;
   direction: ReaderDirection;
+  /** Whether the page at the given index is currently bookmarked. */
+  isBookmarked?: (pageIndex: number) => boolean;
 }
 
 function fitClass(fit: FitMode): string {
@@ -22,7 +24,13 @@ function fitClass(fit: FitMode): string {
   }
 }
 
-export function DoublePageView({ pages, primaryIndex, fit, direction }: Props) {
+export function DoublePageView({
+  pages,
+  primaryIndex,
+  fit,
+  direction,
+  isBookmarked,
+}: Props) {
   // Spreads: [0] alone (cover), then [1,2], [3,4], ...
   const spreads = useMemo<number[][]>(() => {
     const out: number[][] = [];
@@ -39,9 +47,10 @@ export function DoublePageView({ pages, primaryIndex, fit, direction }: Props) {
   const current = spreads.find(s => s[0] === primaryIndex) ?? spreads[0] ?? [];
 
   const dirClass = direction === 'rtl' ? 'flex-row-reverse' : 'flex-row';
+  const showBookmarkDot = isBookmarked?.(primaryIndex) ?? false;
 
   return (
-    <div className="flex h-screen w-screen items-center justify-center overflow-auto bg-[var(--color-ink-sunken)]">
+    <div className="relative flex h-screen w-screen items-center justify-center overflow-auto bg-[var(--color-ink-sunken)]">
       <div className={`flex ${dirClass} items-center gap-0`}>
         {current.map(i => (
           <img
@@ -53,6 +62,12 @@ export function DoublePageView({ pages, primaryIndex, fit, direction }: Props) {
           />
         ))}
       </div>
+      {showBookmarkDot && (
+        <span
+          aria-label="Bookmarked"
+          className="pointer-events-none absolute top-3 right-3 h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]"
+        />
+      )}
     </div>
   );
 }

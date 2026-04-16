@@ -8,6 +8,7 @@ interface Handlers {
   onLast: () => void;
   onSetFit: (fit: FitMode) => void;
   onToggleFullscreen: () => void;
+  onToggleBookmark?: () => void;
   direction: ReaderDirection;
   mode: ReaderMode;
 }
@@ -28,10 +29,20 @@ function isEditableTarget(target: EventTarget | null): boolean {
  * - Home / End: first / last.
  * - f / F: toggle fullscreen.
  * - 1 / 2 / 3: fit width / height / original.
+ * - b / B: toggle a bookmark on the current page (no-op when handler missing).
  */
 export function useReaderKeyboard(handlers: Handlers): void {
-  const { onNext, onPrev, onFirst, onLast, onSetFit, onToggleFullscreen, direction, mode } =
-    handlers;
+  const {
+    onNext,
+    onPrev,
+    onFirst,
+    onLast,
+    onSetFit,
+    onToggleFullscreen,
+    onToggleBookmark,
+    direction,
+    mode,
+  } = handlers;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -100,6 +111,13 @@ export function useReaderKeyboard(handlers: Handlers): void {
           onSetFit('original');
           return;
         }
+        case 'b':
+        case 'B': {
+          if (!onToggleBookmark) return;
+          e.preventDefault();
+          onToggleBookmark();
+          return;
+        }
         default:
           return;
       }
@@ -107,5 +125,15 @@ export function useReaderKeyboard(handlers: Handlers): void {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onNext, onPrev, onFirst, onLast, onSetFit, onToggleFullscreen, direction, mode]);
+  }, [
+    onNext,
+    onPrev,
+    onFirst,
+    onLast,
+    onSetFit,
+    onToggleFullscreen,
+    onToggleBookmark,
+    direction,
+    mode,
+  ]);
 }

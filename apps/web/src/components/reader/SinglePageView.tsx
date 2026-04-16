@@ -7,6 +7,8 @@ interface Props {
   pageNumber: number;
   totalPages: number;
   fit: FitMode;
+  /** Whether the page at `pageNumber - 1` is currently bookmarked. */
+  isBookmarked?: (pageIndex: number) => boolean;
 }
 
 const ZOOM_STEP = 0.1;
@@ -23,9 +25,16 @@ function fitClass(fit: FitMode): string {
   }
 }
 
-export function SinglePageView({ pageUrl, pageNumber, totalPages, fit }: Props) {
+export function SinglePageView({
+  pageUrl,
+  pageNumber,
+  totalPages,
+  fit,
+  isBookmarked,
+}: Props) {
   const zoom = useReaderStore(s => s.zoom);
   const setZoom = useReaderStore(s => s.setZoom);
+  const showBookmarkDot = isBookmarked?.(pageNumber - 1) ?? false;
 
   const onWheel = useCallback(
     (e: React.WheelEvent<HTMLDivElement>) => {
@@ -44,7 +53,7 @@ export function SinglePageView({ pageUrl, pageNumber, totalPages, fit }: Props) 
   return (
     <div
       onWheel={onWheel}
-      className="flex h-screen w-screen items-center justify-center overflow-auto bg-[var(--color-ink-sunken)]"
+      className="relative flex h-screen w-screen items-center justify-center overflow-auto bg-[var(--color-ink-sunken)]"
     >
       <img
         src={pageUrl}
@@ -53,6 +62,12 @@ export function SinglePageView({ pageUrl, pageNumber, totalPages, fit }: Props) 
         style={zoom !== 1 ? { transform: `scale(${zoom})`, transformOrigin: 'center center' } : undefined}
         className={`select-none ${fitClass(fit)}`}
       />
+      {showBookmarkDot && (
+        <span
+          aria-label="Bookmarked"
+          className="pointer-events-none absolute top-3 right-3 h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]"
+        />
+      )}
     </div>
   );
 }

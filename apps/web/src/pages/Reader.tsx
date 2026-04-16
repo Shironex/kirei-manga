@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { useChapterBookmarks } from '@/hooks/useChapterBookmarks';
 import { useChapterPages } from '@/hooks/useChapterPages';
 import { useImagePreload } from '@/hooks/useImagePreload';
 import { useReaderKeyboard } from '@/hooks/useReaderKeyboard';
@@ -55,6 +56,11 @@ export function ReaderPage() {
   // setter that writes back through the socket bridge.
   const { setPrefs } = useReaderPrefs(mangadexSeriesId);
 
+  const { isPageBookmarked, toggle: toggleBookmark } = useChapterBookmarks(
+    mangadexSeriesId ?? null,
+    chapterId ?? null
+  );
+
   // Chapter metadata surfaces through router state (set by ChapterList). It's
   // optional and purely used to enrich reader:update-progress payloads.
   const chapterMeta = useMemo(() => {
@@ -85,6 +91,7 @@ export function ReaderPage() {
     onLast: last,
     onSetFit: fit => setPrefs({ fit }),
     onToggleFullscreen: () => void toggleFullscreen(),
+    onToggleBookmark: () => void toggleBookmark(pageIndex),
     direction,
     mode,
   });
@@ -231,6 +238,7 @@ export function ReaderPage() {
           pageNumber={safeIndex + 1}
           totalPages={pages.length}
           fit={fit}
+          isBookmarked={isPageBookmarked}
         />
       )}
       {mode === 'double' && (
@@ -239,9 +247,10 @@ export function ReaderPage() {
           primaryIndex={safeIndex}
           fit={fit}
           direction={direction}
+          isBookmarked={isPageBookmarked}
         />
       )}
-      {mode === 'webtoon' && <WebtoonView pages={pages} />}
+      {mode === 'webtoon' && <WebtoonView pages={pages} isBookmarked={isPageBookmarked} />}
 
       <ReaderChrome
         pageNumber={safeIndex + 1}
