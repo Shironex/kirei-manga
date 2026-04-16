@@ -13,7 +13,7 @@ import {
   type Series,
 } from '@kireimanga/shared';
 import { DatabaseService } from '../database';
-import { openArchive } from './archive';
+import { openArchive, type PageEntry } from './archive';
 
 const logger = createLogger('LocalLibraryService');
 
@@ -94,6 +94,16 @@ interface LocalSeriesChapterRow {
   local_path: string;
   local_archive_format: string;
   page_count: number;
+}
+
+/**
+ * Raw archive pointer for a local chapter. Exposed so the `kirei-page://`
+ * protocol and the `local:get-pages` handler can resolve the chapter's
+ * on-disk location without talking to SQLite directly.
+ */
+export interface LocalChapterArchive {
+  localPath: string;
+  format: 'folder' | 'cbz' | 'cbr' | 'zip';
 }
 
 /**
@@ -319,5 +329,71 @@ export class LocalLibraryService {
                   title`
       )
       .all(seriesId) as LocalSeriesChapterRow[];
+  }
+
+  /**
+   * Resolve a local chapter id to its on-disk archive pointer. Returns
+   * `null` when the id isn't a local chapter (either unknown or pointing
+   * at a MangaDex row). The `kirei-page://local/` protocol calls this on
+   * every page request — cheap point lookup, indexed via PRIMARY KEY.
+   */
+  getChapterArchive(chapterId: string): LocalChapterArchive | null {
+    const row = this.db.db
+      .prepare(
+        `SELECT local_path, local_archive_format
+         FROM chapters
+         WHERE id = ? AND source = 'local'`
+      )
+      .get(chapterId) as
+      | { local_path: string | null; local_archive_format: string | null }
+      | undefined;
+    if (!row || !row.local_path || !row.local_archive_format) return null;
+    return {
+      localPath: row.local_path,
+      format: row.local_archive_format as LocalChapterArchive['format'],
+    };
+  }
+
+  /**
+   * List the archive's page entries in reading order. The protocol and
+   * `local:get-pages` handler both walk this list — one to resolve by
+   * index, the other to build page URLs. Opens and closes the archive for
+   * each call; for sustained page-by-page reads a future slice can add a
+   * small reader cache if perf demands it.
+   */
+  async listChapterPages(chapterId: string): Promise<PageEntry[] | null> {
+    const archive = this.getChapterArchive(chapterId);
+    if (!archive) return null;
+    const reader = await openArchive(archive.localPath, archive.format);
+    try {
+      return await reader.listPages();
+    } finally {
+      await reader.close();
+    }
+  }
+
+  /**
+   * Read a specific page from a local chapter's archive. `pageIndex` is
+   * the 0-based position in `listChapterPages(chapterId)` — callers that
+   * shouldn't care about filename encoding (e.g. the `kirei-page://`
+   * protocol) pass an index, not a name. Returns `null` for unknown
+   * chapters or out-of-range indices.
+   */
+  async readChapterPage(
+    chapterId: string,
+    pageIndex: number
+  ): Promise<{ data: Buffer; mime: string } | null> {
+    if (!Number.isInteger(pageIndex) || pageIndex < 0) return null;
+    const archive = this.getChapterArchive(chapterId);
+    if (!archive) return null;
+    const reader = await openArchive(archive.localPath, archive.format);
+    try {
+      const pages = await reader.listPages();
+      const entry = pages[pageIndex];
+      if (!entry) return null;
+      return await reader.readPage(entry);
+    } finally {
+      await reader.close();
+    }
   }
 }

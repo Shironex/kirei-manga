@@ -32,8 +32,21 @@ export interface MangaDexPageFetcher {
   }>;
 }
 
+/**
+ * Minimal surface we need from `LocalLibraryService` to serve
+ * `kirei-page://local/` requests. Matches the public signatures exactly so
+ * the Nest service can be passed in unchanged from main/index.ts.
+ */
+export interface LocalPageFetcher {
+  readChapterPage(
+    chapterId: string,
+    pageIndex: number
+  ): Promise<{ data: Buffer; mime: string } | null>;
+}
+
 let pagesRoot: string | null = null;
 let mangadexClient: MangaDexPageFetcher | null = null;
+let localFetcher: LocalPageFetcher | null = null;
 
 function getPagesRoot(): string {
   if (!pagesRoot) {
@@ -56,15 +69,30 @@ export function setMangaDexClient(client: MangaDexPageFetcher): void {
 }
 
 /**
+ * Wire `LocalLibraryService` into the local branch of the protocol. Called
+ * alongside `setMangaDexClient` after Nest boot — the local branch is
+ * unavailable until this runs.
+ */
+export function setLocalPageFetcher(fetcher: LocalPageFetcher): void {
+  localFetcher = fetcher;
+  logger.info('[kirei-page] Local page fetcher registered');
+}
+
+/**
  * Build the URL renderer code uses for a MangaDex page.
  */
 export function toMangaDexPageUrl(chapterId: string, fileName: string): string {
   return `${SCHEME}://mangadex/${chapterId}/${fileName}`;
 }
 
-/** Legacy helper kept for callers storing pre-computed local pages (Slice F). */
-export function toPageUrl(chapterId: string, fileName: string): string {
-  return `${SCHEME}://local/${chapterId}/${fileName}`;
+/**
+ * Build the URL the renderer uses for a local page. `pageIndex` is 0-based
+ * and must align with what `LocalLibraryService.listChapterPages`
+ * returned; `ext` is the real entry extension so the response carries the
+ * right content-type.
+ */
+export function toLocalPageUrl(chapterId: string, pageIndex: number, ext: string): string {
+  return `${SCHEME}://local/${chapterId}/${pageIndex}.${ext}`;
 }
 
 interface ParsedMangaDexPageUrl {
@@ -217,6 +245,61 @@ async function fetchAndCache(
   });
 }
 
+interface ParsedLocalPageUrl {
+  chapterId: string;
+  pageIndex: number;
+}
+
+/**
+ * Parse a local page URL. URL shape:
+ *   kirei-page://local/{chapterId}/{pageIndex}.{ext}
+ *
+ * Extension is present in the URL for cache-friendliness and to let the
+ * renderer surface the correct filename when debugging, but it is ignored
+ * by the resolver — the archive's own entry list is the source of truth.
+ */
+function parseLocalPageUrl(pathname: string): ParsedLocalPageUrl | null {
+  const stripped = pathname.replace(/^\/+/, '');
+  const parts = stripped.split('/');
+  if (parts.length !== 2) return null;
+  const [chapterId, tail] = parts;
+  if (!SAFE_SEGMENT.test(chapterId)) return null;
+  const match = tail.match(/^(\d+)\.[a-z0-9]+$/i);
+  if (!match) return null;
+  const idx = Number.parseInt(match[1], 10);
+  if (!Number.isFinite(idx) || idx < 0) return null;
+  return { chapterId, pageIndex: idx };
+}
+
+async function serveLocalPage(pathname: string): Promise<Response> {
+  const parsed = parseLocalPageUrl(pathname);
+  if (!parsed) {
+    logger.warn(`[kirei-page] Rejected malformed local URL: ${pathname}`);
+    return new Response('Bad request', { status: 400 });
+  }
+  if (!localFetcher) {
+    logger.warn('[kirei-page] Local fetcher not wired yet');
+    return new Response('Page service not ready', { status: 503 });
+  }
+  try {
+    const result = await localFetcher.readChapterPage(parsed.chapterId, parsed.pageIndex);
+    if (!result) {
+      return new Response('Not found', { status: 404 });
+    }
+    return new Response(result.data, {
+      status: 200,
+      headers: {
+        'Content-Type': result.mime,
+        'Content-Length': String(result.data.byteLength),
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    });
+  } catch (error) {
+    logger.error(`[kirei-page] Local read failed for ${pathname}:`, error);
+    return new Response('Internal error', { status: 500 });
+  }
+}
+
 /**
  * Register the kirei-page: protocol.
  *
@@ -245,8 +328,7 @@ export function registerKireiPageProtocol(): void {
       const host = url.hostname;
 
       if (host === 'local') {
-        // TODO(slice-f): resolve from downloaded-chapter store on disk.
-        return new Response('Not implemented', { status: 404 });
+        return await serveLocalPage(url.pathname);
       }
 
       if (host !== 'mangadex') {

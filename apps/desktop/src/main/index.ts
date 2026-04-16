@@ -1,7 +1,8 @@
 import { app, BrowserWindow, protocol } from 'electron';
 import { NestFactory } from '@nestjs/core';
-import { registerProtocols, setMangaDexClient } from './protocols';
+import { registerProtocols, setMangaDexClient, setLocalLibraryClient } from './protocols';
 import { MangaDexClient } from '../modules/mangadex';
+import { LocalLibraryService } from '../modules/local';
 import { type INestApplication } from '@nestjs/common';
 import { CustomIoAdapter, NestLoggerAdapter, corsOriginCallback } from '../modules/shared';
 import { AppModule } from '../modules/app.module';
@@ -129,6 +130,13 @@ async function bootstrap(): Promise<void> {
       setMangaDexClient(mangadexClient);
     } catch (error) {
       logger.error('Failed to resolve MangaDexClient for kirei protocols:', error);
+    }
+
+    try {
+      const localLibrary = nestApp.get(LocalLibraryService);
+      setLocalLibraryClient(localLibrary);
+    } catch (error) {
+      logger.error('Failed to resolve LocalLibraryService for kirei protocols:', error);
     }
   }
 

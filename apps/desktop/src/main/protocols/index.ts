@@ -3,11 +3,12 @@ import type { MangaDexCoverFetcher } from './kirei-cover';
 import {
   registerKireiPageProtocol,
   setMangaDexClient as setPageMangaDexClient,
+  setLocalPageFetcher,
 } from './kirei-page';
-import type { MangaDexPageFetcher } from './kirei-page';
+import type { MangaDexPageFetcher, LocalPageFetcher } from './kirei-page';
 
 export { toCoverUrl, toMangaDexCoverUrl } from './kirei-cover';
-export { toPageUrl, toMangaDexPageUrl } from './kirei-page';
+export { toMangaDexPageUrl, toLocalPageUrl } from './kirei-page';
 
 /**
  * Register all KireiManga custom protocols. Must be called after app.ready.
@@ -26,4 +27,13 @@ export function registerProtocols(): void {
 export function setMangaDexClient(client: MangaDexCoverFetcher & MangaDexPageFetcher): void {
   setCoverMangaDexClient(client);
   setPageMangaDexClient(client);
+}
+
+/**
+ * Wire the Nest `LocalLibraryService` into the `kirei-page://local/`
+ * branch. Local covers are served directly from disk so they don't need a
+ * companion injector here.
+ */
+export function setLocalLibraryClient(client: LocalPageFetcher): void {
+  setLocalPageFetcher(client);
 }
