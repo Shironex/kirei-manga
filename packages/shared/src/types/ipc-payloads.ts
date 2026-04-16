@@ -197,6 +197,39 @@ export interface ReaderSessionEndResponse {
   error?: string;
 }
 
+/**
+ * Progress tick for a local chapter. `localSeriesId` and `localChapterId`
+ * are SQLite primary keys (UUIDs) — no resolution step like the mangadex
+ * flow needs. `pageCount` is supplied so the desktop can mark the chapter
+ * read when `page >= pageCount - 1` without re-opening the archive.
+ */
+export interface ReaderUpdateLocalProgressPayload {
+  localSeriesId: string;
+  localChapterId: string;
+  page: number;
+  pageCount: number;
+}
+
+export interface ReaderUpdateLocalProgressResponse {
+  success: boolean;
+  isRead: boolean;
+  error?: string;
+}
+
+/**
+ * Resume request for a local chapter. Returns the last persisted
+ * `lastReadPage` so the reader can open at the right page on next visit.
+ * Zero when the chapter has never been read.
+ */
+export interface ReaderGetLocalResumePayload {
+  localChapterId: string;
+}
+
+export interface ReaderGetLocalResumeResponse {
+  startPage: number;
+  error?: string;
+}
+
 // =============================================================================
 // mangadex:* payloads
 // =============================================================================

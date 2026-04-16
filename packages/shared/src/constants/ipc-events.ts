@@ -67,6 +67,11 @@ export const ReaderEvents = {
   MARK_READ: 'reader:mark-read',
   SESSION_START: 'reader:session-start',
   SESSION_END: 'reader:session-end',
+
+  // Local-source siblings (v0.2). Local chapter ids go through their own
+  // channels so the mangadex-specific upsert path stays untouched.
+  UPDATE_LOCAL_PROGRESS: 'reader:update-local-progress',
+  GET_LOCAL_RESUME: 'reader:get-local-resume',
 } as const;
 
 // ============================================
