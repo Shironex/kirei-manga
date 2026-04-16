@@ -1,7 +1,10 @@
+import type * as React from 'react';
 import { ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { ChapterListItem } from '@kireimanga/shared';
+import type { ChapterListItem, LibraryChapterStatePatch } from '@kireimanga/shared';
 import { relativeFromIso } from '@/lib/relativeTime';
+
+type ChapterStateMap = Record<string, LibraryChapterStatePatch> | null;
 
 interface Props {
   chapters: ChapterListItem[];
@@ -12,6 +15,7 @@ interface Props {
   lang: string | undefined;
   onLangChange: (lang: string) => void;
   mangadexSeriesId: string;
+  states: ChapterStateMap;
 }
 
 export function ChapterList({
@@ -23,6 +27,7 @@ export function ChapterList({
   lang,
   onLangChange,
   mangadexSeriesId,
+  states,
 }: Props) {
   return (
     <section className="mt-14 flex flex-col">
@@ -78,7 +83,12 @@ export function ChapterList({
         {!loading && !error && chapters.length > 0 && (
           <div role="table" className="flex flex-col">
             {chapters.map(ch => (
-              <Row key={ch.id} chapter={ch} mangadexSeriesId={mangadexSeriesId} />
+              <Row
+                key={ch.id}
+                chapter={ch}
+                mangadexSeriesId={mangadexSeriesId}
+                state={states ? (states[ch.id] ?? null) : null}
+              />
             ))}
           </div>
         )}
@@ -87,12 +97,38 @@ export function ChapterList({
   );
 }
 
+/**
+ * Read-state dot. The wrapper reserves width unconditionally so the row layout
+ * doesn't shift once states load in.
+ *   - unread / no state         → solid bengara
+ *   - in-progress (lastReadPage > 0, !isRead) → 50% bengara
+ *   - read                      → hairline ring
+ */
+function renderReadDot(state: LibraryChapterStatePatch | null) {
+  const base = 'inline-block h-1.5 w-1.5 rounded-full';
+  let dot: React.ReactElement;
+  if (!state || (!state.isRead && state.lastReadPage === 0)) {
+    dot = <span className={`${base} bg-[var(--color-accent)]`} />;
+  } else if (state.isRead) {
+    dot = <span className={`${base} border border-[var(--color-bone-faint)]`} />;
+  } else {
+    dot = <span className={`${base} bg-[var(--color-accent)]/50`} />;
+  }
+  return (
+    <span aria-hidden className="inline-flex h-1.5 w-1.5 items-center justify-center">
+      {dot}
+    </span>
+  );
+}
+
 function Row({
   chapter,
   mangadexSeriesId,
+  state,
 }: {
   chapter: ChapterListItem;
   mangadexSeriesId: string;
+  state: LibraryChapterStatePatch | null;
 }) {
   const dash = <span className="text-[var(--color-bone-faint)]">—</span>;
   const chapterNumberRaw = chapter.chapter ? Number(chapter.chapter) : undefined;
@@ -132,8 +168,7 @@ function Row({
       <span className="text-[12px] text-[var(--color-bone-muted)]">
         {relativeFromIso(chapter.publishAt)}
       </span>
-      {/* TODO(slice-e): read-state dot */}
-      <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full" />
+      {renderReadDot(state)}
     </Link>
   );
 }

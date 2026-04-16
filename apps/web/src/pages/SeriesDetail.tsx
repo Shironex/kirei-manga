@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMangaDexSeries } from '@/hooks/useMangaDexSeries';
 import { useMangaDexChapters } from '@/hooks/useMangaDexChapters';
+import { useChapterStates } from '@/hooks/useChapterStates';
+import { useLibraryStore } from '@/stores/library-store';
 import { SeriesBanner } from '@/components/series/SeriesBanner';
 import { ChapterList } from '@/components/series/ChapterList';
 
@@ -20,6 +22,13 @@ export function SeriesDetailPage() {
   }, [series?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const chaptersState = useMangaDexChapters(mangadexId, lang);
+
+  const localSeriesId = useLibraryStore(s => (mangadexId ? (s.mangadexIndex[mangadexId] ?? null) : null));
+  const chapterIds = useMemo(
+    () => chaptersState.chapters.map(c => c.id),
+    [chaptersState.chapters]
+  );
+  const chapterStates = useChapterStates(localSeriesId, chapterIds);
 
   if (loading && !series) {
     return (
@@ -66,6 +75,7 @@ export function SeriesDetailPage() {
         lang={lang}
         onLangChange={setLang}
         mangadexSeriesId={series.id}
+        states={chapterStates}
       />
     </>
   );
