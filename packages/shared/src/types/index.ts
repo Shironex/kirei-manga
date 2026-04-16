@@ -1,4 +1,5 @@
 export * from './ipc-payloads';
+export * from './local';
 export * from './mangadex';
 export * from './reader';
 export * from './series';

@@ -1,4 +1,5 @@
 import type { ReaderMode, ReaderDirection, FitMode } from './reader';
+import type { LocalArchiveFormat } from './local';
 
 /**
  * Reading status for a series in the local library.
@@ -43,6 +44,17 @@ export interface Series {
   lastCheckedAt?: Date;
   /** Number of new chapters found since the last time the user opened this series. */
   newChapterCount?: number;
+  /**
+   * Absolute path to the series' root folder (local-source only). Rescans
+   * (Slice L) walk from this path. Undefined for MangaDex-source rows.
+   */
+  localRootPath?: string;
+  /**
+   * Dedup key for a local series — SHA1 of the sorted relative chapter paths
+   * at import time. Lets the importer detect "this root is already imported"
+   * without walking the filesystem again.
+   */
+  localContentHash?: string;
 }
 
 /**
@@ -56,7 +68,10 @@ export interface Chapter {
   volumeNumber?: number;
   source: SeriesSource;
   mangadexChapterId?: string;
+  /** Absolute path for local chapters — directory for `folder`, archive file otherwise. */
   localPath?: string;
+  /** On-disk format for local chapters. Undefined for MangaDex-source rows. */
+  localArchiveFormat?: LocalArchiveFormat;
   pageCount: number;
   isDownloaded: boolean;
   isRead: boolean;
