@@ -21,6 +21,9 @@ function createIpcListener<T>(channel: string): (callback: (data: T) => void) =>
  * Only app:*, window:*, and updater:* are allowlisted for v0.1.
  */
 const ALLOWED_IPC_CHANNELS = new Set([
+  'window:minimize',
+  'window:maximize',
+  'window:close',
   'window:is-maximized',
   'app:get-version',
   'app:get-backend-port',
@@ -37,6 +40,11 @@ function assertAllowedChannel(channel: string): void {
   if (!ALLOWED_IPC_CHANNELS.has(channel)) {
     throw new Error(`IPC channel not allowed: "${channel}"`);
   }
+}
+
+function sendAllowed(channel: string, ...args: unknown[]): void {
+  assertAllowedChannel(channel);
+  ipcRenderer.send(channel, ...args);
 }
 
 function invokeWithTimeout<T>(channel: string, timeout: number, ...args: unknown[]): Promise<T> {
@@ -91,9 +99,9 @@ export interface ElectronAPI {
 
 const electronAPI: ElectronAPI = {
   window: {
-    minimize: () => ipcRenderer.send('window:minimize'),
-    maximize: () => ipcRenderer.send('window:maximize'),
-    close: () => ipcRenderer.send('window:close'),
+    minimize: () => sendAllowed('window:minimize'),
+    maximize: () => sendAllowed('window:maximize'),
+    close: () => sendAllowed('window:close'),
     isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
     onMaximizedChange: createIpcListener<boolean>('window:maximized-change'),
   },
