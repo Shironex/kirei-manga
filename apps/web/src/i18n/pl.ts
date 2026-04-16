@@ -99,7 +99,7 @@ export const pl = {
   // Settings — Reader
   'settings.reader.title': 'Domyślne ustawienia czytnika',
   'settings.reader.description':
-    'Startowy układ dla serii, których nie dostosowałeś. Ustawienia per seria mają priorytet — domyślne stosują się przy pierwszym czytaniu.',
+    'Startowy układ dla serii, które nie mają własnych ustawień. Ustawienia pojedynczej serii mają pierwszeństwo, a wartości domyślne stosują się przy pierwszym czytaniu.',
   'settings.reader.mode.label': 'Domyślny tryb',
   'settings.reader.mode.hint': 'Pojedyncza strona, rozkładówka lub pionowe przewijanie.',
   'settings.reader.mode.single': 'Pojedyncza',
@@ -138,10 +138,10 @@ export const pl = {
   'settings.section.updates': 'Aktualizacje',
   'settings.updates.title': 'Wersja i aktualizacje',
   'settings.updates.description':
-    'Aktualna wersja i kanał, z którego aplikacja pobiera aktualizacje. Sprawdzanie działa w tle — ręczne sprawdzenie jest zawsze dostępne.',
+    'Aktualna wersja i kanał, z którego aplikacja pobiera aktualizacje. Sprawdzanie działa w tle. Ręczne sprawdzenie jest zawsze dostępne.',
   'settings.updates.version.label': 'Wersja',
   'settings.updates.channel.label': 'Kanał aktualizacji',
-  'settings.updates.channel.hint': 'Beta to wcześniejsze buildy — mogą mieć więcej błędów.',
+  'settings.updates.channel.hint': 'Beta to wcześniejsze buildy. Mogą mieć więcej błędów.',
   'settings.updates.channel.stable': 'Stabilny',
   'settings.updates.channel.beta': 'Beta',
   'settings.updates.action.check': 'Sprawdź aktualizacje',
@@ -153,7 +153,7 @@ export const pl = {
   'settings.updates.status.checking': 'Sprawdzanie aktualizacji…',
   'settings.updates.status.available': 'Dostępna aktualizacja: {version}',
   'settings.updates.status.downloading': 'Pobieranie… {percent}%',
-  'settings.updates.status.ready': 'Aktualizacja gotowa — uruchom ponownie, aby zainstalować.',
+  'settings.updates.status.ready': 'Aktualizacja gotowa. Uruchom ponownie, aby zainstalować.',
   'settings.updates.status.error': 'Błąd: {message}',
   'settings.updates.status.pending': 'Nowe wydanie jest jeszcze ładowane. Spróbuj za chwilę.',
   'settings.updates.error.unknown': 'Nieznany błąd',
@@ -165,7 +165,7 @@ export const pl = {
   'settings.keyboard.title': 'Klawiatura',
   'settings.keyboard.description':
     'Skróty klawiszowe czytnika. Zmiana przypisań zaplanowana po v0.1.',
-  'settings.keyboard.comingSoon': 'Wkrótce — zmiana przypisań',
+  'settings.keyboard.comingSoon': 'Zmiana przypisań wkrótce',
   'settings.keyboard.hint.rtlInverted': 'Odwrócone w RTL.',
   'settings.keyboard.action.nextPage': 'Następna strona',
   'settings.keyboard.action.prevPage': 'Poprzednia strona',
@@ -181,7 +181,7 @@ export const pl = {
   'browse.eyebrow': 'MangaDex',
   'browse.title': 'Znajdź następną.',
   'browse.subtitle':
-    'Szukaj w MangaDex po tytule, autorze, tagu lub języku. Tylko oficjalne API — żadnego scrapowania ani podejrzanych lustrzanek.',
+    'Szukaj w MangaDex po tytule, autorze, tagu lub języku. Wyłącznie oficjalne API, bez scrapowania i podejrzanych lustrzanek.',
   'browse.search.placeholder': 'Szukaj po tytule, autorze, tagu…',
   'browse.empty.title': 'Wyszukiwanie jeszcze się nie zaczęło.',
   'browse.empty.body':

@@ -98,7 +98,7 @@ export const en = {
   // Settings — Reader
   'settings.reader.title': 'Reading defaults',
   'settings.reader.description':
-    "The starting layout for any series you haven't customised. Per-series prefs override these — defaults only apply on first read.",
+    "The starting layout for any series you haven't customised. Per-series prefs override these. Defaults only apply on first read.",
   'settings.reader.mode.label': 'Default mode',
   'settings.reader.mode.hint': 'Single-page, side-by-side spread, or vertical scroll.',
   'settings.reader.mode.single': 'Single',
@@ -151,7 +151,7 @@ export const en = {
   'settings.updates.status.checking': 'Checking for updates…',
   'settings.updates.status.available': 'Update available: {version}',
   'settings.updates.status.downloading': 'Downloading… {percent}%',
-  'settings.updates.status.ready': 'Update ready — restart to install.',
+  'settings.updates.status.ready': 'Update ready. Restart to install.',
   'settings.updates.status.error': 'Error: {message}',
   'settings.updates.status.pending': 'New release is still uploading. Check back in a minute.',
   'settings.updates.error.unknown': 'Unknown error',
@@ -163,7 +163,7 @@ export const en = {
   'settings.keyboard.title': 'Keyboard',
   'settings.keyboard.description':
     'Reader keyboard bindings. Rebinding is parked until after v0.1.',
-  'settings.keyboard.comingSoon': 'Coming soon — rebinding',
+  'settings.keyboard.comingSoon': 'Rebinding coming soon',
   'settings.keyboard.hint.rtlInverted': 'Inverted in RTL.',
   'settings.keyboard.action.nextPage': 'Next page',
   'settings.keyboard.action.prevPage': 'Previous page',
@@ -179,7 +179,7 @@ export const en = {
   'browse.eyebrow': 'MangaDex',
   'browse.title': 'Find the next one.',
   'browse.subtitle':
-    'Search MangaDex by title, author, tag, or language. Official API only — no scraping, no sketchy mirrors.',
+    'Search MangaDex by title, author, tag, or language. Official API only. No scraping, no sketchy mirrors.',
   'browse.search.placeholder': 'Search by title, author, tag…',
   'browse.empty.title': "Search hasn't started.",
   'browse.empty.body':
