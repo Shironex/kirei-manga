@@ -5,12 +5,14 @@ export type LibraryViewMode = 'grid' | 'list';
 export type LibrarySort = 'title' | 'lastRead' | 'dateAdded' | 'progress';
 export type LibrarySortDir = 'asc' | 'desc';
 export type LibraryStatusFilter = ReadingStatus | 'all';
+export type LibrarySourceFilter = 'all' | 'mangadex' | 'local';
 
 interface LibraryViewState {
   mode: LibraryViewMode;
   sort: LibrarySort;
   sortDir: LibrarySortDir;
   statusFilter: LibraryStatusFilter;
+  sourceFilter: LibrarySourceFilter;
   query: string;
 }
 
@@ -20,6 +22,7 @@ interface LibraryViewActions {
   setSortDir: (dir: LibrarySortDir) => void;
   toggleSortDir: () => void;
   setStatusFilter: (filter: LibraryStatusFilter) => void;
+  setSourceFilter: (filter: LibrarySourceFilter) => void;
   setQuery: (q: string) => void;
 }
 
@@ -29,6 +32,7 @@ export const useLibraryViewStore = create<LibraryViewState & LibraryViewActions>
   sort: 'lastRead',
   sortDir: 'desc',
   statusFilter: 'all',
+  sourceFilter: 'all',
   query: '',
 
   setMode: mode => set({ mode }),
@@ -36,5 +40,6 @@ export const useLibraryViewStore = create<LibraryViewState & LibraryViewActions>
   setSortDir: sortDir => set({ sortDir }),
   toggleSortDir: () => set(state => ({ sortDir: state.sortDir === 'asc' ? 'desc' : 'asc' })),
   setStatusFilter: statusFilter => set({ statusFilter }),
+  setSourceFilter: sourceFilter => set({ sourceFilter }),
   setQuery: query => set({ query }),
 }));

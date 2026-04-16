@@ -38,6 +38,7 @@ export function LibraryPage() {
   const sort = useLibraryViewStore(s => s.sort);
   const sortDir = useLibraryViewStore(s => s.sortDir);
   const statusFilter = useLibraryViewStore(s => s.statusFilter);
+  const sourceFilter = useLibraryViewStore(s => s.sourceFilter);
   const query = useLibraryViewStore(s => s.query);
 
   // Drop optimistic rows (empty title + pending: prefix). MangaDex rows
@@ -49,10 +50,15 @@ export function LibraryPage() {
     return s.source === 'mangadex' && !!s.mangadexId;
   });
 
+  const sourceFiltered =
+    sourceFilter === 'all'
+      ? baseVisible
+      : baseVisible.filter(s => s.source === sourceFilter);
+
   const statusFiltered =
     statusFilter === 'all'
-      ? baseVisible
-      : baseVisible.filter(s => s.status === statusFilter);
+      ? sourceFiltered
+      : sourceFiltered.filter(s => s.status === statusFilter);
 
   const searched = query
     ? statusFiltered.filter(s =>

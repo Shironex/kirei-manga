@@ -1,6 +1,7 @@
 import {
   useLibraryViewStore,
   type LibrarySort,
+  type LibrarySourceFilter,
   type LibraryStatusFilter,
   type LibraryViewMode,
 } from '@/stores/library-view-store';
@@ -17,6 +18,12 @@ const STATUSES: { value: LibraryStatusFilter; label: string }[] = [
   { value: 'planToRead', label: 'Plan to read' },
   { value: 'onHold', label: 'On hold' },
   { value: 'dropped', label: 'Dropped' },
+];
+
+const SOURCES: { value: LibrarySourceFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'mangadex', label: 'MangaDex' },
+  { value: 'local', label: 'Local' },
 ];
 
 const SORTS: { value: LibrarySort; label: string; disabled?: boolean }[] = [
@@ -105,6 +112,8 @@ export function LibraryControls() {
   const toggleSortDir = useLibraryViewStore(s => s.toggleSortDir);
   const statusFilter = useLibraryViewStore(s => s.statusFilter);
   const setStatusFilter = useLibraryViewStore(s => s.setStatusFilter);
+  const sourceFilter = useLibraryViewStore(s => s.sourceFilter);
+  const setSourceFilter = useLibraryViewStore(s => s.setSourceFilter);
 
   return (
     <div className="mb-6 flex flex-col gap-5 border-b border-[var(--color-border)] pb-6">
@@ -127,6 +136,19 @@ export function LibraryControls() {
             </Segment>
           ))}
         </div>
+      </div>
+      <div className="flex items-start justify-between gap-6">
+        <Group label="Source">
+          {SOURCES.map(s => (
+            <Chip
+              key={s.value}
+              active={sourceFilter === s.value}
+              onClick={() => setSourceFilter(s.value)}
+            >
+              {s.label}
+            </Chip>
+          ))}
+        </Group>
       </div>
       <div className="flex items-baseline gap-4">
         <Group label="Sort">
