@@ -49,4 +49,16 @@ export const en = {
   'toast.eyebrow.notice': 'NOTICE',
   'toast.eyebrow.done': 'DONE',
   'toast.dismiss': 'Dismiss',
+
+  // Splash
+  'splash.error.eyebrow': 'Something went sideways',
+  'splash.retry': 'Retry',
+  'splash.msg.0': 'Dusting the manga shelves…',
+  'splash.msg.1': 'Sharpening pencils…',
+  'splash.msg.2': 'Pouring the tea…',
+  'splash.msg.3': 'Turning the page…',
+  'splash.msg.4': 'Looking up chapters…',
+  'splash.msg.5': 'Opening the covers…',
+  'splash.msg.6': 'Sorting bookmarks…',
+  'splash.msg.7': 'Kirei is reading quietly…',
 } as const;

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import mascotRead from '@/assets/chibi_read.png';
+import { useT } from '@/hooks/useT';
 
 /** Minimum time the splash stays visible (ms). */
 const MIN_DISPLAY_MS = 2200;
@@ -10,22 +11,8 @@ const SPINNER_DELAY_MS = 700;
 /** How often loading messages rotate (ms). */
 const MESSAGE_ROTATE_MS = 1600;
 
-/**
- * Editorial loading copy — serif ellipsis cadence, no exclamation marks, no
- * kawaii filler. Matches the `.impeccable.md` tone: literary, unhurried.
- * Polish primary (dev machine language); the mascot docs list an English
- * fallback set if we ever wire an i18n toggle in the splash itself.
- */
-const LOADING_MESSAGES = [
-  'Odkurzamy półki z mangą…',
-  'Ostrzymy ołówki…',
-  'Nalewamy herbatę…',
-  'Przewracamy strony…',
-  'Wyszukujemy rozdziały…',
-  'Otwieramy okładki…',
-  'Sortujemy zakładki…',
-  'Kirei czyta cichutko…',
-];
+/** Number of rotating message keys — must match `splash.msg.0..N-1`. */
+const MESSAGE_COUNT = 8;
 
 const FLAKE_COUNT = 8;
 
@@ -62,7 +49,7 @@ function useFlakes(): Flake[] {
 }
 
 function randomStart(): number {
-  return Math.floor(Math.random() * LOADING_MESSAGES.length);
+  return Math.floor(Math.random() * MESSAGE_COUNT);
 }
 
 interface Props {
@@ -89,6 +76,12 @@ interface Props {
  * needs to manually unmount.
  */
 export function SplashScreen({ ready, error, onDismissed }: Props) {
+  // `useT()` binds to `settings.language` — during the first second or two
+  // of the splash the settings store may not have hydrated yet, so strings
+  // render in English and then live-swap to the user's stored language as
+  // soon as hydration completes. The key-then-fallback shape of `useT` means
+  // the rotation index stays valid across that swap.
+  const t = useT();
   const [minElapsed, setMinElapsed] = useState(false);
   const [showSpinner, setShowSpinner] = useState(false);
   const [dismissing, setDismissing] = useState(false);
@@ -111,11 +104,11 @@ export function SplashScreen({ ready, error, onDismissed }: Props) {
 
   useEffect(() => {
     if (error) return;
-    const t = setInterval(
-      () => setMessageIndex(i => (i + 1) % LOADING_MESSAGES.length),
+    const timer = setInterval(
+      () => setMessageIndex(i => (i + 1) % MESSAGE_COUNT),
       MESSAGE_ROTATE_MS
     );
-    return () => clearInterval(t);
+    return () => clearInterval(timer);
   }, [error]);
 
   useEffect(() => {
@@ -200,7 +193,7 @@ export function SplashScreen({ ready, error, onDismissed }: Props) {
           {error ? (
             <div className="flex flex-col items-center gap-2 px-8 text-center">
               <span className="font-mono text-[10px] tracking-[0.24em] text-[var(--color-accent)] uppercase">
-                Something went sideways
+                {t('splash.error.eyebrow')}
               </span>
               <p className="max-w-[44ch] text-[13px] text-foreground">{error}</p>
               <button
@@ -208,7 +201,7 @@ export function SplashScreen({ ready, error, onDismissed }: Props) {
                 onClick={() => window.location.reload()}
                 className="mt-2 font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-muted)] underline-offset-4 uppercase hover:text-foreground hover:underline"
               >
-                Retry
+                {t('splash.retry')}
               </button>
             </div>
           ) : (
@@ -223,7 +216,7 @@ export function SplashScreen({ ready, error, onDismissed }: Props) {
                 className="font-display text-[13px] font-[380] text-[var(--color-bone-muted)] italic"
                 style={{ animation: 'splash-msg-swap 420ms ease-out both' }}
               >
-                {LOADING_MESSAGES[messageIndex]}
+                {t(`splash.msg.${messageIndex}`)}
               </p>
             </>
           )}

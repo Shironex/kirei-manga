@@ -45,4 +45,16 @@ export const pl = {
   'toast.eyebrow.notice': 'INFO',
   'toast.eyebrow.done': 'GOTOWE',
   'toast.dismiss': 'Zamknij',
+
+  // Splash
+  'splash.error.eyebrow': 'Coś poszło nie tak',
+  'splash.retry': 'Spróbuj ponownie',
+  'splash.msg.0': 'Odkurzamy półki z mangą…',
+  'splash.msg.1': 'Ostrzymy ołówki…',
+  'splash.msg.2': 'Nalewamy herbatę…',
+  'splash.msg.3': 'Przewracamy strony…',
+  'splash.msg.4': 'Wyszukujemy rozdziały…',
+  'splash.msg.5': 'Otwieramy okładki…',
+  'splash.msg.6': 'Sortujemy zakładki…',
+  'splash.msg.7': 'Kirei czyta cichutko…',
 } as const;
