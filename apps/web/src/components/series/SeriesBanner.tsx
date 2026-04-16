@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { MangaDexSeriesDetail } from '@kireimanga/shared';
+import { useFollow } from '@/hooks/useFollow';
 
 interface Props {
   series: MangaDexSeriesDetail;
@@ -8,6 +9,7 @@ interface Props {
 export function SeriesBanner({ series }: Props) {
   const [loaded, setLoaded] = useState(false);
   const src = series.bannerUrl ?? series.coverUrl;
+  const { followed, busy, toggle } = useFollow(series.id);
 
   return (
     <section className="flex flex-col gap-8 md:flex-row md:items-start md:gap-10">
@@ -47,16 +49,22 @@ export function SeriesBanner({ series }: Props) {
         <MetaRow series={series} />
 
         <div className="mt-5">
-          {/* TODO(slice-b-phase-5): wire useFollow(mangadexId) */}
-          {/* followed variant (phase 5):
-              className="h-9 px-4 rounded-[2px] border border-[var(--color-accent)] bg-[var(--color-accent)] text-[11px] font-mono tracking-[0.22em] uppercase text-[var(--color-accent-foreground)]" */}
           <button
             type="button"
-            aria-disabled="true"
-            disabled
-            className="h-9 rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+            aria-pressed={followed}
+            disabled={busy}
+            onClick={() => void toggle()}
+            className={[
+              'h-9 rounded-[2px] px-4 font-mono text-[11px] tracking-[0.22em] uppercase transition-colors',
+              followed
+                ? 'border border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-accent-foreground)]'
+                : 'border border-border text-foreground hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]',
+              busy ? 'cursor-wait opacity-60' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
           >
-            Follow
+            {followed ? 'Following' : 'Follow'}
           </button>
         </div>
 
