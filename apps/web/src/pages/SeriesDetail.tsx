@@ -8,6 +8,7 @@ import { useLibraryStore } from '@/stores/library-store';
 import { emitWithResponse } from '@/lib/socket';
 import { SeriesBanner } from '@/components/series/SeriesBanner';
 import { ChapterList } from '@/components/series/ChapterList';
+import { BookmarksPanel } from '@/components/series/BookmarksPanel';
 
 export function SeriesDetailPage() {
   const { mangadexId } = useParams<{ mangadexId: string }>();
@@ -81,6 +82,8 @@ export function SeriesDetailPage() {
 
   if (!series) return null;
 
+  const inLibrary = !!localSeriesId && !localSeriesId.startsWith('pending:');
+
   return (
     <>
       <SeriesBanner series={series} />
@@ -95,6 +98,7 @@ export function SeriesDetailPage() {
         mangadexSeriesId={series.id}
         states={chapterStates}
       />
+      {inLibrary && <BookmarksPanel mangadexSeriesId={series.id} />}
     </>
   );
 }
