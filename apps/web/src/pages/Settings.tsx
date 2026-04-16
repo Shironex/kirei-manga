@@ -1,5 +1,6 @@
 import { PageHeader } from '../components/layout/PageHeader';
 import { AppearanceSection } from '../components/settings/AppearanceSection';
+import { KeyboardSection } from '../components/settings/KeyboardSection';
 import { LibrarySection } from '../components/settings/LibrarySection';
 import { ReaderDefaultsSection } from '../components/settings/ReaderDefaultsSection';
 import { useSettingsStore } from '../stores/settings-store';
@@ -27,6 +28,7 @@ export function SettingsPage() {
           <AppearanceSection />
           <ReaderDefaultsSection />
           <LibrarySection />
+          <KeyboardSection />
         </div>
       )}
     </>

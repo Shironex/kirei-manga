@@ -30,6 +30,10 @@ function isEditableTarget(target: EventTarget | null): boolean {
  * - f / F: toggle fullscreen.
  * - 1 / 2 / 3: fit width / height / original.
  * - b / B: toggle a bookmark on the current page (no-op when handler missing).
+ *
+ * TODO(post-v0.1): consume settings.shortcuts so users can rebind these from
+ * Settings → Keyboard. The schema is already keyed and persisted; the UI just
+ * lists bindings read-only for v0.1.
  */
 export function useReaderKeyboard(handlers: Handlers): void {
   const {
