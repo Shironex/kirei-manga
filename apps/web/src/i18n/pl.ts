@@ -25,6 +25,7 @@ export const pl = {
   'library.empty.body':
     'Zacznij od przeglądania MangaDex, aby znaleźć swoją pierwszą serię.',
   'library.empty.cta': 'Przeglądaj MangaDex',
+  'library.empty.cta.import': 'Importuj lokalne',
   'library.empty.hint': 'Ctrl + B · Przeglądaj',
   'library.filters.empty': 'Brak serii pasujących do filtrów.',
 

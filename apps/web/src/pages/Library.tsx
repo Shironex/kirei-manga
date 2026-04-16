@@ -40,12 +40,14 @@ export function LibraryPage() {
   const statusFilter = useLibraryViewStore(s => s.statusFilter);
   const query = useLibraryViewStore(s => s.query);
 
-  // Drop optimistic rows (empty title + pending: prefix) and non-mangadex
-  // entries — v0.1 only surfaces mangadex-sourced series.
-  // TODO(slice-f): local series
-  const baseVisible = series.filter(
-    s => !s.id.startsWith('pending:') && s.source === 'mangadex' && !!s.mangadexId
-  );
+  // Drop optimistic rows (empty title + pending: prefix). MangaDex rows
+  // need a mangadexId to route; local rows route by local id, no mangadex
+  // id required.
+  const baseVisible = series.filter(s => {
+    if (s.id.startsWith('pending:')) return false;
+    if (s.source === 'local') return true;
+    return s.source === 'mangadex' && !!s.mangadexId;
+  });
 
   const statusFiltered =
     statusFilter === 'all'
@@ -82,12 +84,20 @@ export function LibraryPage() {
           title={t('library.empty.title')}
           body={t('library.empty.body')}
           action={
-            <Link
-              to="/browse"
-              className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-            >
-              {t('library.empty.cta')}
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                to="/browse"
+                className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+              >
+                {t('library.empty.cta')}
+              </Link>
+              <Link
+                to="/library/import"
+                className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+              >
+                {t('library.empty.cta.import')}
+              </Link>
+            </div>
           }
           hint={t('library.empty.hint')}
         />

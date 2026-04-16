@@ -29,6 +29,7 @@ export const en = {
   'library.empty.title': 'No series followed yet.',
   'library.empty.body': 'Start by browsing MangaDex to find your first series.',
   'library.empty.cta': 'Browse MangaDex',
+  'library.empty.cta.import': 'Import local',
   'library.empty.hint': 'Ctrl + B · Browse',
   'library.filters.empty': 'No series match your filters.',
 
