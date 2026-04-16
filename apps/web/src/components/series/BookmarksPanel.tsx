@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { X } from 'lucide-react';
 import type { BookmarkWithChapter } from '@kireimanga/shared';
 import { useSeriesBookmarks } from '@/hooks/useSeriesBookmarks';
+import { useT } from '@/hooks/useT';
 
 interface Props {
   mangadexSeriesId: string;
@@ -45,6 +46,7 @@ function formatChapterHeader(group: ChapterGroup): string {
 }
 
 export function BookmarksPanel({ mangadexSeriesId }: Props) {
+  const t = useT();
   const { bookmarks, remove } = useSeriesBookmarks(mangadexSeriesId);
 
   const groups = useMemo(() => groupBookmarks(bookmarks), [bookmarks]);
@@ -55,7 +57,7 @@ export function BookmarksPanel({ mangadexSeriesId }: Props) {
     <section className="mt-14 flex flex-col">
       <header className="flex items-center justify-between">
         <span className="font-mono text-[10px] tracking-[0.26em] text-[var(--color-bone-faint)] uppercase">
-          Bookmarks
+          {t('series.bookmarks')}
         </span>
       </header>
 
@@ -91,10 +93,11 @@ function BookmarkRow({
   mangadexSeriesId: string;
   onRemove: () => void;
 }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-[3rem_1fr_auto_1.5rem] items-center gap-x-4 border-b border-border py-2.5 text-[13px] last:border-b-0 hover:bg-[var(--color-ink-raised)]">
       <span className="font-mono text-[11px] tracking-[0.16em] text-[var(--color-bone-faint)] uppercase">
-        p.{bookmark.page + 1}
+        {t('chapterList.bookmarks.page', { page: bookmark.page + 1 })}
       </span>
       <span className="truncate text-foreground">
         {bookmark.note ? bookmark.note : <span className="text-[var(--color-bone-faint)]">—</span>}
@@ -103,12 +106,12 @@ function BookmarkRow({
         to={`/reader/${mangadexSeriesId}/${bookmark.mangadexChapterId}?page=${bookmark.page}`}
         className="font-mono text-[11px] tracking-[0.18em] text-[var(--color-bone-muted)] uppercase underline-offset-4 hover:text-foreground hover:underline"
       >
-        Jump
+        {t('chapterList.bookmarks.jump')}
       </Link>
       <button
         type="button"
         onClick={onRemove}
-        aria-label="Remove bookmark"
+        aria-label={t('chapterList.bookmarks.removeAria')}
         className="flex items-center justify-center text-[var(--color-bone-faint)] transition-colors hover:text-foreground"
       >
         <X className="h-3.5 w-3.5" />

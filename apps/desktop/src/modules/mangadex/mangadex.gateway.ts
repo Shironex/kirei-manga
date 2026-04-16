@@ -48,8 +48,11 @@ export class MangaDexGateway implements OnGatewayInit {
       action: 'mangadex:search',
       defaultResult: { results: [] },
       handler: async () => {
-        const results = await this.mangadexService.search(payload.query, payload.filters);
-        return { results };
+        const { results, total, offset, limit } = await this.mangadexService.search(
+          payload.query,
+          payload.filters,
+        );
+        return { results, total, offset, limit };
       },
     });
   }

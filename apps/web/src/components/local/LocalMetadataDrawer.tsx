@@ -10,6 +10,7 @@ import { Drawer } from '../ui/Drawer';
 import { emitWithResponse } from '@/lib/socket';
 import { useMangaDexSearch } from '@/hooks/useMangaDexSearch';
 import { useToastStore } from '@/stores/toast-store';
+import { useT } from '@/hooks/useT';
 
 interface Props {
   open: boolean;
@@ -27,6 +28,7 @@ interface Props {
  * drawer intentionally stays narrow.
  */
 export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
+  const t = useT();
   const pushToast = useToastStore(s => s.show);
 
   const [title, setTitle] = useState(series.title);
@@ -119,12 +121,16 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
         // error so the user understands the collision without leaving the
         // drawer open in a confusing state.
         if (response.error === 'mangadex-id-taken') {
-          throw new Error('That MangaDex entry is already linked to another library series.');
+          throw new Error(t('series.local.drawer.error.mangadexTaken'));
         }
         throw new Error(response.error ?? 'local:update-series returned no series');
       }
       onSaved(response.series);
-      pushToast({ variant: 'success', title: 'Saved', body: `${response.series.title} updated.` });
+      pushToast({
+        variant: 'success',
+        title: t('series.local.drawer.toast.savedTitle'),
+        body: t('series.local.drawer.toast.savedBody', { title: response.series.title }),
+      });
       onClose();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -138,8 +144,8 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
     <Drawer
       open={open}
       onClose={onClose}
-      eyebrow="Local · Metadata"
-      title="Edit series"
+      eyebrow={t('series.local.drawer.eyebrow')}
+      title={t('series.local.drawer.title')}
       footer={
         <div className="flex items-center justify-between gap-3">
           <button
@@ -148,7 +154,7 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
             disabled={saving}
             className="font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-muted)] underline-offset-4 uppercase hover:text-foreground hover:underline disabled:opacity-60"
           >
-            Cancel
+            {t('series.local.drawer.action.cancel')}
           </button>
           <button
             type="button"
@@ -156,13 +162,15 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
             disabled={saving}
             className="inline-flex h-9 items-center rounded-[2px] border border-[var(--color-accent)] bg-[var(--color-accent)] px-5 font-mono text-[11px] tracking-[0.22em] text-[var(--color-accent-foreground)] uppercase transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
           >
-            {saving ? 'Saving…' : 'Save'}
+            {saving
+              ? t('series.local.drawer.action.saving')
+              : t('series.local.drawer.action.save')}
           </button>
         </div>
       }
     >
       <div className="flex flex-col gap-5">
-        <Field label="Title">
+        <Field label={t('series.local.drawer.field.title')}>
           <input
             type="text"
             value={title}
@@ -171,7 +179,7 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
           />
         </Field>
 
-        <Field label="Japanese title">
+        <Field label={t('series.local.drawer.field.titleJapanese')}>
           <input
             type="text"
             value={titleJapanese}
@@ -181,7 +189,7 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
           />
         </Field>
 
-        <Field label="Score">
+        <Field label={t('series.local.drawer.field.score')}>
           <div className="flex items-center gap-3">
             <input
               type="number"
@@ -194,24 +202,24 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
               className="h-10 w-20 border-b border-[var(--color-rule)] bg-transparent text-center font-mono text-[14px] text-foreground outline-none transition-colors focus:border-[var(--color-accent)]"
             />
             <span className="font-mono text-[10px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
-              / 10
+              {t('series.local.drawer.field.scoreSuffix')}
             </span>
           </div>
         </Field>
 
-        <Field label="Notes">
+        <Field label={t('series.local.drawer.field.notes')}>
           <textarea
             value={notes}
             onChange={e => setNotes(e.target.value)}
             rows={5}
-            placeholder="Thoughts, reminders, where you left off…"
+            placeholder={t('series.local.drawer.field.notes.placeholder')}
             className="w-full border border-[var(--color-rule)] bg-transparent px-3 py-2 text-[13.5px] leading-relaxed text-foreground outline-none transition-colors focus:border-[var(--color-accent)]"
           />
         </Field>
 
         <div className="mt-3 flex flex-col gap-3 border-t border-[var(--color-rule)] pt-5">
           <span className="font-mono text-[10px] tracking-[0.24em] text-[var(--color-bone-faint)] uppercase">
-            Find on MangaDex
+            {t('series.local.drawer.mangadex.heading')}
           </span>
 
           {mangadexId ? (
@@ -224,7 +232,7 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
                 onClick={clearMangadexLink}
                 className="font-mono text-[10px] tracking-[0.22em] text-[var(--color-bone-muted)] underline-offset-4 uppercase hover:text-[var(--color-accent)] hover:underline"
               >
-                Unlink
+                {t('series.local.drawer.mangadex.unlink')}
               </button>
             </div>
           ) : (
@@ -238,7 +246,7 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
               />
               {mangadexSearch.loading && (
                 <span className="font-mono text-[10px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
-                  Searching…
+                  {t('series.local.drawer.mangadex.searching')}
                 </span>
               )}
               {mangadexSearch.error && (

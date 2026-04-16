@@ -16,6 +16,7 @@ import { EmptyState } from '../components/layout/EmptyState';
 import { LocalMetadataDrawer } from '../components/local/LocalMetadataDrawer';
 import { emitWithResponse } from '@/lib/socket';
 import { useToastStore } from '@/stores/toast-store';
+import { useT } from '@/hooks/useT';
 
 const logger = createLogger('LocalSeriesDetail');
 
@@ -23,6 +24,9 @@ const logger = createLogger('LocalSeriesDetail');
  * Format a chapter list row's numeric columns. Folders without a parsed
  * chapter number get a long dash so the column stays aligned — Slice J's
  * inline editor is where the user corrects mis-parses.
+ *
+ * V/Ch are code-like identifiers (not translated copy). The parse gap emits
+ * the bare dash "Ch —" intentionally — same treatment as other row data.
  */
 function formatChapterLabel(chapter: Chapter): string {
   const parts: string[] = [];
@@ -32,6 +36,7 @@ function formatChapterLabel(chapter: Chapter): string {
 }
 
 export function LocalSeriesDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const pushToast = useToastStore(s => s.show);
@@ -97,19 +102,23 @@ export function LocalSeriesDetailPage() {
         setChapters(fresh.chapters);
         pushToast({
           variant: 'success',
-          title: 'New chapters',
-          body: `Found ${response.newChapterCount} new chapter${response.newChapterCount === 1 ? '' : 's'}.`,
+          title: t('series.local.toast.newChaptersTitle'),
+          body: t('series.local.toast.newChaptersBody', { count: response.newChapterCount }),
         });
       } else {
         pushToast({
           variant: 'info',
-          title: 'Up to date',
-          body: 'No new chapters on disk.',
+          title: t('series.local.toast.upToDateTitle'),
+          body: t('series.local.toast.upToDateBody'),
         });
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      pushToast({ variant: 'error', title: 'Rescan failed', body: message });
+      pushToast({
+        variant: 'error',
+        title: t('series.local.toast.rescanFailed'),
+        body: message,
+      });
     } finally {
       setRescanning(false);
     }
@@ -118,7 +127,7 @@ export function LocalSeriesDetailPage() {
   const handleDelete = async (): Promise<void> => {
     if (!series || deleting) return;
     const confirmed = window.confirm(
-      `Remove "${series.title}" from the library? The files on disk aren't deleted.`
+      t('series.local.confirm.remove', { title: series.title })
     );
     if (!confirmed) return;
     setDeleting(true);
@@ -132,15 +141,15 @@ export function LocalSeriesDetailPage() {
       }
       pushToast({
         variant: 'success',
-        title: 'Removed',
-        body: `${series.title} removed from the library.`,
+        title: t('series.local.toast.removedTitle'),
+        body: t('series.local.toast.removedBody', { title: series.title }),
       });
       navigate('/');
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       pushToast({
         variant: 'error',
-        title: 'Remove failed',
+        title: t('series.local.toast.removeFailed'),
         body: message,
       });
       setDeleting(false);
@@ -164,14 +173,14 @@ export function LocalSeriesDetailPage() {
     return (
       <EmptyState
         glyph="空"
-        title="Series not found."
-        body={error ?? 'The requested series is not in your local library.'}
+        title={t('series.notFound.title')}
+        body={error ?? t('series.notFound.body')}
         action={
           <Link
             to="/"
             className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
           >
-            Back to library
+            {t('series.notFound.back')}
           </Link>
         }
       />
@@ -206,7 +215,7 @@ export function LocalSeriesDetailPage() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="font-mono text-[10px] tracking-[0.26em] text-[var(--color-bone-faint)] uppercase">
-            Local · Series
+            {t('series.eyebrow.local')}
           </span>
           <h1 className="font-display mt-3 text-[40px] leading-[1.05] font-medium text-foreground">
             {series.title}
@@ -219,24 +228,24 @@ export function LocalSeriesDetailPage() {
 
           <dl className="mt-6 flex flex-wrap items-baseline gap-x-6 gap-y-2 font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
             <div className="flex items-baseline gap-2">
-              <dt>Chapters</dt>
+              <dt>{t('series.local.meta.chapters')}</dt>
               <dd className="text-foreground">{chapters.length}</dd>
             </div>
             <div className="flex items-baseline gap-2">
-              <dt>Read</dt>
+              <dt>{t('series.local.meta.read')}</dt>
               <dd className="text-foreground">{readCount}</dd>
             </div>
             {series.mangadexId && (
               <div className="flex items-baseline gap-2">
-                <dt>MangaDex</dt>
+                <dt>{t('series.local.meta.mangadex')}</dt>
                 <dd className="font-kanji text-[var(--color-accent)] normal-case">
-                  linked
+                  {t('series.local.meta.mangadex.linked')}
                 </dd>
               </div>
             )}
             {series.localRootPath && (
               <div className="flex min-w-0 items-baseline gap-2">
-                <dt>Root</dt>
+                <dt>{t('series.local.meta.root')}</dt>
                 <dd className="truncate text-[var(--color-bone-muted)] normal-case">
                   {series.localRootPath}
                 </dd>
@@ -250,7 +259,7 @@ export function LocalSeriesDetailPage() {
                 to={`/reader/local/${series.id}/${continueChapterId}`}
                 className="inline-flex h-9 items-center rounded-[2px] border border-[var(--color-accent)] bg-[var(--color-accent)] px-5 font-mono text-[11px] tracking-[0.22em] text-[var(--color-accent-foreground)] uppercase transition-opacity hover:opacity-90"
               >
-                Continue
+                {t('series.continue')}
               </Link>
             )}
             <button
@@ -258,7 +267,7 @@ export function LocalSeriesDetailPage() {
               onClick={() => setEditing(true)}
               className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
             >
-              Edit
+              {t('series.local.action.edit')}
             </button>
             <button
               type="button"
@@ -266,7 +275,7 @@ export function LocalSeriesDetailPage() {
               disabled={rescanning}
               className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-wait disabled:opacity-60"
             >
-              {rescanning ? 'Rescanning…' : 'Rescan'}
+              {rescanning ? t('series.local.action.rescanning') : t('series.local.action.rescan')}
             </button>
             <button
               type="button"
@@ -274,7 +283,7 @@ export function LocalSeriesDetailPage() {
               disabled={deleting}
               className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-wait disabled:opacity-60"
             >
-              {deleting ? 'Removing…' : 'Remove'}
+              {deleting ? t('series.local.action.removing') : t('series.local.action.remove')}
             </button>
           </div>
         </div>
@@ -290,16 +299,24 @@ export function LocalSeriesDetailPage() {
       <section className="mt-12 animate-fade-up">
         <div className="mb-4 flex items-baseline justify-between border-b border-[var(--color-rule)] pb-3">
           <span className="font-mono text-[10px] tracking-[0.26em] text-[var(--color-bone-faint)] uppercase">
-            Chapters
+            {t('series.chapters')}
           </span>
           <span className="font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
-            {readCount} / {chapters.length} read
+            {t('series.local.chapters.readOfTotal', {
+              read: readCount,
+              total: chapters.length,
+            })}
           </span>
         </div>
         <ul className="flex flex-col divide-y divide-[var(--color-rule)]">
           {chapters.map(chapter => {
             const isInProgress =
               !chapter.isRead && chapter.lastReadPage > 0 && chapter.pageCount > 0;
+            const statusAria = chapter.isRead
+              ? t('series.local.chapters.read')
+              : isInProgress
+                ? t('series.local.chapters.inProgress')
+                : t('series.local.chapters.unread');
             return (
               <li key={chapter.id}>
                 <Link
@@ -322,9 +339,7 @@ export function LocalSeriesDetailPage() {
                           ? 'bg-[var(--color-accent)]/60'
                           : 'bg-[var(--color-accent)]',
                     ].join(' ')}
-                    aria-label={
-                      chapter.isRead ? 'Read' : isInProgress ? 'In progress' : 'Unread'
-                    }
+                    aria-label={statusAria}
                   />
                   <span className="w-32 shrink-0 font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
                     {formatChapterLabel(chapter)}
@@ -337,12 +352,18 @@ export function LocalSeriesDetailPage() {
                         : 'text-foreground italic group-hover:not-italic group-hover:text-[var(--color-accent)]',
                     ].join(' ')}
                   >
-                    {chapter.title ?? `Chapter ${chapter.chapterNumber}`}
+                    {chapter.title ??
+                      t('series.local.chapters.fallbackTitle', {
+                        number: chapter.chapterNumber ?? '—',
+                      })}
                   </span>
                   <span className="shrink-0 font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
                     {isInProgress
-                      ? `${chapter.lastReadPage + 1} / ${chapter.pageCount}`
-                      : `${chapter.pageCount} pp`}
+                      ? t('series.local.chapters.pageProgress', {
+                          current: chapter.lastReadPage + 1,
+                          total: chapter.pageCount,
+                        })
+                      : t('series.local.chapters.pageCount', { count: chapter.pageCount })}
                   </span>
                 </Link>
               </li>

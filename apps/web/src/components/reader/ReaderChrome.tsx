@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Settings } from 'lucide-react';
 import type { FitMode, ReaderDirection, ReaderMode } from '@kireimanga/shared';
 import { ReaderSettingsPopover } from './ReaderSettingsPopover';
+import { useT } from '@/hooks/useT';
 
 interface Props {
   pageNumber: number;
@@ -27,6 +28,7 @@ export function ReaderChrome({
   fit,
   onPrefsChange,
 }: Props) {
+  const t = useT();
   const navigate = useNavigate();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement | null>(null);
@@ -71,7 +73,7 @@ export function ReaderChrome({
           className="app-no-drag group inline-flex items-center gap-2 text-[12px] tracking-wide text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5 stroke-[1.4] transition-transform group-hover:-translate-x-0.5" />
-          Back
+          {t('reader.back')}
         </button>
 
         <div className="flex items-center gap-3 text-[11px]">
@@ -79,7 +81,7 @@ export function ReaderChrome({
             className="font-display text-[14px] leading-none font-[360] text-foreground"
             aria-hidden
           >
-            Reader
+            {t('reader.label')}
           </span>
           <span className="font-mono tracking-[0.18em] text-[var(--color-bone-faint)] uppercase">
             {totalPages > 0
@@ -93,7 +95,7 @@ export function ReaderChrome({
           onClick={() => setSettingsOpen(open => !open)}
           aria-haspopup="dialog"
           aria-expanded={settingsOpen}
-          aria-label="Reader settings"
+          aria-label={t('reader.settingsAria')}
           className={[
             'app-no-drag inline-flex h-7 w-7 items-center justify-center rounded-sm transition-colors',
             settingsOpen

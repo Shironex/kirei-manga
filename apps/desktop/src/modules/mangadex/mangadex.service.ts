@@ -333,13 +333,21 @@ export class MangaDexService {
     return this.server;
   }
 
-  async search(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
+  async search(
+    query: string,
+    filters?: SearchFilters,
+  ): Promise<{ results: SearchResult[]; total: number; offset: number; limit: number }> {
     const merged: SearchFilters = {
       ...(filters ?? {}),
       title: query || filters?.title,
     };
     const response = await this.client.search(merged);
-    return response.data.map(normalizeToSearchResult);
+    return {
+      results: response.data.map(normalizeToSearchResult),
+      total: response.total,
+      offset: response.offset,
+      limit: response.limit,
+    };
   }
 
   async getSeries(mangadexId: string): Promise<MangaDexSeriesDetail> {

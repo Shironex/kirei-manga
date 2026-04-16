@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { FitMode } from '@kireimanga/shared';
 import { READER_ZOOM_MAX, READER_ZOOM_MIN, useReaderStore } from '@/stores/reader-store';
+import { useT } from '@/hooks/useT';
 
 interface Props {
   pageUrl: string;
@@ -32,6 +33,7 @@ export function SinglePageView({
   fit,
   isBookmarked,
 }: Props) {
+  const t = useT();
   const zoom = useReaderStore(s => s.zoom);
   const setZoom = useReaderStore(s => s.setZoom);
   const showBookmarkDot = isBookmarked?.(pageNumber - 1) ?? false;
@@ -64,7 +66,7 @@ export function SinglePageView({
       />
       {showBookmarkDot && (
         <span
-          aria-label="Bookmarked"
+          aria-label={t('reader.page.bookmarked')}
           className="pointer-events-none absolute top-3 right-3 h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]"
         />
       )}

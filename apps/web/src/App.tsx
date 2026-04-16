@@ -3,6 +3,7 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { ToastContainer } from './components/system/ToastContainer';
 import { SplashScreen } from './components/splash';
+import { TooltipProvider } from './components/ui/Tooltip';
 import { useAppearance } from './hooks/useAppearance';
 import { useSocketStore } from './stores/socket-store';
 
@@ -22,15 +23,15 @@ export default function App() {
   const handleDismissed = useCallback(() => setSplashDone(true), []);
 
   return (
-    <>
+    <TooltipProvider delayDuration={300} skipDelayDuration={150}>
       <SplashScreen ready={ready} error={null} onDismissed={handleDismissed} />
       {/* Keep the router mounted behind the splash so route data starts loading
           while the splash is still visible — the overlay covers it completely
           until fade-out begins. */}
-      <div aria-hidden={!splashDone}>
+      <div className="h-full" aria-hidden={!splashDone}>
         <RouterProvider router={router} />
       </div>
       <ToastContainer />
-    </>
+    </TooltipProvider>
   );
 }

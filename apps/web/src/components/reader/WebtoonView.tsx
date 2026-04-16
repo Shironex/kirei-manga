@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useReaderStore } from '@/stores/reader-store';
+import { useT } from '@/hooks/useT';
 
 interface Props {
   pages: string[];
@@ -13,6 +14,7 @@ interface Props {
  * so chrome indicators stay accurate as the user scrolls.
  */
 export function WebtoonView({ pages, isBookmarked }: Props) {
+  const t = useT();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const goto = useReaderStore(s => s.goto);
 
@@ -58,7 +60,7 @@ export function WebtoonView({ pages, isBookmarked }: Props) {
             />
             {isBookmarked?.(i) && (
               <span
-                aria-label="Bookmarked"
+                aria-label={t('reader.page.bookmarked')}
                 className="pointer-events-none absolute top-3 right-3 h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]"
               />
             )}

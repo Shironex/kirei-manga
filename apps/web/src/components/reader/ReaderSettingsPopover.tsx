@@ -1,4 +1,5 @@
 import type { FitMode, ReaderDirection, ReaderMode } from '@kireimanga/shared';
+import { useT } from '@/hooks/useT';
 
 interface SegmentOption<T extends string> {
   value: T;
@@ -64,51 +65,55 @@ interface Props {
   onChange: (partial: { mode?: ReaderMode; direction?: ReaderDirection; fit?: FitMode }) => void;
 }
 
-const MODES: SegmentOption<ReaderMode>[] = [
-  { value: 'single', label: 'Single' },
-  { value: 'double', label: 'Double' },
-  { value: 'webtoon', label: 'Webtoon' },
-];
-
-const DIRECTIONS: SegmentOption<ReaderDirection>[] = [
-  { value: 'ltr', label: 'LTR' },
-  { value: 'rtl', label: 'RTL' },
-];
-
-const FITS: SegmentOption<FitMode>[] = [
-  { value: 'width', label: 'Width' },
-  { value: 'height', label: 'Height' },
-  { value: 'original', label: 'Original' },
-];
-
 export function ReaderSettingsPopover({ mode, direction, fit, onChange }: Props) {
+  const t = useT();
   const directionDisabled = mode === 'webtoon';
   const fitDisabled = mode === 'webtoon';
+
+  // Option lists are built inside the component so `t()` resolves against
+  // the active language on each render. Mode/fit reuse the existing
+  // settings.reader.* keys; direction uses short forms from reader.popover.*.
+  const modeOptions: SegmentOption<ReaderMode>[] = [
+    { value: 'single', label: t('settings.reader.mode.single') },
+    { value: 'double', label: t('settings.reader.mode.double') },
+    { value: 'webtoon', label: t('settings.reader.mode.webtoon') },
+  ];
+
+  const directionOptions: SegmentOption<ReaderDirection>[] = [
+    { value: 'ltr', label: t('reader.popover.direction.ltr') },
+    { value: 'rtl', label: t('reader.popover.direction.rtl') },
+  ];
+
+  const fitOptions: SegmentOption<FitMode>[] = [
+    { value: 'width', label: t('settings.reader.fit.width') },
+    { value: 'height', label: t('settings.reader.fit.height') },
+    { value: 'original', label: t('settings.reader.fit.original') },
+  ];
 
   return (
     <div
       role="dialog"
-      aria-label="Reader settings"
+      aria-label={t('reader.settingsAria')}
       className="app-no-drag absolute top-12 right-4 z-10 w-[260px] border border-border bg-[var(--color-ink-raised)] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.45)]"
     >
       <div className="flex flex-col gap-5">
         <Segment
-          label="Mode"
+          label={t('reader.popover.group.mode')}
           value={mode}
-          options={MODES}
+          options={modeOptions}
           onChange={v => onChange({ mode: v })}
         />
         <Segment
-          label="Direction"
+          label={t('reader.popover.group.direction')}
           value={direction}
-          options={DIRECTIONS}
+          options={directionOptions}
           disabled={directionDisabled}
           onChange={v => onChange({ direction: v })}
         />
         <Segment
-          label="Fit"
+          label={t('reader.popover.group.fit')}
           value={fit}
-          options={FITS}
+          options={fitOptions}
           disabled={fitDisabled}
           onChange={v => onChange({ fit: v })}
         />

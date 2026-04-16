@@ -1,10 +1,12 @@
+import { useT } from '@/hooks/useT';
 import { SettingsSection } from './SettingsSection';
 
 interface Shortcut {
-  action: string;
+  /** i18n key for the action label. */
+  actionKey: string;
   keys: ReadonlyArray<string>;
-  /** Plain-language hint shown beneath the binding row. */
-  hint?: string;
+  /** Optional i18n key for a plain-language hint shown beneath the binding. */
+  hintKey?: string;
 }
 
 /**
@@ -12,62 +14,76 @@ interface Shortcut {
  * rebinding lands post-v0.1; until then this table documents what's wired.
  */
 const SHORTCUTS: ReadonlyArray<Shortcut> = [
-  { action: 'Next page', keys: ['→', 'D', 'Space', 'Enter'], hint: 'Inverted in RTL.' },
-  { action: 'Previous page', keys: ['←', 'A', 'Shift+Space'], hint: 'Inverted in RTL.' },
-  { action: 'First page', keys: ['Home'] },
-  { action: 'Last page', keys: ['End'] },
-  { action: 'Toggle fullscreen', keys: ['F'] },
-  { action: 'Fit to width', keys: ['1'] },
-  { action: 'Fit to height', keys: ['2'] },
-  { action: 'Fit original', keys: ['3'] },
-  { action: 'Toggle bookmark', keys: ['B'] },
+  {
+    actionKey: 'settings.keyboard.action.nextPage',
+    keys: ['→', 'D', 'Space', 'Enter'],
+    hintKey: 'settings.keyboard.hint.rtlInverted',
+  },
+  {
+    actionKey: 'settings.keyboard.action.prevPage',
+    keys: ['←', 'A', 'Shift+Space'],
+    hintKey: 'settings.keyboard.hint.rtlInverted',
+  },
+  { actionKey: 'settings.keyboard.action.firstPage', keys: ['Home'] },
+  { actionKey: 'settings.keyboard.action.lastPage', keys: ['End'] },
+  { actionKey: 'settings.keyboard.action.fullscreen', keys: ['F'] },
+  { actionKey: 'settings.keyboard.action.fitWidth', keys: ['1'] },
+  { actionKey: 'settings.keyboard.action.fitHeight', keys: ['2'] },
+  { actionKey: 'settings.keyboard.action.fitOriginal', keys: ['3'] },
+  { actionKey: 'settings.keyboard.action.bookmark', keys: ['B'] },
 ];
 
 export function KeyboardSection() {
+  const t = useT();
   return (
     <SettingsSection
       kanji="鍵"
-      eyebrow="Shortcuts"
-      title="Keyboard"
-      description="Reader keyboard bindings. Rebinding is parked until after v0.1."
+      eyebrow={t('settings.section.shortcuts')}
+      title={t('settings.keyboard.title')}
+      description={t('settings.keyboard.description')}
     >
       <div className="-mt-2 mb-1 self-start">
         <span className="font-mono text-[10px] tracking-[0.24em] text-[var(--color-bone-faint)] uppercase">
-          Coming soon — rebinding
+          {t('settings.keyboard.comingSoon')}
         </span>
       </div>
 
       <div className="flex flex-col">
-        {SHORTCUTS.map(s => (
-          <div
-            key={s.action}
-            className="grid grid-cols-1 items-baseline gap-1 border-b border-border py-3 last:border-b-0 md:grid-cols-[1fr_auto] md:gap-6"
-          >
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[13px] text-foreground">{s.action}</span>
-              {s.hint && (
-                <span className="text-[11px] text-[var(--color-bone-faint)]">{s.hint}</span>
-              )}
+        {SHORTCUTS.map(s => {
+          const action = t(s.actionKey);
+          return (
+            <div
+              key={s.actionKey}
+              className="grid grid-cols-1 items-baseline gap-1 border-b border-border py-3 last:border-b-0 md:grid-cols-[1fr_auto] md:gap-6"
+            >
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[13px] text-foreground">{action}</span>
+                {s.hintKey && (
+                  <span className="text-[11px] text-[var(--color-bone-faint)]">
+                    {t(s.hintKey)}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {s.keys.map((k, i) => (
+                  <span key={`${s.actionKey}-${k}-${i}`} className="flex items-center gap-1.5">
+                    {i > 0 && (
+                      <span
+                        aria-hidden
+                        className="font-mono text-[10px] text-[var(--color-bone-faint)]"
+                      >
+                        ·
+                      </span>
+                    )}
+                    <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-sm border border-border bg-[var(--color-ink-sunken)] px-1.5 font-mono text-[10px] tracking-[0.06em] text-[var(--color-bone-muted)]">
+                      {k}
+                    </kbd>
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {s.keys.map((k, i) => (
-                <span key={`${s.action}-${k}-${i}`} className="flex items-center gap-1.5">
-                  {i > 0 && (
-                    <span
-                      aria-hidden
-                      className="font-mono text-[10px] text-[var(--color-bone-faint)]"
-                    >
-                      ·
-                    </span>
-                  )}
-                  <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-sm border border-border bg-[var(--color-ink-sunken)] px-1.5 font-mono text-[10px] tracking-[0.06em] text-[var(--color-bone-muted)]">
-                    {k}
-                  </kbd>
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </SettingsSection>
   );

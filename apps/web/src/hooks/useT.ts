@@ -12,6 +12,7 @@
  * <span>{t('library.subtitle.count', { count: 12 })}</span>
  * ```
  */
+import { useMemo } from 'react';
 import { useSettingsStore } from '@/stores/settings-store';
 import { getDictionary } from '@/i18n';
 
@@ -20,12 +21,17 @@ type Translator = (key: string, vars?: Vars) => string;
 
 export function useT(): Translator {
   const lang = useSettingsStore(s => s.settings?.language ?? 'en');
-  const dict = getDictionary(lang);
-  return (key, vars) => {
-    const template = dict[key] ?? key;
-    if (!vars) return template;
-    return template.replace(/\{(\w+)\}/g, (_, name: string) =>
-      String(vars[name] ?? '')
-    );
-  };
+  // Stabilize the returned function identity per-language. Without this the
+  // closure is re-created every render, which poisons `useCallback`/`useEffect`
+  // dep arrays that include `t` (e.g. LibrarySection's cache-size fetch loop).
+  return useMemo<Translator>(() => {
+    const dict = getDictionary(lang);
+    return (key, vars) => {
+      const template = dict[key] ?? key;
+      if (!vars) return template;
+      return template.replace(/\{(\w+)\}/g, (_, name: string) =>
+        String(vars[name] ?? '')
+      );
+    };
+  }, [lang]);
 }

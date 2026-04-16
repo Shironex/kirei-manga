@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import type { MangaDexSeriesDetail } from '@kireimanga/shared';
 import { useFollow } from '@/hooks/useFollow';
 import { useLibraryStore } from '@/stores/library-store';
+import { useT } from '@/hooks/useT';
 
 interface Props {
   series: MangaDexSeriesDetail;
 }
 
 export function SeriesBanner({ series }: Props) {
+  const t = useT();
   const [loaded, setLoaded] = useState(false);
   const src = series.bannerUrl ?? series.coverUrl;
   const { followed, busy, toggle } = useFollow(series.id);
@@ -43,7 +45,7 @@ export function SeriesBanner({ series }: Props) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="font-mono text-[10px] tracking-[0.26em] text-[var(--color-bone-faint)] uppercase">
-          MangaDex · Series
+          {t('series.eyebrow')}
         </span>
         <h1 className="font-display mt-3 text-[40px] leading-[1.05] font-medium text-foreground">
           {series.title}
@@ -62,7 +64,7 @@ export function SeriesBanner({ series }: Props) {
               to={`/reader/${series.id}/${continueChapterId}`}
               className="inline-flex h-9 items-center rounded-[2px] border border-[var(--color-accent)] bg-[var(--color-accent)] px-5 font-mono text-[11px] tracking-[0.22em] text-[var(--color-accent-foreground)] uppercase transition-opacity hover:opacity-90"
             >
-              Continue
+              {t('series.continue')}
             </Link>
           )}
           <button
@@ -82,7 +84,7 @@ export function SeriesBanner({ series }: Props) {
               .filter(Boolean)
               .join(' ')}
           >
-            {followed ? 'Following' : 'Follow'}
+            {followed ? t('series.following') : t('series.follow')}
           </button>
         </div>
 
@@ -106,13 +108,18 @@ export function SeriesBanner({ series }: Props) {
 }
 
 function MetaRow({ series }: { series: MangaDexSeriesDetail }) {
+  const t = useT();
   const parts: string[] = [];
   if (series.author) parts.push(series.author);
   if (series.artist && series.artist !== series.author) parts.push(series.artist);
   if (series.year) parts.push(String(series.year));
-  if (series.status) parts.push(series.status);
-  if (series.contentRating) parts.push(series.contentRating);
-  if (series.demographic) parts.push(series.demographic);
+  if (series.status) parts.push(t(`series.status.${series.status}`));
+  if (series.contentRating) parts.push(t(`series.rating.${series.contentRating}`));
+  // `demographic === 'none'` is a MangaDex sentinel for "unspecified" — hide it
+  // rather than showing a literal "None" chip.
+  if (series.demographic && series.demographic !== 'none') {
+    parts.push(t(`series.demographic.${series.demographic}`));
+  }
   if (parts.length === 0) return null;
   return (
     <p className="mt-4 font-mono text-[10px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
@@ -122,6 +129,7 @@ function MetaRow({ series }: { series: MangaDexSeriesDetail }) {
 }
 
 function Synopsis({ text }: { text: string }) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
   return (
     <div className="mt-6">
@@ -138,7 +146,7 @@ function Synopsis({ text }: { text: string }) {
         onClick={() => setExpanded(e => !e)}
         className="mt-2 font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase hover:text-foreground"
       >
-        {expanded ? 'Collapse' : 'Read more'}
+        {expanded ? t('series.collapse') : t('series.readMore')}
       </button>
     </div>
   );

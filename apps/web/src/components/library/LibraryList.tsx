@@ -1,6 +1,8 @@
 import type { Series } from '@kireimanga/shared';
 import { Link, useNavigate } from 'react-router-dom';
 import { relativeFromIso } from '@/lib/relativeTime';
+import { useSettingsStore } from '@/stores/settings-store';
+import { useT } from '@/hooks/useT';
 
 interface Props {
   series: Series[];
@@ -15,16 +17,18 @@ function toIso(value: Date | string | undefined): string | null {
 
 export function LibraryList({ series }: Props) {
   const navigate = useNavigate();
+  const t = useT();
+  const lang = useSettingsStore(s => s.settings?.language ?? 'en');
   if (series.length === 0) return null;
   return (
     <div className="border-t border-[var(--color-rule)]">
       {/* header row */}
       <div className="grid grid-cols-[3rem_1fr_8rem_6rem_8rem_5rem] items-center gap-4 border-b border-[var(--color-rule)] px-2 py-2 font-mono text-[10px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
         <span />
-        <span>Title</span>
-        <span>Last chapter</span>
-        <span>Progress</span>
-        <span>Last read</span>
+        <span>{t('library.list.col.title')}</span>
+        <span>{t('library.list.col.lastChapter')}</span>
+        <span>{t('library.list.col.progress')}</span>
+        <span>{t('library.list.col.lastRead')}</span>
         <span />
       </div>
       {series.map(entry => {
@@ -83,7 +87,7 @@ export function LibraryList({ series }: Props) {
               —
             </span>
             <span className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-bone-muted)]">
-              {lastReadIso ? relativeFromIso(lastReadIso) : '—'}
+              {lastReadIso ? relativeFromIso(lastReadIso, lang) : '—'}
             </span>
             {entry.mangadexId && entry.lastChapterId ? (
               <Link
@@ -91,7 +95,7 @@ export function LibraryList({ series }: Props) {
                 onClick={e => e.stopPropagation()}
                 className="justify-self-end font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase hover:text-[var(--color-accent)]"
               >
-                Continue
+                {t('library.list.continue')}
               </Link>
             ) : (
               <span />

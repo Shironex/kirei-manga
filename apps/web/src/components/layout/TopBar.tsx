@@ -1,9 +1,11 @@
 import { Search } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
+import mascotRead from '@/assets/chibi_read.png';
 import { useBrowseStore } from '@/stores/browse-store';
 import { useLibraryViewStore } from '@/stores/library-view-store';
 import { useT } from '@/hooks/useT';
+import { WindowControls } from './WindowControls';
 
 export function TopBar() {
   const t = useT();
@@ -19,8 +21,7 @@ export function TopBar() {
   const query = onLibrary ? libraryQuery : browseQuery;
   const setQuery = onLibrary ? setLibraryQuery : setBrowseQuery;
 
-  // ⌘K / Ctrl+K — focus the top search input from anywhere. On the Library
-  // route it only focuses; elsewhere it also navigates to /browse.
+  // Cmd+K / Ctrl+K focuses the top search input from anywhere.
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
@@ -37,7 +38,7 @@ export function TopBar() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (onLibrary) return; // Live filter — no-op on submit.
+    if (onLibrary) return;
     if (location.pathname !== '/browse') {
       navigate('/browse');
     }
@@ -51,20 +52,16 @@ export function TopBar() {
       style={{ paddingLeft: isMac ? 84 : 24 }}
     >
       <div className="flex items-center gap-2.5">
-        <span
-          className="font-kanji text-[15px] leading-none text-[var(--color-accent)]"
-          aria-hidden
-        >
-          綺
-        </span>
+        <div className="flex h-7 w-7 items-center justify-center overflow-hidden">
+          <img
+            src={mascotRead}
+            alt=""
+            aria-hidden
+            className="h-7 w-7 object-contain"
+          />
+        </div>
         <span className="font-display text-[13px] font-medium tracking-[0.02em] text-foreground">
           KireiManga
-        </span>
-        <span
-          className="ml-2 font-mono text-[10px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase"
-          aria-hidden
-        >
-          綺麗漫画
         </span>
       </div>
 
@@ -80,22 +77,21 @@ export function TopBar() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={
-              onLibrary
-                ? t('topbar.placeholder.library')
-                : t('topbar.placeholder.global')
+              onLibrary ? t('topbar.placeholder.library') : t('topbar.placeholder.global')
             }
             className="flex-1 bg-transparent text-[12px] tracking-wide text-foreground placeholder:text-[var(--color-bone-faint)] focus:outline-none"
+            style={{ outline: 'none' }}
           />
           <kbd className="font-mono text-[9px] tracking-wider text-[var(--color-bone-faint)]">
-            ⌘K
+            Cmd/Ctrl+K
           </kbd>
         </form>
 
-        {/* Reserved slot for future window controls (frameless Electron). */}
         <span aria-hidden className="h-4 w-px bg-[var(--color-border)]" />
         <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-bone-faint)] uppercase">
           {t('topbar.status.offline')}
         </span>
+        <WindowControls />
       </div>
     </header>
   );

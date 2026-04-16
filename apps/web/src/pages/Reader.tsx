@@ -13,6 +13,7 @@ import { SinglePageView } from '@/components/reader/SinglePageView';
 import { DoublePageView } from '@/components/reader/DoublePageView';
 import { WebtoonView } from '@/components/reader/WebtoonView';
 import { ReaderChrome } from '@/components/reader/ReaderChrome';
+import { useT } from '@/hooks/useT';
 
 const CHROME_HOTZONE_PX = 72;
 const CHROME_AUTO_HIDE_MS = 2000;
@@ -34,6 +35,7 @@ interface ReaderPageProps {
 }
 
 export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
+  const t = useT();
   const params = useParams<{
     mangadexSeriesId?: string;
     localSeriesId?: string;
@@ -203,13 +205,13 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
 
   if (loading) {
     return (
-      <ReaderShell onBack={() => navigate(-1)} indicator="Loading…">
+      <ReaderShell onBack={() => navigate(-1)} indicator={t('reader.loading')}>
         <div className="flex flex-col items-center gap-3">
           <span className="font-kanji text-[40px] text-[var(--color-accent)] opacity-90" aria-hidden>
             読
           </span>
           <span className="font-mono text-[11px] tracking-[0.18em] text-[var(--color-bone-faint)] uppercase">
-            Loading pages…
+            {t('reader.loadingPages')}
           </span>
         </div>
       </ReaderShell>
@@ -218,10 +220,10 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
 
   if (error) {
     return (
-      <ReaderShell onBack={() => navigate(-1)} indicator="Error">
+      <ReaderShell onBack={() => navigate(-1)} indicator={t('reader.error.indicator')}>
         <div className="animate-fade-up flex flex-col items-start gap-3 border-l-2 border-[var(--color-accent)] py-2 pl-5">
           <span className="font-mono text-[10px] tracking-[0.24em] text-[var(--color-accent)] uppercase">
-            Something went sideways
+            {t('common.error.eyebrow')}
           </span>
           <p className="max-w-[52ch] text-[14px] text-foreground">{error}</p>
           <button
@@ -229,7 +231,7 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
             onClick={retry}
             className="font-mono text-[11px] tracking-[0.18em] text-[var(--color-bone-muted)] underline-offset-4 uppercase hover:text-foreground hover:underline"
           >
-            Retry
+            {t('common.retry')}
           </button>
         </div>
       </ReaderShell>
@@ -238,13 +240,13 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
 
   if (pages.length === 0) {
     return (
-      <ReaderShell onBack={() => navigate(-1)} indicator="Empty">
+      <ReaderShell onBack={() => navigate(-1)} indicator={t('reader.empty.indicator')}>
         <div className="flex flex-col items-center gap-3 text-center">
           <span className="font-kanji text-[40px] text-[var(--color-accent)] opacity-90" aria-hidden>
             空
           </span>
           <span className="font-display max-w-[32ch] text-[15px] leading-snug font-[360] text-muted-foreground">
-            No pages were returned for this chapter.
+            {t('reader.empty.body')}
           </span>
         </div>
       </ReaderShell>
@@ -297,6 +299,7 @@ function ReaderShell({
   indicator: string;
   children: React.ReactNode;
 }) {
+  const t = useT();
   return (
     <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-[var(--color-ink-sunken)]">
       <header className="app-drag flex h-11 shrink-0 items-center justify-between border-b border-border bg-[var(--color-ink)]/70 px-5 backdrop-blur">
@@ -306,7 +309,7 @@ function ReaderShell({
           className="app-no-drag group inline-flex items-center gap-2 text-[12px] tracking-wide text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5 stroke-[1.4] transition-transform group-hover:-translate-x-0.5" />
-          Back
+          {t('reader.back')}
         </button>
         <span className="font-mono text-[11px] tracking-[0.18em] text-[var(--color-bone-faint)] uppercase">
           {indicator}

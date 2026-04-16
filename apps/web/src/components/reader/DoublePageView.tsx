@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { FitMode, ReaderDirection } from '@kireimanga/shared';
+import { useT } from '@/hooks/useT';
 
 interface Props {
   pages: string[];
@@ -31,6 +32,7 @@ export function DoublePageView({
   direction,
   isBookmarked,
 }: Props) {
+  const t = useT();
   // Spreads: [0] alone (cover), then [1,2], [3,4], ...
   const spreads = useMemo<number[][]>(() => {
     const out: number[][] = [];
@@ -64,7 +66,7 @@ export function DoublePageView({
       </div>
       {showBookmarkDot && (
         <span
-          aria-label="Bookmarked"
+          aria-label={t('reader.page.bookmarked')}
           className="pointer-events-none absolute top-3 right-3 h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]"
         />
       )}

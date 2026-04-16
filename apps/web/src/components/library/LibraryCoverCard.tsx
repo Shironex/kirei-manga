@@ -1,6 +1,7 @@
 import type { Series } from '@kireimanga/shared';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useT } from '@/hooks/useT';
 
 interface Props {
   series: Series;
@@ -24,6 +25,7 @@ function cardHref(series: Series): string {
  */
 export function LibraryCoverCard({ series, className, sizeHint = 'default' }: Props) {
   const [loaded, setLoaded] = useState(false);
+  const t = useT();
 
   return (
     <Link
@@ -39,9 +41,9 @@ export function LibraryCoverCard({ series, className, sizeHint = 'default' }: Pr
         {series.source === 'local' && (
           <span
             className="absolute top-1.5 left-1.5 z-10 rounded-[2px] border border-[var(--color-rule-strong)] bg-[var(--color-ink)]/80 px-1.5 py-0.5 font-mono text-[9px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase backdrop-blur-sm"
-            aria-label="Local series"
+            aria-label={t('library.card.localBadge')}
           >
-            Local
+            {t('library.card.localBadge')}
           </span>
         )}
         {series.newChapterCount != null && series.newChapterCount > 0 && (

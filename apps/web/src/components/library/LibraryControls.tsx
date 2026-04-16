@@ -5,33 +5,7 @@ import {
   type LibraryStatusFilter,
   type LibraryViewMode,
 } from '@/stores/library-view-store';
-
-const MODES: { value: LibraryViewMode; label: string }[] = [
-  { value: 'grid', label: 'Grid' },
-  { value: 'list', label: 'List' },
-];
-
-const STATUSES: { value: LibraryStatusFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'reading', label: 'Reading' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'planToRead', label: 'Plan to read' },
-  { value: 'onHold', label: 'On hold' },
-  { value: 'dropped', label: 'Dropped' },
-];
-
-const SOURCES: { value: LibrarySourceFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'mangadex', label: 'MangaDex' },
-  { value: 'local', label: 'Local' },
-];
-
-const SORTS: { value: LibrarySort; label: string; disabled?: boolean }[] = [
-  { value: 'title', label: 'Title' },
-  { value: 'lastRead', label: 'Last read' },
-  { value: 'dateAdded', label: 'Date added' },
-  { value: 'progress', label: 'Progress', disabled: true },
-];
+import { useT } from '@/hooks/useT';
 
 interface ChipProps {
   active: boolean;
@@ -104,6 +78,7 @@ function Segment({ active, onClick, children }: SegmentProps) {
 }
 
 export function LibraryControls() {
+  const t = useT();
   const mode = useLibraryViewStore(s => s.mode);
   const setMode = useLibraryViewStore(s => s.setMode);
   const sort = useLibraryViewStore(s => s.sort);
@@ -115,11 +90,40 @@ export function LibraryControls() {
   const sourceFilter = useLibraryViewStore(s => s.sourceFilter);
   const setSourceFilter = useLibraryViewStore(s => s.setSourceFilter);
 
+  // Option arrays live inside the component so their labels go through `t()`
+  // each render — matches the settings pattern.
+  const modes: { value: LibraryViewMode; label: string }[] = [
+    { value: 'grid', label: t('library.view.grid') },
+    { value: 'list', label: t('library.view.list') },
+  ];
+
+  const statuses: { value: LibraryStatusFilter; label: string }[] = [
+    { value: 'all', label: t('library.filter.all') },
+    { value: 'reading', label: t('library.filter.reading') },
+    { value: 'completed', label: t('library.filter.completed') },
+    { value: 'planToRead', label: t('library.filter.planToRead') },
+    { value: 'onHold', label: t('library.filter.onHold') },
+    { value: 'dropped', label: t('library.filter.dropped') },
+  ];
+
+  const sources: { value: LibrarySourceFilter; label: string }[] = [
+    { value: 'all', label: t('library.source.all') },
+    { value: 'mangadex', label: t('library.source.mangadex') },
+    { value: 'local', label: t('library.source.local') },
+  ];
+
+  const sorts: { value: LibrarySort; label: string; disabled?: boolean }[] = [
+    { value: 'title', label: t('library.sort.title') },
+    { value: 'lastRead', label: t('library.sort.lastRead') },
+    { value: 'dateAdded', label: t('library.sort.dateAdded') },
+    { value: 'progress', label: t('library.sort.progress'), disabled: true },
+  ];
+
   return (
-    <div className="mb-6 flex flex-col gap-5 border-b border-[var(--color-border)] pb-6">
+    <div className="mb-5 flex flex-col gap-3 border-b border-[var(--color-border)] pb-4">
       <div className="flex items-start justify-between gap-6">
-        <Group label="Status">
-          {STATUSES.map(s => (
+        <Group label={t('library.groupLabel.status')}>
+          {statuses.map(s => (
             <Chip
               key={s.value}
               active={statusFilter === s.value}
@@ -130,16 +134,16 @@ export function LibraryControls() {
           ))}
         </Group>
         <div className="flex items-center rounded-[2px] border border-[var(--color-rule)]">
-          {MODES.map(m => (
+          {modes.map(m => (
             <Segment key={m.value} active={mode === m.value} onClick={() => setMode(m.value)}>
               {m.label}
             </Segment>
           ))}
         </div>
       </div>
-      <div className="flex items-start justify-between gap-6">
-        <Group label="Source">
-          {SOURCES.map(s => (
+      <div className="flex flex-wrap items-baseline gap-x-8 gap-y-3">
+        <Group label={t('library.groupLabel.source')}>
+          {sources.map(s => (
             <Chip
               key={s.value}
               active={sourceFilter === s.value}
@@ -149,29 +153,29 @@ export function LibraryControls() {
             </Chip>
           ))}
         </Group>
-      </div>
-      <div className="flex items-baseline gap-4">
-        <Group label="Sort">
-          {SORTS.map(s => (
-            <Chip
-              key={s.value}
-              active={sort === s.value}
-              disabled={s.disabled}
-              onClick={() => setSort(s.value)}
-              title={s.disabled ? 'Available after Slice E' : undefined}
-            >
-              {s.label}
-            </Chip>
-          ))}
-        </Group>
-        <button
-          type="button"
-          onClick={toggleSortDir}
-          aria-label={sortDir === 'asc' ? 'Sort ascending' : 'Sort descending'}
-          className="font-mono text-[11px] leading-none text-[var(--color-bone-muted)] transition-colors hover:text-foreground"
-        >
-          {sortDir === 'asc' ? '▲' : '▼'}
-        </button>
+        <div className="flex items-baseline gap-3">
+          <Group label={t('library.groupLabel.sort')}>
+            {sorts.map(s => (
+              <Chip
+                key={s.value}
+                active={sort === s.value}
+                disabled={s.disabled}
+                onClick={() => setSort(s.value)}
+                title={s.disabled ? t('library.sort.disabledHint') : undefined}
+              >
+                {s.label}
+              </Chip>
+            ))}
+          </Group>
+          <button
+            type="button"
+            onClick={toggleSortDir}
+            aria-label={sortDir === 'asc' ? t('library.sort.ariaAsc') : t('library.sort.ariaDesc')}
+            className="font-mono text-[11px] leading-none text-[var(--color-bone-muted)] transition-colors hover:text-foreground"
+          >
+            {sortDir === 'asc' ? '▲' : '▼'}
+          </button>
+        </div>
       </div>
     </div>
   );

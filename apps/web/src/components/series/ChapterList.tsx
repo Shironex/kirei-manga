@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import type { ChapterListItem, LibraryChapterStatePatch } from '@kireimanga/shared';
 import { relativeFromIso } from '@/lib/relativeTime';
 import { useDownloadChapter } from '@/hooks/useDownloadChapter';
+import { useSettingsStore } from '@/stores/settings-store';
+import { useT } from '@/hooks/useT';
 
 type ChapterStateMap = Record<string, LibraryChapterStatePatch> | null;
 
@@ -30,11 +32,12 @@ export function ChapterList({
   mangadexSeriesId,
   states,
 }: Props) {
+  const t = useT();
   return (
     <section className="mt-14 flex flex-col">
       <header className="flex items-center justify-between">
         <span className="font-mono text-[10px] tracking-[0.26em] text-[var(--color-bone-faint)] uppercase">
-          Chapters
+          {t('series.chapters')}
         </span>
         <LanguageFilter languages={languages} value={lang} onChange={onLangChange} />
       </header>
@@ -54,7 +57,7 @@ export function ChapterList({
         {!loading && error && (
           <div className="animate-fade-up flex flex-col items-start gap-3 border-l-2 border-[var(--color-accent)] py-2 pl-5">
             <span className="font-mono text-[10px] tracking-[0.24em] text-[var(--color-accent)] uppercase">
-              Something went sideways
+              {t('common.error.eyebrow')}
             </span>
             <p className="max-w-[52ch] text-[14px] text-foreground">{error}</p>
             <button
@@ -62,7 +65,7 @@ export function ChapterList({
               onClick={retry}
               className="font-mono text-[11px] tracking-[0.18em] text-[var(--color-bone-muted)] underline-offset-4 uppercase hover:text-foreground hover:underline"
             >
-              Retry
+              {t('common.retry')}
             </button>
           </div>
         )}
@@ -72,10 +75,10 @@ export function ChapterList({
             <span className="font-kanji text-[40px] text-[var(--color-accent)] opacity-90">空</span>
             <div>
               <h3 className="font-display text-[18px] leading-snug font-[350] text-foreground">
-                No chapters here yet.
+                {t('chapterList.empty.title')}
               </h3>
               <p className="mt-1 text-[13px] text-muted-foreground">
-                Try another translation, or check back later.
+                {t('chapterList.empty.body')}
               </p>
             </div>
           </div>
@@ -131,6 +134,7 @@ function Row({
   mangadexSeriesId: string;
   state: LibraryChapterStatePatch | null;
 }) {
+  const lang = useSettingsStore(s => s.settings?.language ?? 'en');
   const dash = <span className="text-[var(--color-bone-faint)]">—</span>;
   const chapterNumberRaw = chapter.chapter ? Number(chapter.chapter) : undefined;
   const volumeNumberRaw = chapter.volume ? Number(chapter.volume) : undefined;
@@ -167,7 +171,7 @@ function Row({
         {chapter.scanlationGroup ? chapter.scanlationGroup : dash}
       </span>
       <span className="text-[12px] text-[var(--color-bone-muted)]">
-        {relativeFromIso(chapter.publishAt)}
+        {relativeFromIso(chapter.publishAt, lang)}
       </span>
       {renderReadDot(state)}
       <DownloadButton
@@ -188,13 +192,14 @@ function DownloadButton({
   mangadexSeriesId: string;
   isDownloaded: boolean;
 }) {
+  const t = useT();
   const { status, progress, download } = useDownloadChapter(chapterId, mangadexSeriesId, isDownloaded);
 
   if (status === 'complete') {
     return (
       <span
         className="hidden items-center justify-center text-[var(--color-bone-muted)] md:flex"
-        aria-label="Downloaded"
+        aria-label={t('chapterList.downloadedAria')}
       >
         <Check className="h-3.5 w-3.5" />
       </span>
@@ -205,7 +210,14 @@ function DownloadButton({
     return (
       <span
         className="hidden items-center justify-center text-[var(--color-bone-muted)] md:flex"
-        aria-label={progress ? `Downloading ${progress.current}/${progress.total}` : 'Downloading'}
+        aria-label={
+          progress
+            ? t('chapterList.downloadingAriaProgress', {
+                current: progress.current,
+                total: progress.total,
+              })
+            : t('chapterList.downloadingAria')
+        }
       >
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
       </span>
@@ -221,7 +233,7 @@ function DownloadButton({
         download();
       }}
       className="hidden items-center justify-center text-[var(--color-bone-faint)] transition-colors hover:text-foreground md:flex"
-      aria-label="Download chapter"
+      aria-label={t('chapterList.downloadAria')}
     >
       <Download className="h-3.5 w-3.5" />
     </button>

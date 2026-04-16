@@ -6,24 +6,13 @@ import type {
   ReaderMode,
 } from '@kireimanga/shared';
 import { useSettingsStore } from '@/stores/settings-store';
+import { useT } from '@/hooks/useT';
 import { Segmented, type SegmentedOption } from './Segmented';
 import { SettingRow, SettingsSection } from './SettingsSection';
-
-const MODE_OPTIONS: ReadonlyArray<SegmentedOption<ReaderMode>> = [
-  { value: 'single', label: 'Single' },
-  { value: 'double', label: 'Double' },
-  { value: 'webtoon', label: 'Webtoon' },
-];
 
 const DIRECTION_OPTIONS: ReadonlyArray<SegmentedOption<ReaderDirection>> = [
   { value: 'rtl', label: 'RTL' },
   { value: 'ltr', label: 'LTR' },
-];
-
-const FIT_OPTIONS: ReadonlyArray<SegmentedOption<FitMode>> = [
-  { value: 'width', label: 'Width' },
-  { value: 'height', label: 'Height' },
-  { value: 'original', label: 'Original' },
 ];
 
 /**
@@ -49,6 +38,7 @@ const LANGUAGE_OPTIONS: ReadonlyArray<{ code: string; label: string }> = [
 ];
 
 export function ReaderDefaultsSection() {
+  const t = useT();
   const reader = useSettingsStore(s => s.settings?.reader);
   if (!reader) return null;
 
@@ -56,34 +46,55 @@ export function ReaderDefaultsSection() {
     void useSettingsStore.getState().set({ reader: partial });
   };
 
+  const MODE_OPTIONS: ReadonlyArray<SegmentedOption<ReaderMode>> = [
+    { value: 'single', label: t('settings.reader.mode.single') },
+    { value: 'double', label: t('settings.reader.mode.double') },
+    { value: 'webtoon', label: t('settings.reader.mode.webtoon') },
+  ];
+
+  const FIT_OPTIONS: ReadonlyArray<SegmentedOption<FitMode>> = [
+    { value: 'width', label: t('settings.reader.fit.width') },
+    { value: 'height', label: t('settings.reader.fit.height') },
+    { value: 'original', label: t('settings.reader.fit.original') },
+  ];
+
   return (
     <SettingsSection
       kanji="読"
-      eyebrow="Reader"
-      title="Reading defaults"
-      description="The starting layout for any series you haven't customised. Per-series prefs override these — defaults only apply on first read."
+      eyebrow={t('settings.section.reader')}
+      title={t('settings.reader.title')}
+      description={t('settings.reader.description')}
     >
-      <SettingRow label="Default mode" hint="Single-page, side-by-side spread, or vertical scroll.">
+      <SettingRow
+        label={t('settings.reader.mode.label')}
+        hint={t('settings.reader.mode.hint')}
+      >
         <Segmented<ReaderMode>
-          ariaLabel="Default reader mode"
+          ariaLabel={t('settings.reader.mode.label')}
           value={reader.mode}
           options={MODE_OPTIONS}
           onChange={value => patch({ mode: value })}
         />
       </SettingRow>
 
-      <SettingRow label="Default direction" hint="Right-to-left for manga; left-to-right for comics.">
+      <SettingRow
+        label={t('settings.reader.direction.label')}
+        hint={t('settings.reader.direction.hint')}
+      >
         <Segmented<ReaderDirection>
-          ariaLabel="Default reading direction"
+          ariaLabel={t('settings.reader.direction.label')}
           value={reader.direction}
           options={DIRECTION_OPTIONS}
           onChange={value => patch({ direction: value })}
         />
       </SettingRow>
 
-      <SettingRow label="Default fit" hint="How the page image fills the viewport.">
+      <SettingRow
+        label={t('settings.reader.fit.label')}
+        hint={t('settings.reader.fit.hint')}
+      >
         <Segmented<FitMode>
-          ariaLabel="Default page fit"
+          ariaLabel={t('settings.reader.fit.label')}
           value={reader.fit}
           options={FIT_OPTIONS}
           onChange={value => patch({ fit: value })}
@@ -91,8 +102,8 @@ export function ReaderDefaultsSection() {
       </SettingRow>
 
       <SettingRow
-        label="Default language"
-        hint="Used by the reader hook when seeding the chapter feed."
+        label={t('settings.reader.language.label')}
+        hint={t('settings.reader.language.hint')}
       >
         <LanguageSelect value={reader.language} onChange={lang => patch({ language: lang })} />
       </SettingRow>

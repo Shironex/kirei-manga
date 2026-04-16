@@ -10,8 +10,10 @@ import { emitWithResponse } from '@/lib/socket';
 import { SeriesBanner } from '@/components/series/SeriesBanner';
 import { ChapterList } from '@/components/series/ChapterList';
 import { BookmarksPanel } from '@/components/series/BookmarksPanel';
+import { useT } from '@/hooks/useT';
 
 export function SeriesDetailPage() {
+  const t = useT();
   const { mangadexId } = useParams<{ mangadexId: string }>();
   const { series, loading, error, retry } = useMangaDexSeries(mangadexId);
 
@@ -76,7 +78,7 @@ export function SeriesDetailPage() {
     return (
       <div className="animate-fade-up flex flex-col items-start gap-3 border-l-2 border-[var(--color-accent)] py-2 pl-5">
         <span className="font-mono text-[10px] tracking-[0.24em] text-[var(--color-accent)] uppercase">
-          Something went sideways
+          {t('common.error.eyebrow')}
         </span>
         <p className="max-w-[52ch] text-[14px] text-foreground">{error}</p>
         <button
@@ -84,7 +86,7 @@ export function SeriesDetailPage() {
           onClick={retry}
           className="font-mono text-[11px] tracking-[0.18em] text-[var(--color-bone-muted)] underline-offset-4 uppercase hover:text-foreground hover:underline"
         >
-          Retry
+          {t('common.retry')}
         </button>
       </div>
     );

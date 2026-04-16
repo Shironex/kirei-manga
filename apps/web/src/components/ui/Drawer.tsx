@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { useT } from '@/hooks/useT';
 
 interface DrawerProps {
   open: boolean;
@@ -17,6 +18,7 @@ interface DrawerProps {
  * drawer only handles its own chrome.
  */
 export function Drawer({ open, onClose, title, eyebrow, children, footer }: DrawerProps) {
+  const t = useT();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent): void => {
@@ -45,7 +47,7 @@ export function Drawer({ open, onClose, title, eyebrow, children, footer }: Draw
     <div className="fixed inset-0 z-50 flex justify-end">
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t('common.windowControls.close')}
         onClick={onClose}
         className="absolute inset-0 bg-[var(--color-ink)]/70 backdrop-blur-sm"
       />

@@ -30,9 +30,10 @@ describe('MangaDexService', () => {
       new Response(JSON.stringify(fixture), { status: 200, headers: { 'content-type': 'application/json' } })
     );
 
-    const results = await service.search('anything');
+    const { results, total } = await service.search('anything');
 
     expect(results).toHaveLength(2);
+    expect(total).toBe(2);
 
     const [berserk, frieren] = results;
     expect(berserk.title).toBe('Berserk');
@@ -63,7 +64,7 @@ describe('MangaDexService', () => {
       new Response(JSON.stringify(fixture), { status: 200, headers: { 'content-type': 'application/json' } })
     );
 
-    const results = await service.search('q');
+    const { results } = await service.search('q');
     const frieren = results[1];
     expect(frieren.title).toBe('葬送のフリーレン');
     // Description fell back away from English (no en key) to Japanese.

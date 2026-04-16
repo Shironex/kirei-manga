@@ -16,7 +16,7 @@ export function SettingsPage() {
         eyebrow={t('settings.eyebrow')}
         kanji="設定"
         title={t('settings.title')}
-        subtitle="KireiManga is local-first. Your library, keys, and translation cache never leave this machine unless you ask."
+        subtitle={t('settings.subtitle')}
       />
 
       {!loaded ? (

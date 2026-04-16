@@ -15,6 +15,22 @@ question on unrar licensing hasn't been resolved yet.
 
 ### Added
 
+#### Browse discovery
+
+- Default discovery feed on the Browse page: three tabs (Popular, Latest,
+  Top rated) backed by MangaDex's `followedCount` / `latestUploadedChapter`
+  / `rating` sort. Replaces the old "type to start" empty state whenever
+  the search box is cleared. Active tab fetches lazily and results cache
+  per-tab so switching is instant once loaded. User-facing filter chips
+  (content rating, demographic, status, language) still apply to the feed.
+- `In library` badge on browse cover cards for titles already followed,
+  using the existing `mangadexIndex` from the library store for O(1) dedup.
+- Infinite scroll on the Browse grid, on both the discovery feed and the
+  keyword search. Pages load 24 at a time via an intersection-observer
+  sentinel ahead of the viewport bottom; the gateway now exposes the
+  MangaDex `total` / `offset` / `limit` meta so the hook knows when to
+  stop. Respects the MangaDex `offset + limit ≤ 10000` ceiling.
+
 #### Local import (Slices A–E)
 
 - Shared `LocalArchiveFormat`, `ScanResult`, `LocalSeriesMetaPatch`, and

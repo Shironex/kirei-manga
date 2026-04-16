@@ -9,6 +9,7 @@ import {
 import { emitWithResponse } from '@/lib/socket';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useToast } from '@/hooks/useToast';
+import { useT } from '@/hooks/useT';
 import { useSocketStore } from '@/stores/socket-store';
 import { SettingRow, SettingsSection } from './SettingsSection';
 
@@ -43,6 +44,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function LibrarySection() {
+  const t = useT();
   const library = useSettingsStore(s => s.settings?.library);
   const status = useSocketStore(s => s.status);
   const toast = useToast();
@@ -60,16 +62,18 @@ export function LibrarySection() {
         {}
       );
       if (res.error) {
-        toast.error(res.error, { title: 'Cache size' });
+        toast.error(res.error, { title: t('settings.library.cache.toast.sizeTitle') });
         return;
       }
       setCacheBytes(res.bytes);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err), { title: 'Cache size' });
+      toast.error(err instanceof Error ? err.message : String(err), {
+        title: t('settings.library.cache.toast.sizeTitle'),
+      });
     } finally {
       setCacheLoading(false);
     }
-  }, [status, toast]);
+  }, [status, toast, t]);
 
   useEffect(() => {
     void fetchCacheSize();
@@ -94,21 +98,28 @@ export function LibrarySection() {
         {}
       );
       if (res.error || !res.success) {
-        toast.error(res.error ?? 'Cache clear failed', { title: 'Clear cache' });
+        toast.error(res.error ?? t('settings.library.cache.toast.clearFailed'), {
+          title: t('settings.library.cache.toast.clearTitle'),
+        });
         return;
       }
-      toast.success(`Cleared ${formatBytes(res.bytesFreed)} of cached pages.`, {
-        title: 'Cache cleared',
-      });
+      toast.success(
+        t('settings.library.cache.toast.clearedBody', { size: formatBytes(res.bytesFreed) }),
+        {
+          title: t('settings.library.cache.toast.clearedTitle'),
+        }
+      );
       setCacheBytes(0);
       // Re-fetch in the background to confirm — covers the empty-dir edge.
       void fetchCacheSize();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err), { title: 'Clear cache' });
+      toast.error(err instanceof Error ? err.message : String(err), {
+        title: t('settings.library.cache.toast.clearTitle'),
+      });
     } finally {
       setClearing(false);
     }
-  }, [clearing, toast, fetchCacheSize]);
+  }, [clearing, toast, fetchCacheSize, t]);
 
   if (!library) return null;
 
@@ -119,13 +130,13 @@ export function LibrarySection() {
   return (
     <SettingsSection
       kanji="架"
-      eyebrow="Library"
-      title="Languages & cache"
-      description="The chapter language seeded for new reads, and the on-disk store of cached page images."
+      eyebrow={t('settings.section.library')}
+      title={t('settings.library.title')}
+      description={t('settings.library.description')}
     >
       <SettingRow
-        label="Default chapter language"
-        hint="Used by the series detail page when picking the initial chapter feed."
+        label={t('settings.library.defaultLanguage.label')}
+        hint={t('settings.library.defaultLanguage.hint')}
       >
         <LanguageSelect
           value={library.defaultChapterLanguage}
@@ -134,11 +145,13 @@ export function LibrarySection() {
       </SettingRow>
 
       <SettingRow
-        label="Page cache"
+        label={t('settings.library.cache.label')}
         hint={
           cacheLoading && cacheBytes === null
-            ? 'Calculating size…'
-            : `On-disk size: ${cacheBytes === null ? '—' : formatBytes(cacheBytes)}.`
+            ? t('settings.library.cache.calculating')
+            : t('settings.library.cache.size', {
+                size: cacheBytes === null ? '—' : formatBytes(cacheBytes),
+              })
         }
       >
         <button
@@ -148,7 +161,7 @@ export function LibrarySection() {
           className="inline-flex items-center gap-2 rounded-sm border border-border bg-[var(--color-ink-sunken)] px-3 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--color-bone-muted)] transition-colors enabled:hover:border-[var(--color-accent)] enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Trash2 className="h-3.5 w-3.5" />
-          {clearing ? 'Clearing…' : 'Clear cache'}
+          {clearing ? t('settings.library.cache.clearing') : t('settings.library.cache.clear')}
         </button>
       </SettingRow>
     </SettingsSection>

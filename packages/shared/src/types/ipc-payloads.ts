@@ -241,6 +241,9 @@ export interface MangaDexSearchPayload {
 
 export interface MangaDexSearchResponse {
   results: SearchResult[];
+  total?: number;
+  offset?: number;
+  limit?: number;
   error?: string;
 }
 

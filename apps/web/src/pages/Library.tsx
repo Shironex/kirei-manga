@@ -83,6 +83,16 @@ export function LibraryPage() {
             {t('library.subtitle.count', { count: totalCount })}
           </span>
         }
+        actions={
+          totalCount > 0 ? (
+            <Link
+              to="/library/import"
+              className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+            >
+              {t('library.action.import')}
+            </Link>
+          ) : undefined
+        }
       />
       {totalCount === 0 ? (
         <EmptyState

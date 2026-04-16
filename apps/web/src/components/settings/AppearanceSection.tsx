@@ -53,21 +53,27 @@ export function AppearanceSection() {
     <SettingsSection
       kanji="色"
       eyebrow={t('settings.section.appearance')}
-      title="Theme & typography"
-      description="Switch between sumi (ink-dark) and washi (paper-light). Tune the app font size and pick the family used for narrative copy."
+      title={t('settings.appearance.title')}
+      description={t('settings.appearance.description')}
     >
-      <SettingRow label="Theme" hint="Sumi is dark; Washi flips the canvas to washi paper.">
+      <SettingRow
+        label={t('settings.appearance.theme.label')}
+        hint={t('settings.appearance.theme.hint')}
+      >
         <Segmented<Theme>
-          ariaLabel="Theme"
+          ariaLabel={t('settings.appearance.theme.label')}
           value={appearance.theme}
           options={THEME_OPTIONS}
           onChange={value => patch({ theme: value })}
         />
       </SettingRow>
 
-      <SettingRow label="Font size" hint="Scales the entire UI from extra small to extra large.">
+      <SettingRow
+        label={t('settings.appearance.fontSize.label')}
+        hint={t('settings.appearance.fontSize.hint')}
+      >
         <Segmented<FontSize>
-          ariaLabel="Font size"
+          ariaLabel={t('settings.appearance.fontSize.label')}
           value={appearance.fontSize}
           options={FONT_SIZE_OPTIONS}
           onChange={value => patch({ fontSize: value })}
@@ -75,11 +81,11 @@ export function AppearanceSection() {
       </SettingRow>
 
       <SettingRow
-        label="Reading font"
-        hint="Editorial Fraunces, Shippori Mincho, generic serif, or sans."
+        label={t('settings.appearance.readingFont.label')}
+        hint={t('settings.appearance.readingFont.hint')}
       >
         <Segmented<ReadingFont>
-          ariaLabel="Reading font"
+          ariaLabel={t('settings.appearance.readingFont.label')}
           value={appearance.readingFont}
           options={READING_FONT_OPTIONS}
           onChange={value => patch({ readingFont: value })}
