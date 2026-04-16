@@ -9,3 +9,4 @@ export {
 export { naturalPageSort } from './natural-sort';
 export { ZipArchiveReader } from './zip-archive-reader';
 export { FolderArchiveReader } from './folder-archive-reader';
+export { openArchive, inferArchiveFormat } from './open-archive';
