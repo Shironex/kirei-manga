@@ -318,6 +318,95 @@ describe('LibraryService (integration)', () => {
     });
   });
 
+  describe('reading sessions', () => {
+    it('startSession inserts a reading_sessions row and returns startPage=0 when no prior progress', async () => {
+      await service.follow('mxid-1');
+
+      const result = await service.startSession({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+      });
+
+      expect(result.sessionId).toBeDefined();
+      expect(result.startPage).toBe(0);
+
+      const count = db
+        .prepare('SELECT COUNT(*) AS c FROM reading_sessions')
+        .get() as { c: number };
+      expect(count.c).toBe(1);
+    });
+
+    it('startSession resumes from the stored last_read_page', async () => {
+      await service.follow('mxid-1');
+      await service.updateProgress({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 7,
+        pageCount: 20,
+      });
+
+      const result = await service.startSession({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+      });
+
+      expect(result.startPage).toBe(7);
+    });
+
+    it('endSession seals the row with end_page, ended_at, and duration_seconds', async () => {
+      await service.follow('mxid-1');
+      const started = await service.startSession({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+      });
+      await service.updateProgress({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 5,
+        pageCount: 20,
+      });
+
+      const ended = await service.endSession({
+        sessionId: started.sessionId,
+        endPage: 5,
+        durationMs: 60000,
+      });
+      expect(ended.success).toBe(true);
+
+      const row = db
+        .prepare(
+          'SELECT end_page, ended_at, duration_seconds FROM reading_sessions WHERE id = ?'
+        )
+        .get(started.sessionId) as {
+        end_page: number;
+        ended_at: string | null;
+        duration_seconds: number;
+      };
+      expect(row.end_page).toBe(5);
+      expect(row.ended_at).not.toBeNull();
+      expect(row.duration_seconds).toBe(60);
+    });
+
+    it('startSession on a brand-new chapter creates the chapter row and returns startPage=0', async () => {
+      await service.follow('mxid-1');
+
+      const result = await service.startSession({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-fresh',
+      });
+
+      expect(result.startPage).toBe(0);
+      const chapter = db
+        .prepare(
+          'SELECT last_read_page, is_read FROM chapters WHERE mangadex_chapter_id = ?'
+        )
+        .get('ch-fresh') as { last_read_page: number; is_read: number } | undefined;
+      expect(chapter).toBeDefined();
+      expect(chapter!.last_read_page).toBe(0);
+      expect(chapter!.is_read).toBe(0);
+    });
+  });
+
   describe('round-trip', () => {
     it('follow → getAll → getSeries → unfollow → getAll transitions cleanly', async () => {
       expect(await service.getAll()).toHaveLength(0);

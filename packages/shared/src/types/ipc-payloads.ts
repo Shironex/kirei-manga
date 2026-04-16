@@ -154,6 +154,28 @@ export interface ReaderMarkReadResponse {
   error?: string;
 }
 
+export interface ReaderSessionStartPayload {
+  mangadexSeriesId: string;
+  mangadexChapterId: string;
+}
+
+export interface ReaderSessionStartResponse {
+  sessionId: string;
+  startPage: number;
+  error?: string;
+}
+
+export interface ReaderSessionEndPayload {
+  sessionId: string;
+  endPage: number;
+  durationMs: number;
+}
+
+export interface ReaderSessionEndResponse {
+  success: boolean;
+  error?: string;
+}
+
 // =============================================================================
 // mangadex:* payloads
 // =============================================================================

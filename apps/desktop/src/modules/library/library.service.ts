@@ -413,6 +413,82 @@ export class LibraryService {
     return out;
   }
 
+  /**
+   * Open a reading session pinned to the local chapter row. If no chapter
+   * row exists yet (user is opening this chapter for the first time), a
+   * minimal row is inserted so the FK target is stable. Returns the new
+   * session id plus the last known `last_read_page` so the renderer can
+   * resume where the user left off.
+   */
+  async startSession(params: {
+    mangadexSeriesId: string;
+    mangadexChapterId: string;
+  }): Promise<{ sessionId: string; startPage: number }> {
+    const localSeriesId = this.resolveLocalSeriesId(params.mangadexSeriesId);
+
+    // Minimal upsert so there's always a chapter row to anchor sessions to.
+    // Keeps chapter_number at its NOT NULL fallback of 0; a later
+    // updateProgress / metadata fetch will backfill the real number.
+    this.db.db
+      .prepare(
+        `INSERT OR IGNORE INTO chapters (
+           id, series_id, source, mangadex_chapter_id,
+           chapter_number, last_read_page, is_read, page_count
+         ) VALUES (?, ?, 'mangadex', ?, 0, 0, 0, 0)`
+      )
+      .run(randomUUID(), localSeriesId, params.mangadexChapterId);
+
+    const row = this.db.db
+      .prepare(
+        'SELECT id, last_read_page FROM chapters WHERE mangadex_chapter_id = ?'
+      )
+      .get(params.mangadexChapterId) as
+      | { id: string; last_read_page: number }
+      | undefined;
+    if (!row) {
+      throw new Error('failed to upsert chapter row for session start');
+    }
+
+    const sessionId = randomUUID();
+    this.db.db
+      .prepare(
+        `INSERT INTO reading_sessions (
+           id, chapter_id, start_page, end_page,
+           started_at, ended_at, duration_seconds
+         ) VALUES (?, ?, ?, ?, datetime('now'), NULL, 0)`
+      )
+      .run(sessionId, row.id, row.last_read_page, row.last_read_page);
+
+    return { sessionId, startPage: row.last_read_page };
+  }
+
+  /**
+   * Seal a reading session with its end page and duration. Always resolves
+   * to `{ success: true }`; a missing session id logs a warning but doesn't
+   * throw (the client already closed the reader).
+   */
+  async endSession(params: {
+    sessionId: string;
+    endPage: number;
+    durationMs: number;
+  }): Promise<{ success: boolean }> {
+    const durationSeconds = Math.max(0, Math.round(params.durationMs / 1000));
+    const result = this.db.db
+      .prepare(
+        `UPDATE reading_sessions
+         SET end_page = ?, ended_at = datetime('now'), duration_seconds = ?
+         WHERE id = ?`
+      )
+      .run(params.endPage, durationSeconds, params.sessionId);
+
+    // better-sqlite3 returns { changes }; the sql.js test adapter stubs 0.
+    // Log when we know for sure nothing matched (production path only).
+    if (typeof result?.changes === 'number' && result.changes === 0) {
+      logger.warn(`reader:session-end — no session matched id=${params.sessionId}`);
+    }
+    return { success: true };
+  }
+
   async addBookmark(_chapterId: string, _page: number, _note?: string): Promise<Bookmark> {
     throw new NotImplementedException('chapter:add-bookmark not implemented yet');
   }

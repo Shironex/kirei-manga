@@ -23,6 +23,8 @@ import {
   type ReaderSetPrefsPayload,
   type ReaderUpdateProgressPayload,
   type ReaderMarkReadPayload,
+  type ReaderSessionStartPayload,
+  type ReaderSessionEndPayload,
 } from '@kireimanga/shared';
 import { DEFAULT_READER_SETTINGS } from '@kireimanga/shared';
 import { CORS_CONFIG } from '../shared/cors.config';
@@ -169,6 +171,32 @@ export class LibraryGateway {
           payload.chapterIds
         );
         return { states };
+      },
+    });
+  }
+
+  @SubscribeMessage(ReaderEvents.SESSION_START)
+  handleSessionStart(@MessageBody() payload: ReaderSessionStartPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'reader:session-start',
+      defaultResult: { sessionId: '', startPage: 0 },
+      handler: async () => {
+        const result = await this.libraryService.startSession(payload);
+        return result;
+      },
+    });
+  }
+
+  @SubscribeMessage(ReaderEvents.SESSION_END)
+  handleSessionEnd(@MessageBody() payload: ReaderSessionEndPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'reader:session-end',
+      defaultResult: { success: false },
+      handler: async () => {
+        const result = await this.libraryService.endSession(payload);
+        return result;
       },
     });
   }
