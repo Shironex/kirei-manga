@@ -7,6 +7,8 @@ import {
   type LocalDeleteSeriesResponse,
   type LocalGetSeriesPayload,
   type LocalGetSeriesResponse,
+  type LocalRescanSeriesPayload,
+  type LocalRescanSeriesResponse,
   type Series,
   createLogger,
 } from '@kireimanga/shared';
@@ -40,6 +42,7 @@ export function LocalSeriesDetailPage() {
   const [coverLoaded, setCoverLoaded] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [rescanning, setRescanning] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -72,6 +75,45 @@ export function LocalSeriesDetailPage() {
       cancelled = true;
     };
   }, [id]);
+
+  const handleRescan = async (): Promise<void> => {
+    if (!series || rescanning) return;
+    setRescanning(true);
+    try {
+      const response = await emitWithResponse<
+        LocalRescanSeriesPayload,
+        LocalRescanSeriesResponse
+      >(LocalEvents.RESCAN_SERIES, { id: series.id });
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      if (response.newChapterCount > 0) {
+        // Re-fetch so the chapter list picks up the new rows.
+        const fresh = await emitWithResponse<LocalGetSeriesPayload, LocalGetSeriesResponse>(
+          LocalEvents.GET_SERIES,
+          { id: series.id }
+        );
+        if (fresh.series) setSeries(fresh.series);
+        setChapters(fresh.chapters);
+        pushToast({
+          variant: 'success',
+          title: 'New chapters',
+          body: `Found ${response.newChapterCount} new chapter${response.newChapterCount === 1 ? '' : 's'}.`,
+        });
+      } else {
+        pushToast({
+          variant: 'info',
+          title: 'Up to date',
+          body: 'No new chapters on disk.',
+        });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      pushToast({ variant: 'error', title: 'Rescan failed', body: message });
+    } finally {
+      setRescanning(false);
+    }
+  };
 
   const handleDelete = async (): Promise<void> => {
     if (!series || deleting) return;
@@ -209,6 +251,14 @@ export function LocalSeriesDetailPage() {
               className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
             >
               Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleRescan()}
+              disabled={rescanning}
+              className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-wait disabled:opacity-60"
+            >
+              {rescanning ? 'Rescanning…' : 'Rescan'}
             </button>
             <button
               type="button"
