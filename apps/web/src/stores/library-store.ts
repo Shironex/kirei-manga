@@ -120,7 +120,6 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
       }));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      // TODO(slice-c): toast on follow error
       logger.error('follow failed', message);
       // Rollback: remove synthetic, clear index entry if it still points at it.
       set(state => {
@@ -170,7 +169,6 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      // TODO(slice-c): toast on follow error
       logger.error('unfollow failed', message);
       // Rollback: restore entry and index.
       set(state => ({
