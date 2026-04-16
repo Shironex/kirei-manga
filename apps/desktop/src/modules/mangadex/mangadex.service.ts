@@ -328,6 +328,11 @@ export class MangaDexService {
     this.server = server;
   }
 
+  /** Expose the server for background services that need to broadcast events. */
+  getServer(): Server | null {
+    return this.server;
+  }
+
   async search(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
     const merged: SearchFilters = {
       ...(filters ?? {}),
