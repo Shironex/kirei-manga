@@ -126,6 +126,34 @@ describe('LocalLibraryService (integration)', () => {
     await expect(fs.stat(coverDir)).rejects.toThrow();
   });
 
+  it('listChapterPages and readChapterPage resolve from the imported archive', async () => {
+    await writeZip(path.join(tmp, 'My Series', 'Chapter 1.cbz'), ['001.png', '002.png']);
+    const scan = await scanner.scan(tmp);
+    const { createdSeriesIds } = await service.import({
+      rootPath: tmp,
+      candidates: scan.candidates,
+    });
+    const [seriesId] = createdSeriesIds;
+
+    const chapters = await service.getChapters(seriesId);
+    const [chapter] = chapters;
+
+    const pages = await service.listChapterPages(chapter.id);
+    expect(pages).not.toBeNull();
+    expect(pages).toHaveLength(2);
+
+    const page = await service.readChapterPage(chapter.id, 0);
+    expect(page?.mime).toBe('image/png');
+    expect(page?.data.length).toBeGreaterThan(0);
+
+    const missing = await service.readChapterPage(chapter.id, 99);
+    expect(missing).toBeNull();
+  });
+
+  it('getChapterArchive returns null for unknown or mangadex chapter ids', async () => {
+    expect(service.getChapterArchive('unknown-id')).toBeNull();
+  });
+
   it('updateSeries merges a patch and clamps score to 1..10', async () => {
     await writeZip(path.join(tmp, 'My Series', 'Chapter 1.cbz'), ['001.png']);
     const scan = await scanner.scan(tmp);

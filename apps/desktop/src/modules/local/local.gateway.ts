@@ -12,6 +12,8 @@ import {
   LibraryEvents,
   LocalEvents,
   type LocalDeleteSeriesPayload,
+  type LocalGetPagesPayload,
+  type LocalGetSeriesPayload,
   type LocalImportPayload,
   type LocalScanPayload,
   type LocalScanProgressEvent,
@@ -146,6 +148,51 @@ export class LocalGateway {
       handler: async () => {
         const success = await this.library.updateChapter(payload.chapterId, payload.patch);
         return { success };
+      },
+    });
+  }
+
+  /**
+   * Read a local series + its chapters in one round trip. The renderer's
+   * series-detail page asks for both at once so the layout can render in a
+   * single pass.
+   */
+  @SubscribeMessage(LocalEvents.GET_SERIES)
+  handleGetSeries(@MessageBody() payload: LocalGetSeriesPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'local:get-series',
+      defaultResult: { series: null, chapters: [] },
+      handler: async () => {
+        const series = await this.library.getSeries(payload.id);
+        if (!series) return { series: null, chapters: [] };
+        const chapters = await this.library.getChaptersForRenderer(payload.id);
+        return { series, chapters };
+      },
+    });
+  }
+
+  /**
+   * Build the `kirei-page://local/` URL list the reader consumes. Each
+   * URL's `pageIndex` is zero-based in the archive's listPages order, so
+   * the protocol resolver returns the matching bytes without any extra
+   * name lookup. Extensions preserve the source file's format so the
+   * response's content-type is correct.
+   */
+  @SubscribeMessage(LocalEvents.GET_PAGES)
+  handleGetPages(@MessageBody() payload: LocalGetPagesPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'local:get-pages',
+      defaultResult: { pages: [] },
+      handler: async () => {
+        const entries = await this.library.listChapterPages(payload.localChapterId);
+        if (!entries) return { pages: [] };
+        const pages = entries.map(
+          (entry, i) =>
+            `kirei-page://local/${payload.localChapterId}/${i}.${entry.ext}`
+        );
+        return { pages };
       },
     });
   }

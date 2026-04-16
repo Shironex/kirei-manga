@@ -5,6 +5,8 @@ import * as path from 'path';
 import { app } from 'electron';
 import {
   createLogger,
+  type Chapter,
+  type LocalArchiveFormat,
   type LocalImportPayload,
   type LocalImportResponse,
   type LocalSeriesMetaPatch,
@@ -329,6 +331,56 @@ export class LocalLibraryService {
                   title`
       )
       .all(seriesId) as LocalSeriesChapterRow[];
+  }
+
+  /**
+   * Return the shared `Chapter[]` shape for a local series. Mirrors
+   * `getChapters` but resolves every field the renderer expects on a
+   * `Chapter` — including the `isRead / lastReadPage` fields that come
+   * from progress tracking. Kept separate from `getChapters` so the page
+   * protocol's raw-row getter stays narrow.
+   */
+  async getChaptersForRenderer(seriesId: string): Promise<Chapter[]> {
+    const rows = this.db.db
+      .prepare(
+        `SELECT id, title, chapter_number, volume_number, local_path,
+                local_archive_format, page_count, is_downloaded, is_read,
+                last_read_page, read_at
+         FROM chapters
+         WHERE series_id = ? AND source = 'local'
+         ORDER BY COALESCE(volume_number, 9999),
+                  COALESCE(chapter_number, 9999),
+                  title`
+      )
+      .all(seriesId) as Array<{
+      id: string;
+      title: string | null;
+      chapter_number: number | null;
+      volume_number: number | null;
+      local_path: string | null;
+      local_archive_format: string | null;
+      page_count: number;
+      is_downloaded: number;
+      is_read: number;
+      last_read_page: number;
+      read_at: string | null;
+    }>;
+
+    return rows.map(r => ({
+      id: r.id,
+      seriesId,
+      title: r.title ?? undefined,
+      chapterNumber: r.chapter_number ?? 0,
+      volumeNumber: r.volume_number ?? undefined,
+      source: 'local',
+      localPath: r.local_path ?? undefined,
+      localArchiveFormat: (r.local_archive_format as LocalArchiveFormat) ?? undefined,
+      pageCount: r.page_count,
+      isDownloaded: r.is_downloaded === 1,
+      isRead: r.is_read === 1,
+      lastReadPage: r.last_read_page,
+      readAt: r.read_at ? new Date(r.read_at) : undefined,
+    }));
   }
 
   /**
