@@ -1,19 +1,23 @@
-import Database from 'better-sqlite3';
 import type { MangaDexSeriesDetail } from '@kireimanga/shared';
 import { LibraryService } from './library.service';
 import type { DatabaseService } from '../database';
 import type { MangaDexService } from '../mangadex/mangadex.service';
-import { runMigrations } from '../database/migrations';
+import {
+  createTestDatabase,
+  type CompatDatabase,
+} from '../database/__test__/sqljs-adapter';
 
 /**
- * Integration test: LibraryService against a real in-memory better-sqlite3 DB
- * with the production migrations applied. MangaDexService is mocked — this is
- * a service-layer test (no socket, no gateway).
+ * Integration test: LibraryService against a real in-memory SQLite DB
+ * (sql.js under the hood — see `sqljs-adapter.ts` for why we don't use
+ * native better-sqlite3 in Jest) with the production migrations applied.
+ * MangaDexService is mocked — this is a service-layer test (no socket,
+ * no gateway).
  *
- * Stand-in DatabaseService: opens `:memory:`, runs migrations, exposes the
- * same `db` getter LibraryService consumes. Simpler and more robust than
- * overriding via `Test.createTestingModule` since LibraryService only touches
- * `this.db.db` and `this.mangadex.getSeries`.
+ * Stand-in DatabaseService: opens an in-memory DB, runs migrations, exposes
+ * the same `db` getter LibraryService consumes. Simpler and more robust
+ * than overriding via `Test.createTestingModule` since LibraryService only
+ * touches `this.db.db` and `this.mangadex.getSeries`.
  */
 
 function buildDetailFixture(
@@ -37,15 +41,13 @@ function buildDetailFixture(
 }
 
 describe('LibraryService (integration)', () => {
-  let db: Database.Database;
+  let db: CompatDatabase;
   let dbService: DatabaseService;
   let mangadex: { getSeries: jest.Mock };
   let service: LibraryService;
 
-  beforeEach(() => {
-    db = new Database(':memory:');
-    db.pragma('foreign_keys = ON');
-    runMigrations(db);
+  beforeEach(async () => {
+    db = await createTestDatabase();
 
     // Stand-in DatabaseService — LibraryService only uses `this.db.db`.
     dbService = { db } as unknown as DatabaseService;
