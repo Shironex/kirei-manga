@@ -121,6 +121,8 @@ export interface MangaDexGetChaptersResponse {
 
 export interface MangaDexGetPagesPayload {
   chapterId: string;
+  /** Which mirror list to prefer. Defaults to `data` (full quality). */
+  prefer?: 'data' | 'dataSaver';
 }
 
 export interface MangaDexGetPagesResponse {

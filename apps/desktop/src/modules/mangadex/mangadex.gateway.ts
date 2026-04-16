@@ -78,7 +78,7 @@ export class MangaDexGateway {
       action: 'mangadex:get-pages',
       defaultResult: { pages: [] },
       handler: async () => {
-        const pages = await this.mangadexService.getPages(payload.chapterId);
+        const pages = await this.mangadexService.getPages(payload.chapterId, payload.prefer);
         return { pages };
       },
     });

@@ -255,8 +255,13 @@ function normalizeToChapterListItem(entity: MangaDexChapterEntity): ChapterListI
   const a = entity.attributes;
   const scanlationGroup = entity.relationships?.find(r => r.type === 'scanlation_group')
     ?.attributes?.name;
+  // The chapter feed includes a `manga` relationship by default — surface it
+  // so the reader can resolve a series without a second round-trip. Empty
+  // string fallback keeps the type non-nullable while flagging upstream gaps.
+  const seriesId = entity.relationships?.find(r => r.type === 'manga')?.id ?? '';
   return {
     id: entity.id,
+    seriesId,
     volume: a.volume,
     chapter: a.chapter,
     title: a.title,
@@ -350,8 +355,23 @@ export class MangaDexService {
     return sorted.map(normalizeToChapterListItem);
   }
 
-  async getPages(_chapterId: string): Promise<string[]> {
-    throw new NotImplementedException('mangadex:get-pages not implemented yet');
+  /**
+   * Resolve a chapter's pages to `kirei-page://mangadex/{chapterId}/{file}` URLs
+   * the renderer can hand to <img>. The actual at-home mirror baseUrl rotates
+   * frequently, so we don't bake it into the URL — the protocol handler looks
+   * it up on demand via `MangaDexClient.getCachedAtHome` (and refetches when
+   * expired or when the upstream 403/404s).
+   *
+   * Filenames are emitted raw. They're MangaDex content-addressed names
+   * matching `[a-zA-Z0-9._-]+`, which is the SAFE_SEGMENT pattern the
+   * protocol handler validates against — encoding would defeat that check.
+   */
+  async getPages(chapterId: string, prefer: 'data' | 'dataSaver' = 'data'): Promise<string[]> {
+    const env = await this.client.getChapterPages(chapterId);
+    const primary = prefer === 'dataSaver' ? env.chapter.dataSaver : env.chapter.data;
+    const fallback = prefer === 'dataSaver' ? env.chapter.data : env.chapter.dataSaver;
+    const files = primary && primary.length > 0 ? primary : (fallback ?? []);
+    return files.map(fn => `kirei-page://mangadex/${chapterId}/${fn}`);
   }
 
   async downloadChapter(_chapterId: string): Promise<void> {

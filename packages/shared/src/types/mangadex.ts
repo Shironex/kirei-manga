@@ -230,6 +230,8 @@ export interface MangaDexSeriesDetail {
  */
 export interface ChapterListItem {
   id: string;
+  /** UUID of the parent series — sourced from the chapter's `manga` relationship. */
+  seriesId: string;
   volume: string | null;
   chapter: string | null;
   title: string | null;

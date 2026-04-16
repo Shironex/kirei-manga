@@ -338,6 +338,28 @@ export class MangaDexClient {
   }
 
   /**
+   * Read the unexpired at-home envelope for a chapter from the internal TTL
+   * cache without hitting the network. Returns `null` if there is no entry or
+   * if it has expired. Used by the kirei-page protocol handler to resolve
+   * `{baseUrl, hash}` synchronously on cache hits.
+   */
+  getCachedAtHome(chapterId: string): MangaDexAtHomeResponse | null {
+    const hit = this.cache.get(`athome:${chapterId}`);
+    if (!hit) return null;
+    if (hit.expiresAt <= Date.now()) return null;
+    return hit.data as MangaDexAtHomeResponse;
+  }
+
+  /**
+   * Drop the cached at-home envelope for a single chapter. Called by the
+   * page protocol handler when a previously resolved upstream URL 403/404s,
+   * so the next `getChapterPages` call re-fetches a fresh rotating baseUrl.
+   */
+  invalidateAtHome(chapterId: string): void {
+    this.cache.delete(`athome:${chapterId}`);
+  }
+
+  /**
    * Pure string builder — does NOT hit the network. MangaDex cover filenames
    * already live under `uploads.mangadex.org/covers/{mangaId}/{fileName}`; the
    * `.256.jpg` / `.512.jpg` suffix asks for a resized thumbnail.
