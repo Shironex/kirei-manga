@@ -1,8 +1,10 @@
-import type { MangaDexSeriesDetail } from '@kireimanga/shared';
+import type { AppSettings, MangaDexSeriesDetail } from '@kireimanga/shared';
+import { DEFAULT_APP_SETTINGS } from '@kireimanga/shared';
 import { LibraryService } from './library.service';
 import { BookmarkService } from './bookmark.service';
 import type { DatabaseService } from '../database';
 import type { MangaDexService } from '../mangadex/mangadex.service';
+import type { SettingsService } from '../settings/settings.service';
 import {
   createTestDatabase,
   type CompatDatabase,
@@ -45,6 +47,8 @@ describe('LibraryService (integration)', () => {
   let db: CompatDatabase;
   let dbService: DatabaseService;
   let mangadex: { getSeries: jest.Mock };
+  let settings: { get: jest.Mock; set: jest.Mock; reset: jest.Mock };
+  let settingsState: AppSettings;
   let service: LibraryService;
   let bookmarkService: BookmarkService;
 
@@ -58,7 +62,26 @@ describe('LibraryService (integration)', () => {
       getSeries: jest.fn().mockResolvedValue(buildDetailFixture()),
     };
 
-    service = new LibraryService(dbService, mangadex as unknown as MangaDexService);
+    // In-memory SettingsService stand-in. Default to DEFAULT_APP_SETTINGS so
+    // reader-pref tests assert against the same shape they did before.
+    settingsState = JSON.parse(JSON.stringify(DEFAULT_APP_SETTINGS)) as AppSettings;
+    settings = {
+      get: jest.fn(() => JSON.parse(JSON.stringify(settingsState)) as AppSettings),
+      set: jest.fn((partial: Partial<AppSettings>) => {
+        settingsState = { ...settingsState, ...partial };
+        return settingsState;
+      }),
+      reset: jest.fn(() => {
+        settingsState = JSON.parse(JSON.stringify(DEFAULT_APP_SETTINGS)) as AppSettings;
+        return settingsState;
+      }),
+    };
+
+    service = new LibraryService(
+      dbService,
+      mangadex as unknown as MangaDexService,
+      settings as unknown as SettingsService
+    );
     bookmarkService = new BookmarkService(dbService, service);
   });
 
@@ -183,6 +206,35 @@ describe('LibraryService (integration)', () => {
     it('updateReaderPrefs returns null for an unknown series id', async () => {
       const updated = await service.updateReaderPrefs('does-not-exist', { mode: 'double' });
       expect(updated).toBeNull();
+    });
+
+    it('getReaderPrefs falls back to the user reader defaults when no row exists', async () => {
+      // Mutate the in-memory settings stand-in so the fallback path differs
+      // from DEFAULT_READER_SETTINGS — proves the service is reading from
+      // SettingsService, not the hardcoded constant.
+      settingsState.reader = {
+        ...settingsState.reader,
+        mode: 'webtoon',
+        direction: 'ltr',
+        fit: 'height',
+      };
+
+      const prefs = await service.getReaderPrefs('does-not-exist');
+      expect(prefs).toEqual({ mode: 'webtoon', direction: 'ltr', fit: 'height' });
+    });
+
+    it('getReaderPrefs uses user defaults for unset columns on a real row', async () => {
+      const followed = await service.follow('mxid-1');
+      settingsState.reader = {
+        ...settingsState.reader,
+        mode: 'webtoon',
+        direction: 'ltr',
+        fit: 'height',
+      };
+
+      const prefs = await service.getReaderPrefs(followed.id);
+      // No per-series overrides written yet → all three come from settings.
+      expect(prefs).toEqual({ mode: 'webtoon', direction: 'ltr', fit: 'height' });
     });
   });
 

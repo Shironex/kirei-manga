@@ -360,6 +360,19 @@ export class MangaDexClient {
   }
 
   /**
+   * Drop every cached at-home envelope. Called when the user clears the
+   * kirei-page disk cache so the next read re-fetches a fresh baseUrl rather
+   * than serving from a stale in-memory mirror.
+   */
+  invalidateAllAtHome(): void {
+    for (const key of this.cache.keys()) {
+      if (key.startsWith('athome:')) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
+  /**
    * Pure string builder — does NOT hit the network. MangaDex cover filenames
    * already live under `uploads.mangadex.org/covers/{mangaId}/{fileName}`; the
    * `.256.jpg` / `.512.jpg` suffix asks for a resized thumbnail.

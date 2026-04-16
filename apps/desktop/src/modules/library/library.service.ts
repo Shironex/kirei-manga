@@ -12,9 +12,9 @@ import type {
   ReaderMarkReadPayload,
   LibraryChapterStatePatch,
 } from '@kireimanga/shared';
-import { DEFAULT_READER_SETTINGS } from '@kireimanga/shared';
 import { DatabaseService } from '../database';
 import { MangaDexService } from '../mangadex/mangadex.service';
+import { SettingsService } from '../settings/settings.service';
 
 const logger = createLogger('LibraryService');
 
@@ -52,9 +52,25 @@ interface SeriesRow {
 export class LibraryService {
   constructor(
     private readonly db: DatabaseService,
-    private readonly mangadex: MangaDexService
+    private readonly mangadex: MangaDexService,
+    private readonly settings: SettingsService
   ) {
     logger.info('LibraryService initialized');
+  }
+
+  /**
+   * Resolve the current default reader prefs from user settings. Pulls the
+   * three layout fields off `settings.reader` (which also carries `language`
+   * — that field doesn't belong on `ReaderSettings` and is consumed by the
+   * library/SeriesDetail layer separately).
+   */
+  private getReaderDefaults(): ReaderSettings {
+    const fallback = this.settings.get().reader;
+    return {
+      mode: fallback.mode,
+      direction: fallback.direction,
+      fit: fallback.fit,
+    };
   }
 
   /**
@@ -86,10 +102,13 @@ export class LibraryService {
 
   /**
    * Get effective reader preferences for a series. Stored NULL columns mean
-   * "use the default", so they get merged with `DEFAULT_READER_SETTINGS`.
-   * If the series row doesn't exist, defaults are returned verbatim.
+   * "use the default", so they get merged with the user's reader defaults
+   * (resolved from SettingsService — falls back to DEFAULT_READER_SETTINGS
+   * if the user hasn't customised anything). If the series row doesn't
+   * exist, defaults are returned verbatim.
    */
   async getReaderPrefs(seriesId: string): Promise<ReaderSettings> {
+    const defaults = this.getReaderDefaults();
     const row = this.db.db
       .prepare(
         'SELECT reader_mode, reader_direction, reader_fit FROM series WHERE id = ?'
@@ -98,12 +117,12 @@ export class LibraryService {
       | Pick<SeriesRow, 'reader_mode' | 'reader_direction' | 'reader_fit'>
       | undefined;
     if (!row) {
-      return { ...DEFAULT_READER_SETTINGS };
+      return { ...defaults };
     }
     return {
-      mode: row.reader_mode ?? DEFAULT_READER_SETTINGS.mode,
-      direction: row.reader_direction ?? DEFAULT_READER_SETTINGS.direction,
-      fit: row.reader_fit ?? DEFAULT_READER_SETTINGS.fit,
+      mode: row.reader_mode ?? defaults.mode,
+      direction: row.reader_direction ?? defaults.direction,
+      fit: row.reader_fit ?? defaults.fit,
     };
   }
 

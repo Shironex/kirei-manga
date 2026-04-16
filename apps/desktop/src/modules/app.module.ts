@@ -3,6 +3,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { DatabaseModule } from './database';
 import { MangaDexModule } from './mangadex';
 import { LibraryModule } from './library';
+import { SettingsModule } from './settings';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { LibraryModule } from './library';
     ]),
     DatabaseModule,
     MangaDexModule,
+    SettingsModule,
     LibraryModule,
   ],
   controllers: [],

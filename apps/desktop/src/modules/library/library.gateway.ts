@@ -9,6 +9,7 @@ import { Server } from 'socket.io';
 import {
   createLogger,
   LibraryEvents,
+  LibraryCacheEvents,
   ChapterEvents,
   ReaderEvents,
   type LibraryGetSeriesPayload,
@@ -35,6 +36,7 @@ import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
 import { handleGatewayRequest } from '../shared/gateway-handler';
 import { LibraryService } from './library.service';
 import { BookmarkService } from './bookmark.service';
+import { LibraryCacheService } from './library-cache.service';
 import { MangaDexService } from '../mangadex/mangadex.service';
 import { DatabaseService } from '../database';
 
@@ -49,6 +51,7 @@ export class LibraryGateway {
   constructor(
     private readonly libraryService: LibraryService,
     private readonly bookmarkService: BookmarkService,
+    private readonly libraryCacheService: LibraryCacheService,
     private readonly mangadexService: MangaDexService,
     private readonly databaseService: DatabaseService,
   ) {
@@ -333,6 +336,31 @@ export class LibraryGateway {
           id: payload.seriesId,
         } satisfies LibraryUpdatedEvent);
         return { success: true };
+      },
+    });
+  }
+
+  @SubscribeMessage(LibraryCacheEvents.GET_SIZE)
+  handleGetCacheSize() {
+    return handleGatewayRequest({
+      logger,
+      action: 'library:get-cache-size',
+      defaultResult: { bytes: 0 },
+      handler: async () => {
+        const bytes = await this.libraryCacheService.getCacheSize();
+        return { bytes };
+      },
+    });
+  }
+
+  @SubscribeMessage(LibraryCacheEvents.CLEAR)
+  handleClearCache() {
+    return handleGatewayRequest({
+      logger,
+      action: 'library:clear-cache',
+      defaultResult: { success: false, bytesFreed: 0 },
+      handler: async () => {
+        return this.libraryCacheService.clearCache();
       },
     });
   }
