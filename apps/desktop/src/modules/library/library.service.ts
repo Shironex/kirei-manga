@@ -1,11 +1,9 @@
-import { Injectable, NotImplementedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { createLogger } from '@kireimanga/shared';
 import type {
   Series,
   ReadingStatus,
-  BookmarkWithChapter,
-  ChapterAddBookmarkPayload,
   ReaderSettings,
   ReaderMode,
   ReaderDirection,
@@ -210,8 +208,9 @@ export class LibraryService {
    * Resolve a MangaDex series id to the local `series.id`. Throws when the
    * user hasn't followed the series yet — the reader never talks to MangaDex
    * directly for progress updates, so a miss here is a genuine error.
+   * Public so sibling services (e.g. `BookmarkService`) can share the lookup.
    */
-  private resolveLocalSeriesId(mangadexSeriesId: string): string {
+  resolveLocalSeriesId(mangadexSeriesId: string): string {
     const row = this.db.db
       .prepare('SELECT id FROM series WHERE mangadex_id = ?')
       .get(mangadexSeriesId) as { id: string } | undefined;
@@ -506,15 +505,4 @@ export class LibraryService {
       .run(localSeriesId);
   }
 
-  async addBookmark(_payload: ChapterAddBookmarkPayload): Promise<BookmarkWithChapter> {
-    throw new NotImplementedException('chapter:add-bookmark not implemented yet');
-  }
-
-  async getBookmarks(_mangadexSeriesId: string): Promise<BookmarkWithChapter[]> {
-    throw new NotImplementedException('chapter:get-bookmarks not implemented yet');
-  }
-
-  async removeBookmark(_bookmarkId: string): Promise<{ success: boolean }> {
-    throw new NotImplementedException('chapter:remove-bookmark not implemented yet');
-  }
 }

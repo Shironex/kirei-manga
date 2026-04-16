@@ -1,5 +1,6 @@
 import type { MangaDexSeriesDetail } from '@kireimanga/shared';
 import { LibraryService } from './library.service';
+import { BookmarkService } from './bookmark.service';
 import type { DatabaseService } from '../database';
 import type { MangaDexService } from '../mangadex/mangadex.service';
 import {
@@ -45,6 +46,7 @@ describe('LibraryService (integration)', () => {
   let dbService: DatabaseService;
   let mangadex: { getSeries: jest.Mock };
   let service: LibraryService;
+  let bookmarkService: BookmarkService;
 
   beforeEach(async () => {
     db = await createTestDatabase();
@@ -57,6 +59,7 @@ describe('LibraryService (integration)', () => {
     };
 
     service = new LibraryService(dbService, mangadex as unknown as MangaDexService);
+    bookmarkService = new BookmarkService(dbService, service);
   });
 
   afterEach(() => {
@@ -437,6 +440,85 @@ describe('LibraryService (integration)', () => {
 
       const after = await service.getSeries(followed.id);
       expect(after!.newChapterCount).toBe(0);
+    });
+  });
+
+  describe('bookmarks', () => {
+    it('add creates a bookmark joined with its chapter metadata', async () => {
+      await service.follow('mxid-1');
+
+      const bookmark = await bookmarkService.add({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 2,
+        chapterNumber: 5,
+        chapterTitle: 'The Setup',
+      });
+
+      expect(bookmark.id).toBeDefined();
+      expect(bookmark.mangadexChapterId).toBe('ch-1');
+      expect(bookmark.mangadexSeriesId).toBe('mxid-1');
+      expect(bookmark.chapterNumber).toBe(5);
+      expect(bookmark.chapterTitle).toBe('The Setup');
+      expect(bookmark.page).toBe(2);
+      expect(bookmark.createdAt).toBeInstanceOf(Date);
+    });
+
+    it('add is idempotent on (chapter, page) via the UNIQUE constraint', async () => {
+      await service.follow('mxid-1');
+
+      const first = await bookmarkService.add({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 2,
+        chapterNumber: 5,
+      });
+      const second = await bookmarkService.add({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 2,
+        chapterNumber: 5,
+      });
+
+      expect(second.id).toBe(first.id);
+      const all = await bookmarkService.getForSeries('mxid-1');
+      expect(all).toHaveLength(1);
+    });
+
+    it('getForSeries returns every bookmark for the series', async () => {
+      await service.follow('mxid-1');
+      await bookmarkService.add({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 2,
+        chapterNumber: 5,
+      });
+
+      const list = await bookmarkService.getForSeries('mxid-1');
+      expect(list).toHaveLength(1);
+      expect(list[0].mangadexChapterId).toBe('ch-1');
+      expect(list[0].page).toBe(2);
+    });
+
+    it('remove deletes the bookmark and returns success=true', async () => {
+      await service.follow('mxid-1');
+      const created = await bookmarkService.add({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 2,
+        chapterNumber: 5,
+      });
+
+      const removed = await bookmarkService.remove(created.id);
+      expect(removed.success).toBe(true);
+
+      const after = await bookmarkService.getForSeries('mxid-1');
+      expect(after).toHaveLength(0);
+    });
+
+    it('remove returns success=false for an unknown id without throwing', async () => {
+      const result = await bookmarkService.remove('does-not-exist');
+      expect(result.success).toBe(false);
     });
   });
 });

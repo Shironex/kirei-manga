@@ -34,6 +34,7 @@ import { CORS_CONFIG } from '../shared/cors.config';
 import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
 import { handleGatewayRequest } from '../shared/gateway-handler';
 import { LibraryService } from './library.service';
+import { BookmarkService } from './bookmark.service';
 import { MangaDexService } from '../mangadex/mangadex.service';
 import { DatabaseService } from '../database';
 
@@ -47,6 +48,7 @@ export class LibraryGateway {
 
   constructor(
     private readonly libraryService: LibraryService,
+    private readonly bookmarkService: BookmarkService,
     private readonly mangadexService: MangaDexService,
     private readonly databaseService: DatabaseService,
   ) {
@@ -251,7 +253,12 @@ export class LibraryGateway {
       action: 'chapter:add-bookmark',
       defaultResult: { bookmark: null },
       handler: async () => {
-        const bookmark = await this.libraryService.addBookmark(payload);
+        const bookmark = await this.bookmarkService.add(payload);
+        this.server.emit(LibraryEvents.UPDATED, {
+          action: 'bookmark-added',
+          id: bookmark.seriesId,
+          bookmark,
+        } satisfies LibraryUpdatedEvent);
         return { bookmark };
       },
     });
@@ -264,7 +271,7 @@ export class LibraryGateway {
       action: 'chapter:get-bookmarks',
       defaultResult: { bookmarks: [] },
       handler: async () => {
-        const bookmarks = await this.libraryService.getBookmarks(payload.mangadexSeriesId);
+        const bookmarks = await this.bookmarkService.getForSeries(payload.mangadexSeriesId);
         return { bookmarks };
       },
     });
@@ -277,7 +284,21 @@ export class LibraryGateway {
       action: 'chapter:remove-bookmark',
       defaultResult: { success: false },
       handler: async () => {
-        const result = await this.libraryService.removeBookmark(payload.bookmarkId);
+        // Grab the local series id *before* the delete so the broadcast can
+        // target listeners keyed on series. A missing row is not an error —
+        // the service returns success=false and we skip the broadcast.
+        const row = this.databaseService.db
+          .prepare('SELECT series_id FROM bookmarks WHERE id = ?')
+          .get(payload.bookmarkId) as { series_id: string } | undefined;
+
+        const result = await this.bookmarkService.remove(payload.bookmarkId);
+        if (result.success && row) {
+          this.server.emit(LibraryEvents.UPDATED, {
+            action: 'bookmark-removed',
+            id: row.series_id,
+            bookmarkId: payload.bookmarkId,
+          } satisfies LibraryUpdatedEvent);
+        }
         return { success: result.success };
       },
     });
