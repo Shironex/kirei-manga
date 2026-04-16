@@ -9,15 +9,22 @@ import { Server } from 'socket.io';
 import { dialog } from 'electron';
 import {
   createLogger,
+  LibraryEvents,
   LocalEvents,
+  type LocalDeleteSeriesPayload,
+  type LocalImportPayload,
   type LocalScanPayload,
   type LocalScanProgressEvent,
+  type LocalUpdateChapterPayload,
+  type LocalUpdateSeriesPayload,
+  type LibraryUpdatedEvent,
   type ScanProgress,
 } from '@kireimanga/shared';
 import { CORS_CONFIG } from '../shared/cors.config';
 import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
 import { handleGatewayRequest } from '../shared/gateway-handler';
 import { LocalScannerService } from './scanner';
+import { LocalLibraryService } from './local-library.service';
 
 const logger = createLogger('LocalGateway');
 
@@ -30,7 +37,10 @@ export class LocalGateway {
   @WebSocketServer()
   server!: Server;
 
-  constructor(private readonly scanner: LocalScannerService) {
+  constructor(
+    private readonly scanner: LocalScannerService,
+    private readonly library: LocalLibraryService
+  ) {
     logger.info('LocalGateway initialized');
   }
 
@@ -78,6 +88,83 @@ export class LocalGateway {
         } finally {
           emit.flush();
         }
+      },
+    });
+  }
+
+  /**
+   * Commit a user-confirmed scan proposal. Broadcasts one
+   * `LibraryEvents.UPDATED` per newly-created series so the existing
+   * library cache in the renderer refetches without needing to know
+   * anything about local-specific channels.
+   */
+  @SubscribeMessage(LocalEvents.IMPORT)
+  handleImport(@MessageBody() payload: LocalImportPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'local:import',
+      defaultResult: { createdSeriesIds: [], skipped: 0 },
+      handler: async () => {
+        const result = await this.library.import(payload);
+        for (const id of result.createdSeriesIds) {
+          const series = await this.library.getSeries(id);
+          this.server.emit(LibraryEvents.UPDATED, {
+            action: 'followed',
+            id,
+            series: series ?? undefined,
+          } satisfies LibraryUpdatedEvent);
+        }
+        return result;
+      },
+    });
+  }
+
+  @SubscribeMessage(LocalEvents.UPDATE_SERIES)
+  handleUpdateSeries(@MessageBody() payload: LocalUpdateSeriesPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'local:update-series',
+      defaultResult: { series: null },
+      handler: async () => {
+        const series = await this.library.updateSeries(payload.id, payload.patch);
+        this.server.emit(LibraryEvents.UPDATED, {
+          action: 'status-changed',
+          id: payload.id,
+          series: series ?? undefined,
+        } satisfies LibraryUpdatedEvent);
+        return { series };
+      },
+    });
+  }
+
+  @SubscribeMessage(LocalEvents.UPDATE_CHAPTER)
+  handleUpdateChapter(@MessageBody() payload: LocalUpdateChapterPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'local:update-chapter',
+      defaultResult: { success: false },
+      handler: async () => {
+        const success = await this.library.updateChapter(payload.chapterId, payload.patch);
+        return { success };
+      },
+    });
+  }
+
+  @SubscribeMessage(LocalEvents.DELETE_SERIES)
+  handleDeleteSeries(@MessageBody() payload: LocalDeleteSeriesPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'local:delete-series',
+      defaultResult: { success: false },
+      handler: async () => {
+        const success = await this.library.deleteSeries(payload.id);
+        if (success) {
+          this.server.emit(LibraryEvents.UPDATED, {
+            action: 'unfollowed',
+            id: payload.id,
+          } satisfies LibraryUpdatedEvent);
+        }
+        return { success };
       },
     });
   }
