@@ -71,7 +71,10 @@ socks, and open book page.
 
 Primary pose. Establishes the character and is the PNG used in the splash
 screen. Treat this as the reference for consistency — match the palette and
-silhouette here before generating the other poses.
+silhouette here before generating the other poses. **Outfit:** haori (open
+kimono-style jacket) over a fitted blouse — the haori's open front always
+shows a vertical cream line down the middle so the silhouette never fuses
+into a dark blob against the sumi app background.
 
 ```
 A hand-drawn outline digital illustration of a chibi anime girl character,
@@ -80,24 +83,30 @@ hair gathered in a single low side-ponytail tied with a thin bengara iron-oxide
 red silk ribbon, long side-swept bangs framing the face, small vampire fang on
 lower lip, gentle half-closed eyes in a soft bengara red looking downward at a
 book, oval wire-rim reading glasses perched on the bridge of her nose, pale
-cream skin with tiny faint bengara red dots on her cheeks, wearing an oversized
-deep sumi ink ribbed knit sweater with a soft cream ivory high-collar peeking
-at the neckline and narrow cream cuffs at the wrists, long sleeves covering her
-hands slightly, small bengara red embroidered kanji characters 綺麗 on the chest
-reading vertically, long pleated sumi black ankle-length skirt, cream bone
-knee-high socks, plain dark mary-jane shoes. She is sitting cross-legged on the
-floor, holding a small open manga volume in both hands close to her lap, head
-tilted down in focused reading, a thin bengara red silk bookmark ribbon dangling
-from the book's spine, calm quiet contented expression, absorbed in reading.
-Clean black outlines, flat colors, minimal shading, sticker style, full body
-visible, single character, centered composition, transparent background.
+cream skin with tiny faint bengara red dots on her cheeks, wearing a fitted
+cream ivory high-neck long-sleeve blouse underneath with narrow cream cuffs
+visible at the wrists, a loose hip-length sumi ink haori kimono-style open
+jacket draped over the blouse with the front open showing a vertical strip of
+the cream blouse beneath running down her torso, wide square haori sleeves
+with a bengara iron-oxide red silk inner lining flashing at the cuffs and the
+bottom hem of the haori, a single small bengara red embroidered kanji 綺 as a
+mon-style crest on the left chest of the haori, long pleated sumi black
+ankle-length skirt, cream bone knee-high socks, plain dark mary-jane shoes.
+She is sitting cross-legged on the floor, holding a small open manga volume in
+both hands close to her lap, head tilted down in focused reading, a thin
+bengara red silk bookmark ribbon dangling from the book's spine, calm quiet
+contented expression, absorbed in reading. Clean black outlines, flat colors,
+minimal shading, sticker style, full body visible, single character, centered
+composition, transparent background.
 ```
 
 ### 2. Waving / Greeting — `chibi_wave.png` (app open / hover)
 
 Reserved greeting — a polite small wave with a tiny bow of the head, not
 ShiroAni's energetic raised-arm greeting. KireiManga's mascot is a librarian,
-not a cheerleader.
+not a cheerleader. **Outfit:** same haori-over-blouse as pose 1. The raised
+arm lets the bengara inner lining of the haori sleeve flash clearly, which
+is a bonus accent for this pose.
 
 ```
 A hand-drawn outline digital illustration of a chibi anime girl character,
@@ -106,16 +115,21 @@ hair gathered in a single low side-ponytail tied with a thin bengara iron-oxide
 red silk ribbon, long side-swept bangs framing the face, small vampire fang on
 lower lip, gentle soft bengara red eyes with a calm welcoming expression, oval
 wire-rim reading glasses, pale cream skin with tiny faint bengara red dots on
-her cheeks, wearing an oversized deep sumi ink ribbed knit sweater with a soft
-cream ivory high-collar peeking at the neckline and narrow cream cuffs at the
-wrists, long sleeves, small bengara red embroidered kanji characters 綺麗 on
-the chest, long pleated sumi black ankle-length skirt, cream bone knee-high
-socks, plain dark mary-jane shoes. She is standing politely with a small book tucked
-under one arm, raising her free hand near her shoulder in a quiet reserved
-wave, open palm facing forward, head tilted slightly in a tiny welcoming bow,
-soft closed-mouth smile, gentle librarian-like welcoming pose. Clean black
-outlines, flat colors, minimal shading, sticker style, full body visible,
-single character, centered composition, transparent background.
+her cheeks, wearing a fitted cream ivory high-neck long-sleeve blouse
+underneath with narrow cream cuffs visible at the wrists, a loose hip-length
+sumi ink haori kimono-style open jacket draped over the blouse with the front
+open showing a vertical strip of the cream blouse beneath running down her
+torso, wide square haori sleeves with a bengara iron-oxide red silk inner
+lining flashing vividly at the cuff of the raised sleeve and along the hem of
+the haori, a single small bengara red embroidered kanji 綺 as a mon-style
+crest on the left chest of the haori, long pleated sumi black ankle-length
+skirt, cream bone knee-high socks, plain dark mary-jane shoes. She is standing
+politely with a small closed book tucked under one arm against her side,
+raising her free hand near her shoulder in a quiet reserved wave, open palm
+facing forward, head tilted slightly in a tiny welcoming bow, soft closed-mouth
+smile, gentle librarian-like welcoming pose. Clean black outlines, flat colors,
+minimal shading, sticker style, full body visible, single character, centered
+composition, transparent background.
 ```
 
 ### 3. Sleeping / Drowsy — `chibi_sleep.png` (late night / idle)
