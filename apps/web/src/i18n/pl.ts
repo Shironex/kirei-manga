@@ -171,10 +171,15 @@ export const pl = {
   'settings.updates.progress.aria': 'Postęp pobierania',
   'settings.updates.mac.body':
     'Na macOS autoaktualizacje nie są jeszcze dostępne, bo buildy nie są podpisane. Nowe wersje trzeba na razie pobierać ręcznie z GitHub Releases.',
-  'settings.updates.logs.label': 'Logi',
-  'settings.updates.logs.hint': 'Otwórz folder, w którym KireiManga zapisuje pliki logów.',
-  'settings.updates.logs.action': 'Otwórz folder z logami',
-  'settings.updates.logs.error': 'Nie udało się otworzyć folderu z logami.',
+
+  // Settings — About
+  'settings.section.about': 'O aplikacji',
+  'settings.about.title': 'O KireiManga',
+  'settings.about.description': 'Wersja, podziękowania i diagnostyka samej aplikacji.',
+  'settings.about.tagline': 'ciche miejsce dla mang, które chcesz zatrzymać.',
+  'settings.about.credits.prefix': 'Stworzone z',
+  'settings.about.logs.action': 'Otwórz folder z logami',
+  'settings.about.logs.error': 'Nie udało się otworzyć folderu z logami.',
 
   // Settings — Keyboard
   'settings.keyboard.title': 'Klawiatura',

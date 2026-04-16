@@ -165,10 +165,15 @@ export const en = {
   'settings.updates.progress.aria': 'Download progress',
   'settings.updates.mac.body':
     'Auto-update is not available on macOS yet (builds are unsigned). Grab new versions manually from GitHub Releases.',
-  'settings.updates.logs.label': 'Logs',
-  'settings.updates.logs.hint': 'Open the folder where KireiManga writes its log files.',
-  'settings.updates.logs.action': 'Open logs folder',
-  'settings.updates.logs.error': 'Could not open the logs folder.',
+
+  // Settings — About
+  'settings.section.about': 'About',
+  'settings.about.title': 'About KireiManga',
+  'settings.about.description': 'Version, credits, and diagnostics for the app itself.',
+  'settings.about.tagline': 'a quiet shelf for the manga you keep.',
+  'settings.about.credits.prefix': 'Made with',
+  'settings.about.logs.action': 'Open logs folder',
+  'settings.about.logs.error': 'Could not open the logs folder.',
 
   // Settings — Keyboard
   'settings.keyboard.title': 'Keyboard',

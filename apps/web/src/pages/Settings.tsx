@@ -1,4 +1,5 @@
 import { PageHeader } from '../components/layout/PageHeader';
+import { AboutSection } from '../components/settings/AboutSection';
 import { AppearanceSection } from '../components/settings/AppearanceSection';
 import { KeyboardSection } from '../components/settings/KeyboardSection';
 import { LibrarySection } from '../components/settings/LibrarySection';
@@ -33,6 +34,7 @@ export function SettingsPage() {
           <LibrarySection />
           <UpdatesSection />
           <KeyboardSection />
+          <AboutSection />
         </div>
       )}
     </>
