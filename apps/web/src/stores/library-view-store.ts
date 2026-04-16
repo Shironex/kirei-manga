@@ -11,6 +11,7 @@ interface LibraryViewState {
   sort: LibrarySort;
   sortDir: LibrarySortDir;
   statusFilter: LibraryStatusFilter;
+  query: string;
 }
 
 interface LibraryViewActions {
@@ -19,6 +20,7 @@ interface LibraryViewActions {
   setSortDir: (dir: LibrarySortDir) => void;
   toggleSortDir: () => void;
   setStatusFilter: (filter: LibraryStatusFilter) => void;
+  setQuery: (q: string) => void;
 }
 
 // TODO: persist via middleware
@@ -27,10 +29,12 @@ export const useLibraryViewStore = create<LibraryViewState & LibraryViewActions>
   sort: 'lastRead',
   sortDir: 'desc',
   statusFilter: 'all',
+  query: '',
 
   setMode: mode => set({ mode }),
   setSort: sort => set({ sort }),
   setSortDir: sortDir => set({ sortDir }),
   toggleSortDir: () => set(state => ({ sortDir: state.sortDir === 'asc' ? 'desc' : 'asc' })),
   setStatusFilter: statusFilter => set({ statusFilter }),
+  setQuery: query => set({ query }),
 }));

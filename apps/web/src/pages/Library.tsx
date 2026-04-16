@@ -6,6 +6,7 @@ import { LibraryList } from '../components/library/LibraryList';
 import { LibraryControls } from '../components/library/LibraryControls';
 import { useLibraryStore } from '@/stores/library-store';
 import { useLibraryViewStore, type LibrarySort } from '@/stores/library-view-store';
+import { fuzzyIncludes } from '@/lib/fuzzyMatch';
 
 function toTime(value: Date | string | undefined): number {
   if (!value) return 0;
@@ -34,6 +35,7 @@ export function LibraryPage() {
   const sort = useLibraryViewStore(s => s.sort);
   const sortDir = useLibraryViewStore(s => s.sortDir);
   const statusFilter = useLibraryViewStore(s => s.statusFilter);
+  const query = useLibraryViewStore(s => s.query);
 
   // Drop optimistic rows (empty title + pending: prefix) and non-mangadex
   // entries — v0.1 only surfaces mangadex-sourced series.
@@ -42,13 +44,19 @@ export function LibraryPage() {
     s => !s.id.startsWith('pending:') && s.source === 'mangadex' && !!s.mangadexId
   );
 
-  const filtered =
+  const statusFiltered =
     statusFilter === 'all'
       ? baseVisible
       : baseVisible.filter(s => s.status === statusFilter);
 
+  const searched = query
+    ? statusFiltered.filter(s =>
+        fuzzyIncludes(`${s.title} ${s.titleJapanese ?? ''}`, query)
+      )
+    : statusFiltered;
+
   const sign = sortDir === 'asc' ? 1 : -1;
-  const visible = [...filtered].sort((a, b) => sign * compareSeries(a, b, sort));
+  const visible = [...searched].sort((a, b) => sign * compareSeries(a, b, sort));
 
   const count = baseVisible.length;
 

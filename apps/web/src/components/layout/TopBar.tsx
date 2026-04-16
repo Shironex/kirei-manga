@@ -2,20 +2,28 @@ import { Search } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 import { useBrowseStore } from '@/stores/browse-store';
+import { useLibraryViewStore } from '@/stores/library-view-store';
 
 export function TopBar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const query = useBrowseStore(s => s.query);
-  const setQuery = useBrowseStore(s => s.setQuery);
+  const browseQuery = useBrowseStore(s => s.query);
+  const setBrowseQuery = useBrowseStore(s => s.setQuery);
+  const libraryQuery = useLibraryViewStore(s => s.query);
+  const setLibraryQuery = useLibraryViewStore(s => s.setQuery);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // ⌘K / Ctrl+K — focus the top search input from anywhere.
+  const onLibrary = location.pathname === '/';
+  const query = onLibrary ? libraryQuery : browseQuery;
+  const setQuery = onLibrary ? setLibraryQuery : setBrowseQuery;
+
+  // ⌘K / Ctrl+K — focus the top search input from anywhere. On the Library
+  // route it only focuses; elsewhere it also navigates to /browse.
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
-        if (location.pathname !== '/browse') {
+        if (!onLibrary && location.pathname !== '/browse') {
           navigate('/browse');
         }
         inputRef.current?.focus();
@@ -23,10 +31,11 @@ export function TopBar() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [navigate, location.pathname]);
+  }, [navigate, location.pathname, onLibrary]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (onLibrary) return; // Live filter — no-op on submit.
     if (location.pathname !== '/browse') {
       navigate('/browse');
     }
@@ -68,7 +77,7 @@ export function TopBar() {
             type="search"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search library or MangaDex…"
+            placeholder={onLibrary ? 'Filter library…' : 'Search library or MangaDex…'}
             className="flex-1 bg-transparent text-[12px] tracking-wide text-foreground placeholder:text-[var(--color-bone-faint)] focus:outline-none"
           />
           <kbd className="font-mono text-[9px] tracking-wider text-[var(--color-bone-faint)]">
