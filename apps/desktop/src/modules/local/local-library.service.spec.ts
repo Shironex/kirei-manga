@@ -154,6 +154,48 @@ describe('LocalLibraryService (integration)', () => {
     expect(service.getChapterArchive('unknown-id')).toBeNull();
   });
 
+  it('recordProgress persists page and flips isRead on the final page', async () => {
+    await writeZip(path.join(tmp, 'My Series', 'Chapter 1.cbz'), [
+      '001.png',
+      '002.png',
+      '003.png',
+    ]);
+    const scan = await scanner.scan(tmp);
+    const { createdSeriesIds } = await service.import({
+      rootPath: tmp,
+      candidates: scan.candidates,
+    });
+    const [seriesId] = createdSeriesIds;
+    const [chapter] = await service.getChapters(seriesId);
+
+    // Mid-chapter progress — not read yet.
+    const mid = await service.recordProgress({
+      localSeriesId: seriesId,
+      localChapterId: chapter.id,
+      page: 1,
+      pageCount: 3,
+    });
+    expect(mid.isRead).toBe(false);
+    expect(service.getChapterResumePage(chapter.id)).toBe(1);
+
+    // Final page — flips isRead.
+    const done = await service.recordProgress({
+      localSeriesId: seriesId,
+      localChapterId: chapter.id,
+      page: 2,
+      pageCount: 3,
+    });
+    expect(done.isRead).toBe(true);
+    expect(service.getChapterResumePage(chapter.id)).toBe(2);
+
+    const series = await service.getSeries(seriesId);
+    expect(series?.lastReadAt).toBeInstanceOf(Date);
+  });
+
+  it('getChapterResumePage returns 0 for unknown chapters', () => {
+    expect(service.getChapterResumePage('unknown-id')).toBe(0);
+  });
+
   it('updateSeries merges a patch and clamps score to 1..10', async () => {
     await writeZip(path.join(tmp, 'My Series', 'Chapter 1.cbz'), ['001.png']);
     const scan = await scanner.scan(tmp);

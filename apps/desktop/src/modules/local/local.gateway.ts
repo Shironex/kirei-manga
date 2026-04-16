@@ -11,6 +11,7 @@ import {
   createLogger,
   LibraryEvents,
   LocalEvents,
+  ReaderEvents,
   type LocalDeleteSeriesPayload,
   type LocalGetPagesPayload,
   type LocalGetSeriesPayload,
@@ -20,6 +21,8 @@ import {
   type LocalUpdateChapterPayload,
   type LocalUpdateSeriesPayload,
   type LibraryUpdatedEvent,
+  type ReaderGetLocalResumePayload,
+  type ReaderUpdateLocalProgressPayload,
   type ScanProgress,
 } from '@kireimanga/shared';
 import { CORS_CONFIG } from '../shared/cors.config';
@@ -193,6 +196,49 @@ export class LocalGateway {
             `kirei-page://local/${payload.localChapterId}/${i}.${entry.ext}`
         );
         return { pages };
+      },
+    });
+  }
+
+  /**
+   * Persist a local reader progress tick. Broadcasts the library-updated
+   * event so the library grid's "Continue" link refreshes to point at the
+   * newly-read chapter. The payload shape intentionally mirrors the
+   * mangadex counterpart so the renderer's store can reuse its
+   * `progress-changed` branch unchanged.
+   */
+  @SubscribeMessage(ReaderEvents.UPDATE_LOCAL_PROGRESS)
+  handleUpdateLocalProgress(@MessageBody() payload: ReaderUpdateLocalProgressPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'reader:update-local-progress',
+      defaultResult: { success: false, isRead: false },
+      handler: async () => {
+        const { isRead } = await this.library.recordProgress(payload);
+        this.server.emit(LibraryEvents.UPDATED, {
+          action: 'progress-changed',
+          id: payload.localSeriesId,
+          chapter: {
+            mangadexChapterId: payload.localChapterId,
+            lastReadPage: payload.page,
+            isRead,
+            pageCount: payload.pageCount,
+          },
+        } satisfies LibraryUpdatedEvent);
+        return { success: true, isRead };
+      },
+    });
+  }
+
+  @SubscribeMessage(ReaderEvents.GET_LOCAL_RESUME)
+  handleGetLocalResume(@MessageBody() payload: ReaderGetLocalResumePayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'reader:get-local-resume',
+      defaultResult: { startPage: 0 },
+      handler: async () => {
+        const startPage = this.library.getChapterResumePage(payload.localChapterId);
+        return { startPage };
       },
     });
   }

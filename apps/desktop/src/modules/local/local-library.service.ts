@@ -425,6 +425,71 @@ export class LocalLibraryService {
   }
 
   /**
+   * Record a reader progress tick for a local chapter. Writes
+   * `last_read_page` (overwrites — renderer is source of truth for current
+   * page) and `page_count` (takes the max so a short early report doesn't
+   * shrink a known total). Flips `is_read` when the reader crosses the
+   * final page. Series `last_read_at` + `last_chapter_id` get bumped so
+   * the library's "Continue" link works the same way it does for mangadex.
+   * Returns the resolved read state so the gateway can broadcast it.
+   */
+  async recordProgress(params: {
+    localSeriesId: string;
+    localChapterId: string;
+    page: number;
+    pageCount: number;
+  }): Promise<{ isRead: boolean }> {
+    const isRead = params.page >= Math.max(0, params.pageCount - 1);
+
+    const tx = this.db.db.transaction(() => {
+      this.db.db
+        .prepare(
+          `UPDATE chapters
+           SET last_read_page = ?,
+               page_count = MAX(page_count, ?),
+               is_read = ? OR is_read,
+               read_at = CASE
+                 WHEN ? = 1 THEN COALESCE(read_at, ?)
+                 ELSE read_at
+               END
+           WHERE id = ? AND source = 'local'`
+        )
+        .run(
+          params.page,
+          params.pageCount,
+          isRead ? 1 : 0,
+          isRead ? 1 : 0,
+          new Date().toISOString(),
+          params.localChapterId
+        );
+
+      this.db.db
+        .prepare(
+          "UPDATE series SET last_read_at = datetime('now'), last_chapter_id = ? WHERE id = ? AND source = 'local'"
+        )
+        .run(params.localChapterId, params.localSeriesId);
+    });
+    tx();
+
+    return { isRead };
+  }
+
+  /**
+   * Point lookup for the reader's resume-on-open flow. Returns
+   * `last_read_page` from the chapter row, or 0 if the chapter hasn't
+   * been touched. Missing rows collapse to 0 as well — the reader treats
+   * that as "start from the beginning" which is correct for unknown ids.
+   */
+  getChapterResumePage(chapterId: string): number {
+    const row = this.db.db
+      .prepare(
+        "SELECT last_read_page FROM chapters WHERE id = ? AND source = 'local'"
+      )
+      .get(chapterId) as { last_read_page: number } | undefined;
+    return row?.last_read_page ?? 0;
+  }
+
+  /**
    * Read a specific page from a local chapter's archive. `pageIndex` is
    * the 0-based position in `listChapterPages(chapterId)` — callers that
    * shouldn't care about filename encoding (e.g. the `kirei-page://`
