@@ -5,6 +5,84 @@ All notable changes to KireiManga are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+The **Local Library** milestone (PRD §5.2). Brings first-class support for
+user-provided manga (folders and CBZ/ZIP archives) alongside the existing
+MangaDex library, reusing the same reader, series-detail, progress, and
+library UI. CBR support is deferred to a follow-up — the roadmap's open
+question on unrar licensing hasn't been resolved yet.
+
+### Added
+
+#### Local import (Slices A–E)
+
+- Shared `LocalArchiveFormat`, `ScanResult`, `LocalSeriesMetaPatch`, and
+  `local:*` channel payloads. Migration 006 adds `local_root_path`,
+  `local_content_hash`, and `local_archive_format` columns with matching
+  indexes.
+- Archive reader module with CBZ/ZIP (`node-stream-zip`) and folder
+  implementations, image-only entry filter, natural-order sort, and a
+  factory that dispatches by extension or directory stat.
+- `LocalScannerService` walks a user-picked root, detects flat / nested /
+  single-series layouts, infers chapter and volume numbers, and emits
+  debounced `local:scan-progress` events during long scans.
+- `LocalLibraryService.import` persists series + chapters transactionally
+  per candidate, extracts a cover image atomically into
+  `userData/covers/local/`, and skips imports whose content hash already
+  matches an existing library row.
+- `/library/import` route: folder picker → editorial progress bar → review
+  table with per-series checkbox and inline-editable title → commit with
+  toast feedback.
+
+#### Local reading (Slices F–H)
+
+- `kirei-cover://local/` serves extracted covers directly from disk;
+  `kirei-page://local/` reads pages from archives via a wired
+  `LocalLibraryService` and returns bytes with content-type preserved.
+- `local:get-series`, `local:get-pages`, `local:update-series`,
+  `local:update-chapter`, `local:rescan-series`, and `local:delete-series`
+  gateway handlers.
+- Reader route branches on source: `/reader/local/:seriesId/:chapterId`
+  streams pages from local archives; existing single/double/webtoon modes,
+  fit modes, and keyboard nav all work unchanged.
+- Local reader progress + resume via `reader:update-local-progress` and
+  `reader:get-local-resume`, with debounced writes on every page change
+  and `library:updated` broadcasts so the Continue link stays fresh.
+
+#### Library surface (Slices G · I · J · L)
+
+- Library grid + list now render local series alongside MangaDex. Covers
+  show a subtle hairline "Local" badge; the grid card routes to
+  `/series/local/:id`.
+- Source filter (All / MangaDex / Local) in library controls — single row
+  of editorial chips matching the existing status/sort controls.
+- Full local series detail page: banner with cover + title + Japanese
+  title, meta row (chapter count, read count, root path, MangaDex link),
+  Continue button wired to `lastChapterId`, Edit / Rescan / Remove
+  actions, and a chapter list with read-state dots and in-progress page
+  indicators.
+- Metadata editor drawer (`Edit`): title, Japanese title, 1–10 score, and
+  notes. Right-docked with scrim + body-scroll lock, ESC + click-outside
+  close, save applies a partial patch to SQLite via
+  `local:update-series`.
+- Rescan button re-walks the series' root folder for newly-added chapters,
+  inserts new rows, bumps `new_chapter_count`, and emits
+  `library:updated` so the badge refreshes.
+
+#### MangaDex enrichment (Slice K)
+
+- "Find on MangaDex" section inside the metadata drawer: reuses
+  `useMangaDexSearch` to surface the top 5 matches for the current title;
+  clicking a result attaches its `mangadexId` to the local series (and
+  pre-fills the title field when the user hasn't overridden it).
+- Desktop `local:update-series` validates the attachment against the
+  `series.mangadex_id` UNIQUE index and surfaces a typed
+  `mangadex-id-taken` error when another library row already owns that
+  id; the drawer renders a friendly explanation on that path.
+- Series detail meta row gains a `MangaDex — linked` chip when a
+  mangadexId is attached.
+
 ## [0.1.0] - 2026-04-16
 
 First public preview — the **MangaDex Reader** milestone of the KireiManga
