@@ -1,5 +1,10 @@
 import { Injectable, NotImplementedException } from '@nestjs/common';
-import { createLogger } from '@kireimanga/shared';
+import * as fs from 'fs';
+import * as path from 'path';
+import { randomUUID } from 'crypto';
+import { app } from 'electron';
+import { Server } from 'socket.io';
+import { createLogger, MangaDexEvents } from '@kireimanga/shared';
 import type {
   MangaDexSeries,
   MangaDexSeriesDetail,
@@ -16,6 +21,7 @@ import type {
   MangaDexContentRating,
   MangaDexDemographic,
   MangaDexCoverSize,
+  MangaDexDownloadProgressEvent,
 } from '@kireimanga/shared';
 import { MangaDexClient } from './mangadex.client';
 
@@ -294,13 +300,33 @@ function normalizeToChapter(entity: MangaDexChapterEntity, seriesId: string): Ch
 }
 
 /**
+ * Write a buffer atomically (temp file + rename) to avoid serving torn files.
+ * Mirrors the pattern in kirei-page.ts.
+ */
+async function writeAtomic(filePath: string, data: Buffer): Promise<void> {
+  await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
+  const tmp = `${filePath}.tmp-${process.pid}-${Date.now()}`;
+  await fs.promises.writeFile(tmp, data);
+  await fs.promises.rename(tmp, filePath);
+}
+
+/**
  * MangaDex API service. Translates renderer payloads into client calls and
  * normalizes raw REST entities into the renderer-facing shapes.
  */
 @Injectable()
 export class MangaDexService {
+  private server: Server | null = null;
+  private readonly downloadQueue = new Map<string, Promise<void>>();
+  private downloadChain: Promise<void> = Promise.resolve();
+
   constructor(private readonly client: MangaDexClient) {
     logger.info('MangaDexService initialized');
+  }
+
+  /** Called by the gateway after WebSocket server init to enable progress emit. */
+  setServer(server: Server): void {
+    this.server = server;
   }
 
   async search(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
@@ -374,8 +400,147 @@ export class MangaDexService {
     return files.map(fn => `kirei-page://mangadex/${chapterId}/${fn}`);
   }
 
-  async downloadChapter(_chapterId: string): Promise<void> {
-    throw new NotImplementedException('mangadex:download-chapter not implemented yet');
+  /**
+   * Download all pages for a chapter into the kirei-page disk cache. Downloads
+   * are serialized one at a time via a promise chain. Progress events stream
+   * via `mangadex:download-progress` after each page. On completion the chapter
+   * row is upserted with `is_downloaded=1`.
+   *
+   * @param db - The DatabaseService instance for upserting the chapter row.
+   */
+  downloadChapter(
+    chapterId: string,
+    mangadexSeriesId: string,
+    db?: { db: { prepare(sql: string): { run(...args: unknown[]): unknown; get(...args: unknown[]): unknown } } }
+  ): void {
+    // Already in-flight — skip.
+    if (this.downloadQueue.has(chapterId)) {
+      logger.info(`Download already in progress for chapter ${chapterId}`);
+      return;
+    }
+
+    const task = this.downloadChain
+      .then(() => this.executeDownload(chapterId, mangadexSeriesId, db))
+      .catch(err => {
+        logger.error(`Download failed for chapter ${chapterId}:`, err);
+      })
+      .finally(() => {
+        this.downloadQueue.delete(chapterId);
+      });
+
+    this.downloadQueue.set(chapterId, task);
+    this.downloadChain = task;
+  }
+
+  private emitProgress(event: MangaDexDownloadProgressEvent): void {
+    if (this.server) {
+      this.server.emit(MangaDexEvents.DOWNLOAD_PROGRESS, event);
+    }
+  }
+
+  private async executeDownload(
+    chapterId: string,
+    mangadexSeriesId: string,
+    db?: { db: { prepare(sql: string): { run(...args: unknown[]): unknown; get(...args: unknown[]): unknown } } }
+  ): Promise<void> {
+    let pagesRoot: string;
+    try {
+      pagesRoot = path.join(app.getPath('userData'), 'pages');
+    } catch {
+      // Fallback for test environments where app is not available
+      pagesRoot = path.join(process.cwd(), '.userData', 'pages');
+    }
+
+    logger.info(`Starting download for chapter ${chapterId}`);
+
+    let env;
+    try {
+      env = await this.client.getChapterPages(chapterId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`Failed to get at-home envelope for ${chapterId}: ${message}`);
+      this.emitProgress({ chapterId, current: 0, total: 0, status: 'error', error: message });
+      return;
+    }
+
+    const files = env.chapter.data;
+    const total = files.length;
+
+    if (total === 0) {
+      logger.warn(`Chapter ${chapterId} has no pages`);
+      this.emitProgress({ chapterId, current: 0, total: 0, status: 'complete' });
+      return;
+    }
+
+    for (let i = 0; i < total; i++) {
+      const fileName = files[i];
+      const filePath = path.join(pagesRoot, 'mangadex', chapterId, fileName);
+
+      // Check disk cache — skip if already present.
+      try {
+        const stat = await fs.promises.stat(filePath);
+        if (stat.isFile() && stat.size > 0) {
+          this.emitProgress({ chapterId, current: i + 1, total, status: 'downloading' });
+          continue;
+        }
+      } catch {
+        // File doesn't exist — proceed to fetch.
+      }
+
+      const url = `${env.baseUrl}/data/${env.chapter.hash}/${fileName}`;
+      let fetched;
+      try {
+        fetched = await this.client.fetchPageImage(url);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.error(`Failed to fetch page ${i + 1}/${total} for ${chapterId}: ${message}`);
+        this.emitProgress({ chapterId, current: i + 1, total, status: 'error', error: message });
+        return;
+      }
+
+      if (!fetched.ok) {
+        const message = `Upstream returned ${fetched.status} for page ${i + 1}/${total}`;
+        logger.error(`${message} (chapter ${chapterId})`);
+        this.emitProgress({ chapterId, current: i + 1, total, status: 'error', error: message });
+        return;
+      }
+
+      await writeAtomic(filePath, fetched.buffer);
+      this.emitProgress({ chapterId, current: i + 1, total, status: 'downloading' });
+    }
+
+    // Mark chapter as downloaded in the database.
+    if (db) {
+      try {
+        // Resolve local series id from mangadex_id.
+        const seriesRow = db.db
+          .prepare('SELECT id FROM series WHERE mangadex_id = ?')
+          .get(mangadexSeriesId) as { id: string } | undefined;
+
+        if (seriesRow) {
+          // Upsert chapter row with is_downloaded=1.
+          db.db
+            .prepare(
+              `INSERT INTO chapters (
+                 id, series_id, source, mangadex_chapter_id,
+                 chapter_number, page_count, is_downloaded, is_read, last_read_page
+               ) VALUES (?, ?, 'mangadex', ?, 0, ?, 1, 0, 0)
+               ON CONFLICT(mangadex_chapter_id) DO UPDATE SET
+                 is_downloaded = 1,
+                 page_count = MAX(chapters.page_count, excluded.page_count)`
+            )
+            .run(randomUUID(), seriesRow.id, chapterId, total);
+          logger.info(`Marked chapter ${chapterId} as downloaded (series ${seriesRow.id})`);
+        } else {
+          logger.warn(`Series with mangadex_id=${mangadexSeriesId} not found in library — skipping DB upsert`);
+        }
+      } catch (err) {
+        logger.error(`Failed to upsert chapter row for ${chapterId}:`, err);
+      }
+    }
+
+    this.emitProgress({ chapterId, current: total, total, status: 'complete' });
+    logger.info(`Download complete for chapter ${chapterId} (${total} pages)`);
   }
 
   async checkUpdates(): Promise<SeriesUpdate[]> {

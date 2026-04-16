@@ -3,6 +3,7 @@ import {
   SubscribeMessage,
   MessageBody,
   WebSocketServer,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { UseGuards } from '@nestjs/common';
 import { Server } from 'socket.io';
@@ -19,17 +20,25 @@ import { CORS_CONFIG } from '../shared/cors.config';
 import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
 import { handleGatewayRequest } from '../shared/gateway-handler';
 import { MangaDexService } from './mangadex.service';
+import { DatabaseService } from '../database';
 
 const logger = createLogger('MangaDexGateway');
 
 @WebSocketGateway({ cors: CORS_CONFIG })
 @UseGuards(WsThrottlerGuard)
-export class MangaDexGateway {
+export class MangaDexGateway implements OnGatewayInit {
   @WebSocketServer()
   server!: Server;
 
-  constructor(private readonly mangadexService: MangaDexService) {
+  constructor(
+    private readonly mangadexService: MangaDexService,
+    private readonly databaseService: DatabaseService,
+  ) {
     logger.info('MangaDexGateway initialized');
+  }
+
+  afterInit(server: Server): void {
+    this.mangadexService.setServer(server);
   }
 
   @SubscribeMessage(MangaDexEvents.SEARCH)
@@ -86,15 +95,13 @@ export class MangaDexGateway {
 
   @SubscribeMessage(MangaDexEvents.DOWNLOAD_CHAPTER)
   handleDownloadChapter(@MessageBody() payload: MangaDexDownloadChapterPayload) {
-    return handleGatewayRequest({
-      logger,
-      action: 'mangadex:download-chapter',
-      defaultResult: { success: false },
-      handler: async () => {
-        await this.mangadexService.downloadChapter(payload.chapterId);
-        return { success: true };
-      },
-    });
+    logger.info('mangadex:download-chapter (fire-and-forget)');
+    this.mangadexService.downloadChapter(
+      payload.chapterId,
+      payload.mangadexSeriesId,
+      this.databaseService,
+    );
+    return { success: true };
   }
 
   @SubscribeMessage(MangaDexEvents.CHECK_UPDATES)

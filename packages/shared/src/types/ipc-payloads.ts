@@ -222,6 +222,15 @@ export interface MangaDexGetPagesResponse {
 
 export interface MangaDexDownloadChapterPayload {
   chapterId: string;
+  mangadexSeriesId: string;
+}
+
+export interface MangaDexDownloadProgressEvent {
+  chapterId: string;
+  current: number;
+  total: number;
+  status: 'downloading' | 'complete' | 'error';
+  error?: string;
 }
 
 export interface MangaDexCheckUpdatesResponse {
