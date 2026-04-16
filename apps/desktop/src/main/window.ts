@@ -146,7 +146,12 @@ export async function createMainWindow(): Promise<BrowserWindow> {
       logger.error('Failed to load Vite dev server:', err.message);
     });
   } else {
-    const indexPath = path.join(__dirname, '../renderer/index.html');
+    // The renderer bundle (`apps/web/dist`) is shipped via electron-builder's
+    // `extraResources` mapping, which places it under `process.resourcesPath`
+    // alongside `app.asar` rather than inside it. Loading from there keeps the
+    // renderer outside the asar (faster cold reads, easier user-facing
+    // diagnostics) and avoids needing a copy step in the desktop build script.
+    const indexPath = path.join(process.resourcesPath, 'renderer', 'index.html');
     logger.info('Running in production mode — loading:', indexPath);
     mainWindow.loadFile(indexPath).catch(err => {
       logger.error('Failed to load renderer:', err);

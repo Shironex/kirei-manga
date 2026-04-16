@@ -7,21 +7,30 @@
     "buildResources": "resources"
   },
   "files": ["dist/**/*", "package.json", "!**/*.map", "!**/*.d.ts", "!dist/**/*.d.ts"],
+  "extraResources": [
+    {
+      "from": "../web/dist",
+      "to": "renderer",
+      "filter": ["**/*"]
+    }
+  ],
   "asarUnpack": ["**/node_modules/better-sqlite3/**", "**/build/Release/*.node"],
   "artifactName": "${productName}-${version}-${arch}.${ext}",
   "nodeGypRebuild": false,
   "npmRebuild": false,
-  "publish": {
-    "provider": "github",
-    "owner": "Shironex",
-    "repo": "kirei-manga"
-  },
+  "publish": null,
   "mac": {
     "category": "public.app-category.entertainment",
-    "target": ["dmg"]
+    "target": ["dmg"],
+    "icon": "resources/icon.icns"
   },
   "win": {
-    "target": ["nsis"]
+    "target": ["nsis"],
+    "icon": "resources/icon.ico"
+  },
+  "linux": {
+    "target": ["AppImage"],
+    "icon": "resources/icon.png"
   },
   "nsis": {
     "oneClick": false,
