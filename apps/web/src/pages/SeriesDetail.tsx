@@ -5,6 +5,7 @@ import { useMangaDexSeries } from '@/hooks/useMangaDexSeries';
 import { useMangaDexChapters } from '@/hooks/useMangaDexChapters';
 import { useChapterStates } from '@/hooks/useChapterStates';
 import { useLibraryStore } from '@/stores/library-store';
+import { useSettingsStore } from '@/stores/settings-store';
 import { emitWithResponse } from '@/lib/socket';
 import { SeriesBanner } from '@/components/series/SeriesBanner';
 import { ChapterList } from '@/components/series/ChapterList';
@@ -14,15 +15,24 @@ export function SeriesDetailPage() {
   const { mangadexId } = useParams<{ mangadexId: string }>();
   const { series, loading, error, retry } = useMangaDexSeries(mangadexId);
 
+  const defaultChapterLanguage = useSettingsStore(
+    s => s.settings?.library.defaultChapterLanguage ?? 'en'
+  );
   const [lang, setLang] = useState<string | undefined>(undefined);
 
-  // Pick initial language once per series — prefer 'en', else first available.
+  // Pick initial language once per series — prefer the user's default
+  // chapter language when available, else fall back to 'en', else the first
+  // available translation.
   useEffect(() => {
     if (!series) return;
     const langs = series.availableTranslatedLanguages;
-    const next = langs.includes('en') ? 'en' : langs[0];
+    const next = langs.includes(defaultChapterLanguage)
+      ? defaultChapterLanguage
+      : langs.includes('en')
+        ? 'en'
+        : langs[0];
     setLang(next);
-  }, [series?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [series?.id, defaultChapterLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const chaptersState = useMangaDexChapters(mangadexId, lang);
 

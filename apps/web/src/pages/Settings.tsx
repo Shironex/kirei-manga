@@ -1,5 +1,6 @@
 import { PageHeader } from '../components/layout/PageHeader';
 import { AppearanceSection } from '../components/settings/AppearanceSection';
+import { LibrarySection } from '../components/settings/LibrarySection';
 import { ReaderDefaultsSection } from '../components/settings/ReaderDefaultsSection';
 import { useSettingsStore } from '../stores/settings-store';
 
@@ -25,6 +26,7 @@ export function SettingsPage() {
         <div className="animate-fade-up flex flex-col">
           <AppearanceSection />
           <ReaderDefaultsSection />
+          <LibrarySection />
         </div>
       )}
     </>
