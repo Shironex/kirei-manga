@@ -75,3 +75,24 @@ export const ReaderEvents = {
 export const SystemEvents = {
   THROTTLED: 'system:throttled',
 } as const;
+
+// ============================================
+// Settings Events
+// ============================================
+export const SettingsEvents = {
+  GET: 'settings:get',
+  SET: 'settings:set',
+  RESET: 'settings:reset',
+
+  // Broadcast to every connected renderer after SET / RESET so other windows
+  // (and the same window's other tabs) re-apply settings reactively.
+  UPDATED: 'settings:updated',
+} as const;
+
+// ============================================
+// Library Cache Events (kirei-page disk cache)
+// ============================================
+export const LibraryCacheEvents = {
+  GET_SIZE: 'library:get-cache-size',
+  CLEAR: 'library:clear-cache',
+} as const;

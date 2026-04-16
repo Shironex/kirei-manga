@@ -13,6 +13,7 @@ import type {
   SearchResult,
   OcrResult,
 } from './mangadex';
+import type { AppSettings, DeepPartial } from './settings';
 
 // =============================================================================
 // library:* payloads
@@ -302,6 +303,47 @@ export interface ChapterRemoveBookmarkPayload {
 
 export interface ChapterRemoveBookmarkResponse {
   success: boolean;
+  error?: string;
+}
+
+// =============================================================================
+// settings:* payloads
+// =============================================================================
+
+export interface SettingsGetResponse {
+  settings: AppSettings;
+  error?: string;
+}
+
+export interface SettingsSetPayload {
+  /**
+   * Partial settings patch — deep-merged into the existing AppSettings on the
+   * desktop side. Sections not present are preserved as-is.
+   */
+  settings: DeepPartial<AppSettings>;
+}
+
+export interface SettingsSetResponse {
+  settings: AppSettings;
+  error?: string;
+}
+
+export interface SettingsUpdatedEvent {
+  settings: AppSettings;
+}
+
+// =============================================================================
+// library:* cache payloads (kirei-page disk cache)
+// =============================================================================
+
+export interface LibraryGetCacheSizeResponse {
+  bytes: number;
+  error?: string;
+}
+
+export interface LibraryClearCacheResponse {
+  success: boolean;
+  bytesFreed: number;
   error?: string;
 }
 
