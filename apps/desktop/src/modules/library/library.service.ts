@@ -41,6 +41,8 @@ interface SeriesRow {
   last_chapter_id: string | null;
   last_checked_at: string | null;
   new_chapter_count: number | null;
+  local_root_path: string | null;
+  local_content_hash: string | null;
 }
 
 /**
@@ -97,6 +99,8 @@ export class LibraryService {
       lastChapterId: row.last_chapter_id ?? undefined,
       lastCheckedAt: row.last_checked_at ? new Date(row.last_checked_at) : undefined,
       newChapterCount: row.new_chapter_count ?? undefined,
+      localRootPath: row.local_root_path ?? undefined,
+      localContentHash: row.local_content_hash ?? undefined,
     };
   }
 

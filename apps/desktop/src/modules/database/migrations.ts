@@ -116,6 +116,18 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE series ADD COLUMN new_chapter_count INTEGER DEFAULT 0;
     `,
   },
+  {
+    version: 6,
+    description: 'Add local library columns (root path, content hash, archive format)',
+    up: `
+      ALTER TABLE series ADD COLUMN local_root_path TEXT;
+      ALTER TABLE series ADD COLUMN local_content_hash TEXT;
+      CREATE INDEX IF NOT EXISTS idx_series_local_root ON series(local_root_path);
+
+      ALTER TABLE chapters ADD COLUMN local_archive_format TEXT
+        CHECK (local_archive_format IS NULL OR local_archive_format IN ('folder','cbz','cbr','zip'));
+    `,
+  },
 ];
 
 /**
