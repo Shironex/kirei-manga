@@ -1,5 +1,6 @@
 import type {
   Series,
+  Chapter,
   ReadingStatus,
   BookmarkWithChapter,
   BoundingBox,
@@ -14,6 +15,13 @@ import type {
   OcrResult,
 } from './mangadex';
 import type { AppSettings, DeepPartial } from './settings';
+import type {
+  LocalSeriesMetaPatch,
+  LocalChapterMetaPatch,
+  ScanProgress,
+  ScanResult,
+  ScanCandidateSeries,
+} from './local';
 
 // =============================================================================
 // library:* payloads
@@ -344,6 +352,101 @@ export interface LibraryGetCacheSizeResponse {
 export interface LibraryClearCacheResponse {
   success: boolean;
   bytesFreed: number;
+  error?: string;
+}
+
+// =============================================================================
+// local:* payloads (v0.2 — local library import + reading)
+// =============================================================================
+
+export interface LocalPickFolderResponse {
+  path: string | null;
+  error?: string;
+}
+
+export interface LocalScanPayload {
+  rootPath: string;
+}
+
+export interface LocalScanResponse {
+  result: ScanResult | null;
+  error?: string;
+}
+
+export interface LocalScanProgressEvent {
+  progress: ScanProgress;
+}
+
+/**
+ * User-confirmed subset of a prior scan. The desktop re-opens each candidate's
+ * archive to extract the cover and compute the content hash; absolute paths
+ * from the scan result are trusted unchanged.
+ */
+export interface LocalImportPayload {
+  rootPath: string;
+  candidates: ScanCandidateSeries[];
+}
+
+export interface LocalImportResponse {
+  createdSeriesIds: string[];
+  skipped: number;
+  error?: string;
+}
+
+export interface LocalGetSeriesPayload {
+  id: string;
+}
+
+export interface LocalGetSeriesResponse {
+  series: Series | null;
+  chapters: Chapter[];
+  error?: string;
+}
+
+export interface LocalGetPagesPayload {
+  localChapterId: string;
+}
+
+export interface LocalGetPagesResponse {
+  pages: string[];
+  error?: string;
+}
+
+export interface LocalUpdateSeriesPayload {
+  id: string;
+  patch: LocalSeriesMetaPatch;
+}
+
+export interface LocalUpdateSeriesResponse {
+  series: Series | null;
+  error?: string;
+}
+
+export interface LocalUpdateChapterPayload {
+  chapterId: string;
+  patch: LocalChapterMetaPatch;
+}
+
+export interface LocalUpdateChapterResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface LocalRescanSeriesPayload {
+  id: string;
+}
+
+export interface LocalRescanSeriesResponse {
+  newChapterCount: number;
+  error?: string;
+}
+
+export interface LocalDeleteSeriesPayload {
+  id: string;
+}
+
+export interface LocalDeleteSeriesResponse {
+  success: boolean;
   error?: string;
 }
 

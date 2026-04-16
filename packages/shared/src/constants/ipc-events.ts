@@ -96,3 +96,21 @@ export const LibraryCacheEvents = {
   GET_SIZE: 'library:get-cache-size',
   CLEAR: 'library:clear-cache',
 } as const;
+
+// ============================================
+// Local Library Events (v0.2 — folders / CBZ / CBR imports)
+// ============================================
+export const LocalEvents = {
+  PICK_FOLDER: 'local:pick-folder',
+  SCAN: 'local:scan',
+  IMPORT: 'local:import',
+  GET_SERIES: 'local:get-series',
+  GET_PAGES: 'local:get-pages',
+  UPDATE_SERIES: 'local:update-series',
+  UPDATE_CHAPTER: 'local:update-chapter',
+  RESCAN_SERIES: 'local:rescan-series',
+  DELETE_SERIES: 'local:delete-series',
+
+  // Broadcasts (scan progress stream)
+  SCAN_PROGRESS: 'local:scan-progress',
+} as const;
