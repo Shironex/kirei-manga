@@ -120,6 +120,60 @@ async function serveCachedFile(filePath: string, mime: string): Promise<Response
   });
 }
 
+interface ParsedLocalCoverUrl {
+  seriesId: string;
+  fileName: string;
+  ext: string;
+}
+
+/**
+ * Parse a local-cover URL. Mirror of the MangaDex parser, but the segment
+ * sits below `local/{seriesId}/{fileName}.{ext}` so there's no size suffix
+ * to strip. Returns `null` on a malformed path — logged as a 400 so the
+ * cache directory never sees user-controlled bytes.
+ */
+function parseLocalCoverUrl(pathname: string): ParsedLocalCoverUrl | null {
+  const stripped = pathname.replace(/^\/+/, '');
+  const parts = stripped.split('/');
+  if (parts.length !== 2) return null;
+  const [seriesId, fileName] = parts;
+  if (!SAFE_SEGMENT.test(seriesId)) return null;
+  if (!SAFE_SEGMENT.test(fileName)) return null;
+  const ext = path.extname(fileName).toLowerCase();
+  if (!ALLOWED_EXTENSIONS.has(ext)) return null;
+  return { seriesId, fileName, ext };
+}
+
+/**
+ * Serve a local cover from `userData/covers/local/{seriesId}/{file}`.
+ * Local covers are extracted once at import time (see
+ * `LocalLibraryService.import`), so a missing file means the user deleted
+ * the cover on disk or the import failed — there's no fallback, return 404.
+ */
+async function serveLocalCover(pathname: string): Promise<Response> {
+  const parsed = parseLocalCoverUrl(pathname);
+  if (!parsed) {
+    logger.warn(`[kirei-cover] Rejected malformed local URL: ${pathname}`);
+    return new Response('Bad request', { status: 400 });
+  }
+  const filePath = path.join(
+    getCoverRoot(),
+    'local',
+    parsed.seriesId,
+    parsed.fileName
+  );
+  try {
+    const stat = await fs.promises.stat(filePath);
+    if (!stat.isFile() || stat.size === 0) {
+      return new Response('Not found', { status: 404 });
+    }
+    const mime = EXT_TO_MIME[parsed.ext] ?? 'application/octet-stream';
+    return await serveCachedFile(filePath, mime);
+  } catch {
+    return new Response('Not found', { status: 404 });
+  }
+}
+
 /**
  * Register the kirei-cover: protocol.
  *
@@ -142,8 +196,7 @@ export function registerKireiCoverProtocol(): void {
       const host = url.hostname;
 
       if (host === 'local') {
-        // Reserved for v0.2 local library. Return 404 until implemented.
-        return new Response('Not implemented', { status: 404 });
+        return await serveLocalCover(url.pathname);
       }
 
       if (host !== 'mangadex') {
@@ -201,9 +254,6 @@ export function registerKireiCoverProtocol(): void {
       return new Response('Internal error', { status: 500 });
     }
   });
-
-  // Referenced-but-unused guard: keep constants alive for future `local/` support.
-  void ALLOWED_EXTENSIONS;
 
   logger.info('kirei-cover protocol registered');
 }
