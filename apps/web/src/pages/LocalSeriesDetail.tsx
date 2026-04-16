@@ -100,29 +100,38 @@ export function LocalSeriesDetailPage() {
 
       <div className="animate-fade-up flex flex-col gap-8">
         <p className="max-w-[56ch] text-[13px] leading-relaxed text-[var(--color-bone-muted)]">
-          Full detail layout (banner, metadata editor, reader link) lands in
-          Slice G. For now you can confirm your import landed correctly.
+          Full detail layout (banner, metadata editor, read-state badges)
+          lands in Slice G. Each chapter is readable now — clicking opens
+          it in the reader.
         </p>
 
         <div className="flex flex-col divide-y divide-[var(--color-rule)]">
           {chapters.map(chapter => (
-            <div
+            <Link
               key={chapter.id}
-              className="flex items-baseline justify-between gap-4 py-3"
+              to={`/reader/local/${series.id}/${chapter.id}`}
+              state={{
+                chapter: {
+                  chapterNumber: chapter.chapterNumber,
+                  volumeNumber: chapter.volumeNumber,
+                  title: chapter.title,
+                },
+              }}
+              className="group flex items-baseline justify-between gap-4 py-3 transition-colors hover:text-foreground"
             >
-              <span className="font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
+              <span className="w-12 shrink-0 font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
                 {chapter.volumeNumber ? `V${chapter.volumeNumber}` : '—'}
               </span>
-              <span className="font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
+              <span className="w-16 shrink-0 font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
                 Ch {chapter.chapterNumber || '—'}
               </span>
-              <span className="font-display flex-1 text-[14px] text-foreground italic">
+              <span className="font-display min-w-0 flex-1 truncate text-[14px] text-foreground italic transition-[font-style,color] group-hover:not-italic group-hover:text-[var(--color-accent)]">
                 {chapter.title ?? `Chapter ${chapter.chapterNumber}`}
               </span>
-              <span className="font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
+              <span className="shrink-0 font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
                 {chapter.pageCount} pp
               </span>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
