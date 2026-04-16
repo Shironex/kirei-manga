@@ -8,6 +8,7 @@ import {
   type LibraryUnfollowPayload,
   type LibraryUnfollowResponse,
   type LibraryUpdatedEvent,
+  type LibraryUpdatesAvailableEvent,
   type Series,
 } from '@kireimanga/shared';
 import { emitWithResponse, getSocket } from '@/lib/socket';
@@ -33,8 +34,9 @@ interface LibraryActions {
 
 type LibraryStore = LibraryState & LibraryActions;
 
-// Module-level handler ref so it can be removed on cleanup.
+// Module-level handler refs so they can be removed on cleanup.
 let updatedHandler: ((payload: LibraryUpdatedEvent) => void) | null = null;
+let updatesAvailableHandler: ((payload: LibraryUpdatesAvailableEvent) => void) | null = null;
 let listenersInitialized = false;
 
 // Coalesce progress-changed broadcasts that don't carry a full series payload
@@ -269,6 +271,23 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
     };
 
     getSocket().on(LibraryEvents.UPDATED, updatedHandler);
+
+    updatesAvailableHandler = (payload: LibraryUpdatesAvailableEvent) => {
+      const state = get();
+      if (!payload.results || payload.results.length === 0) return;
+      const countBySeriesId = new Map(
+        payload.results.map(r => [r.seriesId, r.newCount])
+      );
+      set({
+        series: state.series.map(s =>
+          countBySeriesId.has(s.id)
+            ? { ...s, newChapterCount: countBySeriesId.get(s.id) }
+            : s
+        ),
+      });
+    };
+    getSocket().on(LibraryEvents.UPDATES_AVAILABLE, updatesAvailableHandler);
+
     listenersInitialized = true;
     logger.debug('Library listeners registered');
   },
@@ -277,6 +296,10 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
     if (updatedHandler) {
       getSocket().off(LibraryEvents.UPDATED, updatedHandler);
       updatedHandler = null;
+    }
+    if (updatesAvailableHandler) {
+      getSocket().off(LibraryEvents.UPDATES_AVAILABLE, updatesAvailableHandler);
+      updatesAvailableHandler = null;
     }
     listenersInitialized = false;
     logger.debug('Library listeners cleaned up');

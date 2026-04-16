@@ -26,6 +26,11 @@ export function LibraryCoverCard({ series, className, sizeHint = 'default' }: Pr
       ].join(' ')}
     >
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[2px] bg-[var(--color-ink-sunken)]">
+        {series.newChapterCount != null && series.newChapterCount > 0 && (
+          <span className="absolute -top-1 -right-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-mono font-medium text-[var(--color-accent-foreground)]">
+            {series.newChapterCount}
+          </span>
+        )}
         {series.coverPath ? (
           <img
             src={series.coverPath}

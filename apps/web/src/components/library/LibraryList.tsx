@@ -60,8 +60,13 @@ export function LibraryList({ series }: Props) {
               )}
             </div>
             <div className="min-w-0">
-              <div className="font-display truncate text-[14px] leading-snug font-[380] tracking-[-0.01em] text-foreground">
-                {entry.title}
+              <div className="font-display flex items-center truncate text-[14px] leading-snug font-[380] tracking-[-0.01em] text-foreground">
+                <span className="truncate">{entry.title}</span>
+                {entry.newChapterCount != null && entry.newChapterCount > 0 && (
+                  <span className="ml-2 inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[9px] font-mono text-[var(--color-accent-foreground)]">
+                    {entry.newChapterCount}
+                  </span>
+                )}
               </div>
               {entry.titleJapanese && (
                 <div className="mt-0.5 truncate font-mono text-[10px] tracking-[0.14em] text-[var(--color-bone-faint)]">

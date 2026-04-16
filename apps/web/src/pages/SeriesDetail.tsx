@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { LibraryEvents, type LibraryMarkSeenPayload, type LibraryMarkSeenResponse } from '@kireimanga/shared';
 import { useMangaDexSeries } from '@/hooks/useMangaDexSeries';
 import { useMangaDexChapters } from '@/hooks/useMangaDexChapters';
 import { useChapterStates } from '@/hooks/useChapterStates';
 import { useLibraryStore } from '@/stores/library-store';
+import { emitWithResponse } from '@/lib/socket';
 import { SeriesBanner } from '@/components/series/SeriesBanner';
 import { ChapterList } from '@/components/series/ChapterList';
 
@@ -24,6 +26,22 @@ export function SeriesDetailPage() {
   const chaptersState = useMangaDexChapters(mangadexId, lang);
 
   const localSeriesId = useLibraryStore(s => (mangadexId ? (s.mangadexIndex[mangadexId] ?? null) : null));
+
+  // Clear the new-chapter badge when the user opens the series detail page.
+  useEffect(() => {
+    if (!localSeriesId || localSeriesId.startsWith('pending:')) return;
+    void emitWithResponse<LibraryMarkSeenPayload, LibraryMarkSeenResponse>(
+      LibraryEvents.MARK_SEEN,
+      { seriesId: localSeriesId }
+    );
+    // Also clear the local store badge immediately for responsiveness.
+    useLibraryStore.setState(state => ({
+      series: state.series.map(s =>
+        s.id === localSeriesId ? { ...s, newChapterCount: 0 } : s
+      ),
+    }));
+  }, [localSeriesId]);
+
   const chapterIds = useMemo(
     () => chaptersState.chapters.map(c => c.id),
     [chaptersState.chapters]
