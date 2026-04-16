@@ -187,7 +187,6 @@ Page image
 - Custom translation corrections editor (override bad OCR/translation per page)
 - Export translated chapter as new CBZ with overlaid text baked in
 - Community translation sharing (opt-in: share your cached translations)
-- Linux support
 - macOS auto-updates
 
 ---
@@ -459,7 +458,7 @@ Areas to study:
 | v0.2 — Local Library | CBZ/folder reader, local series management, unified library view | Week 3–4 |
 | v0.3 — Translation | Bubble detection, manga-ocr, DeepL overlay | Week 5–7 |
 | v0.4 — AniList Sync | OAuth, progress sync, import/export manga list | Week 8 |
-| v0.5 — Polish | Dictionary hover, Anki export, Linux, perf improvements | Week 9+ |
+| v0.5 — Polish | Dictionary hover, Anki export, perf improvements | Week 9+ |
 
 ---
 

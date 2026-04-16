@@ -132,6 +132,33 @@ export const en = {
   'settings.library.cache.toast.clearedBody': 'Cleared {size} of cached pages.',
   'settings.library.cache.toast.clearFailed': 'Cache clear failed',
 
+  // Settings — Updates
+  'settings.section.updates': 'Updates',
+  'settings.updates.title': 'Version & auto-update',
+  'settings.updates.description':
+    'Current version and the release channel used when the app checks for updates. Auto-update runs in the background; you can force a check any time.',
+  'settings.updates.version.label': 'Version',
+  'settings.updates.channel.label': 'Release channel',
+  'settings.updates.channel.hint': 'Beta ships earlier builds that may be rougher.',
+  'settings.updates.channel.stable': 'Stable',
+  'settings.updates.channel.beta': 'Beta',
+  'settings.updates.action.check': 'Check for updates',
+  'settings.updates.action.checking': 'Checking…',
+  'settings.updates.action.download': 'Download',
+  'settings.updates.action.install': 'Install now',
+  'settings.updates.action.releases': 'Open GitHub Releases',
+  'settings.updates.status.idle': 'You are on the latest version.',
+  'settings.updates.status.checking': 'Checking for updates…',
+  'settings.updates.status.available': 'Update available: {version}',
+  'settings.updates.status.downloading': 'Downloading… {percent}%',
+  'settings.updates.status.ready': 'Update ready — restart to install.',
+  'settings.updates.status.error': 'Error: {message}',
+  'settings.updates.status.pending': 'New release is still uploading. Check back in a minute.',
+  'settings.updates.error.unknown': 'Unknown error',
+  'settings.updates.progress.aria': 'Download progress',
+  'settings.updates.mac.body':
+    'Auto-update is not available on macOS yet (builds are unsigned). Grab new versions manually from GitHub Releases.',
+
   // Settings — Keyboard
   'settings.keyboard.title': 'Keyboard',
   'settings.keyboard.description':

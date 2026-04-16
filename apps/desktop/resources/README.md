@@ -10,7 +10,6 @@ here — `electron-builder.json` references the icon files below.
 | -------------- | -------- | ------------------- | ------------------- |
 | `icon.icns`    | macOS    | Apple Icon Image    | 512×512 @1x and @2x |
 | `icon.ico`     | Windows  | Multi-res ICO       | 16, 32, 48, 256 px  |
-| `icon.png`     | Linux    | PNG, 24-bit + alpha | 512×512 minimum     |
 
 These are intentionally **not committed** in v0.1. Packaging
 (`pnpm package` / `pnpm package:mac` / `pnpm package:win`) will fail until

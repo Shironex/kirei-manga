@@ -93,10 +93,6 @@ Grab the latest version for your system from [Releases](https://github.com/Shiro
    ```
 4. Auto-updates aren't available on macOS yet, so grab new versions manually from [Releases](https://github.com/Shironex/kirei-manga/releases).
 
-#### Linux
-
-Coming later. The codebase has Linux-specific hooks but no packaged build yet.
-
 ### Built with
 
 |           |                                                                    |
@@ -184,7 +180,7 @@ Derived from the [PRD](docs/kireimanga-prd.md). All dates are approximate.
 | **v0.2 — Local Library** | CBZ / folder import, unified library, local reader, metadata editor, MangaDex match, folder update polling | ✅ shipped |
 | v0.3 — Translation | C++ bubble detection, `manga-ocr` sidecar, DeepL / Google / Ollama overlay | planned |
 | v0.4 — AniList Sync | OAuth, read-progress sync, manga-list import | planned |
-| v0.5+ — Polish | Kanji hover dictionary, Anki export, translation corrections, Linux build | backlog |
+| v0.5+ — Polish | Kanji hover dictionary, Anki export, translation corrections | backlog |
 
 </details>
 
@@ -273,7 +269,7 @@ Na podstawie [PRD](docs/kireimanga-prd.md).
 | **v0.2 — Biblioteka lokalna** | Import CBZ / folderów, zjednoczona biblioteka, edytor metadanych, dopasowanie do MangaDex, polling folderów | ✅ wydane |
 | v0.3 — Tłumaczenia | Detekcja dymków (C++), sidecar `manga-ocr`, nakładka DeepL / Google / Ollama | planowane |
 | v0.4 — Synchronizacja AniList | OAuth, synchronizacja postępu, import listy | planowane |
-| v0.5+ — Dopracowanie | Słownik kanji pod kursorem, eksport Anki, poprawki tłumaczeń, build Linux | w zapasie |
+| v0.5+ — Dopracowanie | Słownik kanji pod kursorem, eksport Anki, poprawki tłumaczeń | w zapasie |
 
 </details>
 

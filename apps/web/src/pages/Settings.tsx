@@ -3,6 +3,7 @@ import { AppearanceSection } from '../components/settings/AppearanceSection';
 import { KeyboardSection } from '../components/settings/KeyboardSection';
 import { LibrarySection } from '../components/settings/LibrarySection';
 import { ReaderDefaultsSection } from '../components/settings/ReaderDefaultsSection';
+import { UpdatesSection } from '../components/settings/UpdatesSection';
 import { useSettingsStore } from '../stores/settings-store';
 import { useT } from '@/hooks/useT';
 
@@ -30,6 +31,7 @@ export function SettingsPage() {
           <AppearanceSection />
           <ReaderDefaultsSection />
           <LibrarySection />
+          <UpdatesSection />
           <KeyboardSection />
         </div>
       )}

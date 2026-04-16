@@ -3,7 +3,7 @@ import { Copy, Minus, Square, X } from 'lucide-react';
 import { useT } from '@/hooks/useT';
 
 /**
- * Custom window controls for frameless Electron builds on Windows and Linux.
+ * Custom window controls for frameless Electron builds on Windows.
  *
  * Returns `null` on macOS (native traffic lights are used) and in web mode
  * (no `electronAPI`). The Electron main-process IPC handler for

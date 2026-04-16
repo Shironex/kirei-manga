@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { ToastContainer } from './components/system/ToastContainer';
@@ -6,6 +6,7 @@ import { SplashScreen } from './components/splash';
 import { TooltipProvider } from './components/ui/Tooltip';
 import { useAppearance } from './hooks/useAppearance';
 import { useSocketStore } from './stores/socket-store';
+import { useUpdateStore } from './stores/update-store';
 
 export default function App() {
   // Subscribe the document root to settings.appearance.
@@ -21,6 +22,10 @@ export default function App() {
 
   const [splashDone, setSplashDone] = useState(false);
   const handleDismissed = useCallback(() => setSplashDone(true), []);
+
+  // Subscribe once at app boot so update events fire into the store even
+  // before the user opens Settings. The store's own action is stable.
+  useEffect(() => useUpdateStore.getState().initListeners(), []);
 
   return (
     <TooltipProvider delayDuration={300} skipDelayDuration={150}>

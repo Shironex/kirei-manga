@@ -16,4 +16,4 @@ pnpm native:build
 
 On non-Windows platforms the addon compiles to a `type: none` target so
 `node-gyp` succeeds without an actual binary (the bubble detector is
-Windows-first in v0.3; macOS/Linux support comes later).
+Windows-first in v0.3; macOS support comes later).

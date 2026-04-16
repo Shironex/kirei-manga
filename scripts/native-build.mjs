@@ -2,7 +2,7 @@
  * Build the native C++ addon (bubble-detector) only on Windows.
  *
  * Skipped gracefully when:
- *   - platform is not win32 (macOS/Linux support lands later);
+ *   - platform is not win32 (macOS support lands later);
  *   - `native/bubble-detector` doesn't exist;
  *   - `node-gyp` isn't on PATH;
  *   - `node-addon-api` hasn't been installed inside the native package yet

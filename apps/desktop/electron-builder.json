@@ -34,7 +34,11 @@
   "artifactName": "${productName}-${version}-${arch}.${ext}",
   "nodeGypRebuild": false,
   "npmRebuild": false,
-  "publish": null,
+  "publish": {
+    "provider": "github",
+    "owner": "Shironex",
+    "repo": "kirei-manga"
+  },
   "mac": {
     "category": "public.app-category.entertainment",
     "target": ["dmg"],
@@ -43,10 +47,6 @@
   "win": {
     "target": ["nsis"],
     "icon": "resources/icon.ico"
-  },
-  "linux": {
-    "target": ["AppImage"],
-    "icon": "resources/icon.png"
   },
   "nsis": {
     "oneClick": false,

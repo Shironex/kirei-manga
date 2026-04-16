@@ -134,6 +134,33 @@ export const pl = {
   'settings.library.cache.toast.clearedBody': 'Zwolniono {size} cache stron.',
   'settings.library.cache.toast.clearFailed': 'Nie udało się wyczyścić cache',
 
+  // Settings — Updates
+  'settings.section.updates': 'Aktualizacje',
+  'settings.updates.title': 'Wersja i aktualizacje',
+  'settings.updates.description':
+    'Aktualna wersja i kanał, z którego aplikacja pobiera aktualizacje. Sprawdzanie działa w tle — ręczne sprawdzenie jest zawsze dostępne.',
+  'settings.updates.version.label': 'Wersja',
+  'settings.updates.channel.label': 'Kanał aktualizacji',
+  'settings.updates.channel.hint': 'Beta to wcześniejsze buildy — mogą mieć więcej błędów.',
+  'settings.updates.channel.stable': 'Stabilny',
+  'settings.updates.channel.beta': 'Beta',
+  'settings.updates.action.check': 'Sprawdź aktualizacje',
+  'settings.updates.action.checking': 'Sprawdzanie…',
+  'settings.updates.action.download': 'Pobierz',
+  'settings.updates.action.install': 'Zainstaluj teraz',
+  'settings.updates.action.releases': 'Otwórz GitHub Releases',
+  'settings.updates.status.idle': 'Masz najnowszą wersję.',
+  'settings.updates.status.checking': 'Sprawdzanie aktualizacji…',
+  'settings.updates.status.available': 'Dostępna aktualizacja: {version}',
+  'settings.updates.status.downloading': 'Pobieranie… {percent}%',
+  'settings.updates.status.ready': 'Aktualizacja gotowa — uruchom ponownie, aby zainstalować.',
+  'settings.updates.status.error': 'Błąd: {message}',
+  'settings.updates.status.pending': 'Nowe wydanie jest jeszcze ładowane. Spróbuj za chwilę.',
+  'settings.updates.error.unknown': 'Nieznany błąd',
+  'settings.updates.progress.aria': 'Postęp pobierania',
+  'settings.updates.mac.body':
+    'Automatyczne aktualizacje nie są jeszcze dostępne na macOS (buildy nie są podpisane). Pobieraj nowe wersje ręcznie z GitHub Releases.',
+
   // Settings — Keyboard
   'settings.keyboard.title': 'Klawiatura',
   'settings.keyboard.description':
