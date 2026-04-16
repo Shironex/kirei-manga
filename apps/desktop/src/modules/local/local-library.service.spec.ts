@@ -226,6 +226,42 @@ describe('LocalLibraryService (integration)', () => {
     expect(result.newChapterCount).toBe(0);
   });
 
+  it('updateSeries attaches a mangadexId and surfaces it back on getSeries', async () => {
+    await writeZip(path.join(tmp, 'My Series', 'Chapter 1.cbz'), ['001.png']);
+    const scan = await scanner.scan(tmp);
+    const { createdSeriesIds } = await service.import({
+      rootPath: tmp,
+      candidates: scan.candidates,
+    });
+    const [seriesId] = createdSeriesIds;
+
+    const patched = await service.updateSeries(seriesId, {
+      mangadexId: 'mdx-abc-123',
+    });
+    expect(patched?.mangadexId).toBe('mdx-abc-123');
+  });
+
+  it('updateSeries rejects mangadexId taken by another series', async () => {
+    // Distinct chapter paths across series so the content-hash dedup
+    // doesn't collapse both into one import.
+    await writeZip(path.join(tmp, 'A', 'Chapter 1.cbz'), ['001.png']);
+    await writeZip(path.join(tmp, 'B', 'Chapter 7.cbz'), ['001.png', '002.png']);
+    const scan = await scanner.scan(tmp);
+    const { createdSeriesIds } = await service.import({
+      rootPath: tmp,
+      candidates: scan.candidates,
+    });
+    expect(createdSeriesIds.length).toBe(2);
+    const [first, second] = createdSeriesIds;
+
+    const firstLinked = await service.updateSeries(first, { mangadexId: 'mdx-shared' });
+    expect(firstLinked?.mangadexId).toBe('mdx-shared');
+
+    await expect(
+      service.updateSeries(second, { mangadexId: 'mdx-shared' })
+    ).rejects.toThrow('mangadex-id-taken');
+  });
+
   it('updateSeries merges a patch and clamps score to 1..10', async () => {
     await writeZip(path.join(tmp, 'My Series', 'Chapter 1.cbz'), ['001.png']);
     const scan = await scanner.scan(tmp);

@@ -228,9 +228,33 @@ export class LocalLibraryService {
   /**
    * Merge a metadata patch into an existing local series. Null / undefined
    * fields are preserved via `COALESCE(?, existing_value)`. Returns the
-   * updated row or `null` if no row matched.
+   * updated row or `null` if no row matched. The `mangadexId` field goes
+   * through a separate statement so the UNIQUE index on `mangadex_id`
+   * can surface a typed error: another library row (local or mangadex)
+   * already owns that id, and silently overwriting would orphan its
+   * chapters and progress. Callers render the `mangadex-id-taken` error
+   * as a user-facing explanation.
    */
   async updateSeries(id: string, patch: LocalSeriesMetaPatch): Promise<Series | null> {
+    if (patch.mangadexId !== undefined) {
+      // Let SQLite enforce uniqueness via the index on `series.mangadex_id`.
+      // A collision surfaces as a constraint violation; normalise it to a
+      // typed error the UI layer can recognise.
+      try {
+        this.db.db
+          .prepare(
+            "UPDATE series SET mangadex_id = ? WHERE id = ? AND source = 'local'"
+          )
+          .run(patch.mangadexId, id);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (/UNIQUE|constraint/i.test(message)) {
+          throw new Error('mangadex-id-taken');
+        }
+        throw err;
+      }
+    }
+
     this.db.db
       .prepare(
         `UPDATE series
@@ -383,6 +407,7 @@ export class LocalLibraryService {
       titleJapanese: (row.title_japanese as string | null) ?? undefined,
       coverPath: (row.cover_path as string | null) ?? undefined,
       source: 'local',
+      mangadexId: (row.mangadex_id as string | null) ?? undefined,
       status: row.status as Series['status'],
       score: (row.score as number | null) ?? undefined,
       notes: (row.notes as string | null) ?? undefined,

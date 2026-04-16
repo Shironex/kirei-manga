@@ -10,6 +10,8 @@ export type LocalArchiveFormat = 'folder' | 'cbz' | 'cbr' | 'zip';
  * Partial metadata patch a user can apply to a local series via the manual
  * metadata editor (Slice J). Fields map 1:1 onto `series` columns. Omitted
  * fields are preserved. `score` is clamped to 1–10 by the desktop handler.
+ * `mangadexId` (Slice K) attaches a MangaDex entry — the desktop surfaces
+ * a typed error when the id is already linked to another library row.
  */
 export interface LocalSeriesMetaPatch {
   title?: string;
@@ -17,6 +19,7 @@ export interface LocalSeriesMetaPatch {
   notes?: string;
   score?: number;
   coverPath?: string;
+  mangadexId?: string;
 }
 
 /**
