@@ -3,8 +3,21 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useChapterPages } from '@/hooks/useChapterPages';
 import { useImagePreload } from '@/hooks/useImagePreload';
+import { useReaderKeyboard } from '@/hooks/useReaderKeyboard';
 import { useReaderStore } from '@/stores/reader-store';
 import { SinglePageView } from '@/components/reader/SinglePageView';
+
+async function toggleFullscreen(): Promise<void> {
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else {
+      await document.documentElement.requestFullscreen();
+    }
+  } catch {
+    // Fullscreen denied (e.g. permissions); silently ignore.
+  }
+}
 
 export function ReaderPage() {
   const { mangadexSeriesId, chapterId } = useParams<{
@@ -17,6 +30,24 @@ export function ReaderPage() {
   const setTotalPages = useReaderStore(s => s.setTotalPages);
   const pageIndex = useReaderStore(s => s.pageIndex);
   const fit = useReaderStore(s => s.fit);
+  const mode = useReaderStore(s => s.mode);
+  const direction = useReaderStore(s => s.direction);
+  const next = useReaderStore(s => s.next);
+  const prev = useReaderStore(s => s.prev);
+  const first = useReaderStore(s => s.first);
+  const last = useReaderStore(s => s.last);
+  const setFit = useReaderStore(s => s.setFit);
+
+  useReaderKeyboard({
+    onNext: next,
+    onPrev: prev,
+    onFirst: first,
+    onLast: last,
+    onSetFit: setFit,
+    onToggleFullscreen: () => void toggleFullscreen(),
+    direction,
+    mode,
+  });
 
   const { pages, loading, error, retry } = useChapterPages(chapterId);
 
