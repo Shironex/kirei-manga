@@ -1,10 +1,14 @@
 import { PageHeader } from '../components/layout/PageHeader';
 import { EmptyState } from '../components/layout/EmptyState';
 import { LibraryGrid } from '../components/library/LibraryGrid';
+import { LibraryList } from '../components/library/LibraryList';
+import { LibraryControls } from '../components/library/LibraryControls';
 import { useLibraryStore } from '@/stores/library-store';
+import { useLibraryViewStore } from '@/stores/library-view-store';
 
 export function LibraryPage() {
   const series = useLibraryStore(s => s.series);
+  const mode = useLibraryViewStore(s => s.mode);
 
   // Drop optimistic rows (empty title + pending: prefix) and non-mangadex
   // entries — v0.1 only surfaces mangadex-sourced series.
@@ -35,7 +39,10 @@ export function LibraryPage() {
           hint="Ctrl + B  ·  Browse"
         />
       ) : (
-        <LibraryGrid series={visible} />
+        <>
+          <LibraryControls />
+          {mode === 'grid' ? <LibraryGrid series={visible} /> : <LibraryList series={visible} />}
+        </>
       )}
     </>
   );
