@@ -9,6 +9,7 @@ import { useLibraryStore } from '@/stores/library-store';
 import { useLibraryViewStore, type LibrarySort } from '@/stores/library-view-store';
 import { fuzzyIncludes } from '@/lib/fuzzyMatch';
 import { useT } from '@/hooks/useT';
+import { buttonClass } from '@/components/ui/Button';
 
 function toTime(value: Date | string | undefined): number {
   if (!value) return 0;
@@ -79,10 +80,7 @@ export function LibraryPage() {
         }
         actions={
           totalCount > 0 ? (
-            <Link
-              to="/library/import"
-              className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-            >
+            <Link to="/library/import" className={buttonClass({ variant: 'primary' })}>
               {t('library.action.import')}
             </Link>
           ) : undefined
@@ -95,16 +93,10 @@ export function LibraryPage() {
           body={t('library.empty.body')}
           action={
             <div className="flex flex-wrap items-center gap-3">
-              <Link
-                to="/browse"
-                className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-              >
+              <Link to="/browse" className={buttonClass({ variant: 'primary' })}>
                 {t('library.empty.cta')}
               </Link>
-              <Link
-                to="/library/import"
-                className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-              >
+              <Link to="/library/import" className={buttonClass({ variant: 'primary' })}>
                 {t('library.empty.cta.import')}
               </Link>
             </div>

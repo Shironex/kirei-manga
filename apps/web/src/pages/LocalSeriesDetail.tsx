@@ -16,6 +16,7 @@ import { BackButton } from '../components/layout/BackButton';
 import { EmptyState } from '../components/layout/EmptyState';
 import { LocalMetadataDrawer } from '../components/local/LocalMetadataDrawer';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Button, buttonClass } from '@/components/ui/Button';
 import { emitWithResponse } from '@/lib/socket';
 import { useToastStore } from '@/stores/toast-store';
 import { useT } from '@/hooks/useT';
@@ -177,10 +178,7 @@ export function LocalSeriesDetailPage() {
         title={t('series.notFound.title')}
         body={error ?? t('series.notFound.body')}
         action={
-          <Link
-            to="/"
-            className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-          >
+          <Link to="/" className={buttonClass({ variant: 'primary' })}>
             {t('series.notFound.back')}
           </Link>
         }
@@ -259,34 +257,28 @@ export function LocalSeriesDetailPage() {
             {continueChapterId && (
               <Link
                 to={`/reader/local/${series.id}/${continueChapterId}`}
-                className="inline-flex h-9 items-center rounded-[2px] border border-[var(--color-accent)] bg-[var(--color-accent)] px-5 font-mono text-[11px] tracking-[0.22em] text-[var(--color-accent-foreground)] uppercase transition-opacity hover:opacity-90"
+                className={buttonClass({ variant: 'accent', className: 'px-5' })}
               >
                 {t('series.continue')}
               </Link>
             )}
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
-            >
+            <Button variant="primary" onClick={() => setEditing(true)}>
               {t('series.local.action.edit')}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="subtle"
               onClick={() => void handleRescan()}
               disabled={rescanning}
-              className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-wait disabled:opacity-60"
             >
               {rescanning ? t('series.local.action.rescanning') : t('series.local.action.rescan')}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="subtle"
               onClick={() => setConfirmRemoveOpen(true)}
               disabled={deleting}
-              className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-wait disabled:opacity-60"
             >
               {deleting ? t('series.local.action.removing') : t('series.local.action.remove')}
-            </button>
+            </Button>
           </div>
         </div>
       </section>

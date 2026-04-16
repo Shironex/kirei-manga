@@ -1,5 +1,6 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import type { ReactNode } from 'react';
+import { Button } from '@/components/ui/Button';
 
 type Variant = 'default' | 'danger';
 
@@ -37,11 +38,6 @@ export function ConfirmDialog({
   busy = false,
   busyLabel,
 }: ConfirmDialogProps) {
-  const confirmClass =
-    variant === 'danger'
-      ? 'inline-flex h-9 items-center rounded-[2px] border border-[var(--color-accent)] bg-[var(--color-accent)] px-5 font-mono text-[11px] tracking-[0.22em] text-[var(--color-accent-foreground)] uppercase transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60'
-      : 'inline-flex h-9 items-center rounded-[2px] border border-border px-5 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-wait disabled:opacity-60';
-
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
@@ -67,22 +63,18 @@ export function ConfirmDialog({
           </RadixDialog.Description>
           <div className="flex items-center justify-end gap-3 border-t border-[var(--color-rule)] px-8 py-5">
             <RadixDialog.Close asChild>
-              <button
-                type="button"
-                disabled={busy}
-                className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-wait disabled:opacity-60"
-              >
+              <Button variant="subtle" disabled={busy}>
                 {cancelLabel}
-              </button>
+              </Button>
             </RadixDialog.Close>
-            <button
-              type="button"
+            <Button
+              variant={variant === 'danger' ? 'danger' : 'primary'}
+              className="px-5"
               onClick={onConfirm}
               disabled={busy}
-              className={confirmClass}
             >
               {busy && busyLabel ? busyLabel : confirmLabel}
-            </button>
+            </Button>
           </div>
         </RadixDialog.Content>
       </RadixDialog.Portal>
