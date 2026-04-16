@@ -299,8 +299,18 @@ describe('LibraryService (integration)', () => {
       ]);
 
       expect(Object.keys(states).sort()).toEqual(['ch-1', 'ch-2']);
-      expect(states['ch-1']).toEqual({ isRead: false, lastReadPage: 3, pageCount: 20 });
-      expect(states['ch-2']).toEqual({ isRead: true, lastReadPage: 9, pageCount: 10 });
+      expect(states['ch-1']).toEqual({
+        isRead: false,
+        lastReadPage: 3,
+        pageCount: 20,
+        isDownloaded: false,
+      });
+      expect(states['ch-2']).toEqual({
+        isRead: true,
+        lastReadPage: 9,
+        pageCount: 10,
+        isDownloaded: false,
+      });
     });
 
     it('getChapterStates returns {} for an empty id list', async () => {
