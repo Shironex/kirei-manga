@@ -37,7 +37,7 @@ function setupContentSecurityPolicy(isDev: boolean, backendPort: number): void {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com",
       // Allow local custom protocols for covers and chapter pages (phase 7)
-      "img-src 'self' data: blob: kirei-cover: kirei-page: https: http:",
+      "img-src 'self' data: blob: kirei-cover: kirei-page:",
       "font-src 'self' data: https://fonts.gstatic.com",
       isDev
         ? `connect-src 'self' http://localhost:${VITE_DEV_PORT} ws://localhost:${VITE_DEV_PORT} http://localhost:${backendPort} ws://localhost:${backendPort} http://127.0.0.1:${backendPort} ws://127.0.0.1:${backendPort} https://api.mangadex.org https://uploads.mangadex.org`
