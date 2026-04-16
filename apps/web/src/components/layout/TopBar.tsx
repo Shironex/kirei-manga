@@ -87,10 +87,6 @@ export function TopBar() {
           </kbd>
         </form>
 
-        <span aria-hidden className="h-4 w-px bg-[var(--color-border)]" />
-        <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--color-bone-faint)] uppercase">
-          {t('topbar.status.offline')}
-        </span>
         <WindowControls />
       </div>
     </header>

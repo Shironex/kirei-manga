@@ -17,7 +17,6 @@ export const pl = {
   // TopBar
   'topbar.placeholder.library': 'Filtruj bibliotekę…',
   'topbar.placeholder.global': 'Szukaj w bibliotece lub MangaDex…',
-  'topbar.status.offline': 'Offline',
 
   // Common
   'common.retry': 'Spróbuj ponownie',

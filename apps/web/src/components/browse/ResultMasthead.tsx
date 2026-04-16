@@ -16,16 +16,13 @@ export function ResultMasthead({ results }: Props) {
   if (featured.length === 0) return null;
 
   return (
-    <section className="grid grid-cols-1 gap-10 md:grid-cols-[320px_1fr] md:gap-14">
+    <section className="flex flex-col gap-12 md:gap-14">
       {featured.map((result, i) => (
         <Link
           key={result.id}
           to={`/series/${result.id}`}
           aria-label={result.title}
-          className={[
-            'group flex gap-6 focus:outline-none',
-            i === 0 ? 'md:col-span-2 md:grid md:grid-cols-[320px_1fr] md:items-end' : '',
-          ].join(' ')}
+          className="group grid grid-cols-1 items-end gap-6 focus:outline-none md:grid-cols-[320px_1fr] md:gap-12"
         >
           <div className="relative aspect-[2/3] w-full max-w-[320px] overflow-hidden rounded-[2px] bg-[var(--color-ink-sunken)]">
             {result.coverUrl && (

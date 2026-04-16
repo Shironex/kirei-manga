@@ -18,7 +18,6 @@ export const en = {
   // TopBar
   'topbar.placeholder.library': 'Filter library…',
   'topbar.placeholder.global': 'Search library or MangaDex…',
-  'topbar.status.offline': 'Offline',
 
   // Common
   'common.retry': 'Retry',
