@@ -53,6 +53,7 @@ export let mainWindow: BrowserWindow | null = null;
 let nestApp: INestApplication | null = null;
 let isShuttingDown = false;
 let cleanupDone = false;
+let isQuitting = false;
 
 function showMainWindow(win: BrowserWindow): void {
   if (win.isDestroyed()) return;
@@ -110,7 +111,8 @@ function setupWindowDependentServices(win: BrowserWindow): void {
     if (process.platform === 'darwin' && !isShuttingDown) {
       event.preventDefault();
       win.hide();
-    } else if (process.platform !== 'darwin') {
+    } else if (process.platform !== 'darwin' && !isQuitting) {
+      isQuitting = true;
       app.quit();
     }
   });
@@ -162,12 +164,24 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   });
 }
 
-app
-  .whenReady()
-  .then(bootstrap)
-  .catch(error => {
-    logger.error('Failed to bootstrap application:', error);
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
   });
+
+  app
+    .whenReady()
+    .then(bootstrap)
+    .catch(error => {
+      logger.error('Failed to bootstrap application:', error);
+    });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -189,6 +203,7 @@ app.on('activate', async () => {
 });
 
 app.on('before-quit', event => {
+  isQuitting = true;
   mainWindow = null;
 
   if (cleanupDone) return;
