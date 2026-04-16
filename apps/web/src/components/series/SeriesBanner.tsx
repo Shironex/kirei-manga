@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { MangaDexSeriesDetail } from '@kireimanga/shared';
 import { useFollow } from '@/hooks/useFollow';
+import { useLibraryStore } from '@/stores/library-store';
 
 interface Props {
   series: MangaDexSeriesDetail;
@@ -10,6 +12,12 @@ export function SeriesBanner({ series }: Props) {
   const [loaded, setLoaded] = useState(false);
   const src = series.bannerUrl ?? series.coverUrl;
   const { followed, busy, toggle } = useFollow(series.id);
+  const localEntry = useLibraryStore(s => {
+    const localId = s.mangadexIndex[series.id];
+    if (!localId) return null;
+    return s.series.find(x => x.id === localId) ?? null;
+  });
+  const continueChapterId = localEntry?.lastChapterId;
 
   return (
     <section className="flex flex-col gap-8 md:flex-row md:items-start md:gap-10">
@@ -48,7 +56,15 @@ export function SeriesBanner({ series }: Props) {
 
         <MetaRow series={series} />
 
-        <div className="mt-5">
+        <div className="mt-5 flex items-center gap-3">
+          {continueChapterId && (
+            <Link
+              to={`/reader/${series.id}/${continueChapterId}`}
+              className="inline-flex h-9 items-center rounded-[2px] border border-[var(--color-accent)] bg-[var(--color-accent)] px-5 font-mono text-[11px] tracking-[0.22em] text-[var(--color-accent-foreground)] uppercase transition-opacity hover:opacity-90"
+            >
+              Continue
+            </Link>
+          )}
           <button
             type="button"
             aria-pressed={followed}

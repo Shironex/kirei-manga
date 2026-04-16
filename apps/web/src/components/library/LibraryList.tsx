@@ -18,12 +18,13 @@ export function LibraryList({ series }: Props) {
   return (
     <div className="border-t border-[var(--color-rule)]">
       {/* header row */}
-      <div className="grid grid-cols-[3rem_1fr_8rem_6rem_8rem] items-center gap-4 border-b border-[var(--color-rule)] px-2 py-2 font-mono text-[10px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
+      <div className="grid grid-cols-[3rem_1fr_8rem_6rem_8rem_5rem] items-center gap-4 border-b border-[var(--color-rule)] px-2 py-2 font-mono text-[10px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
         <span />
         <span>Title</span>
         <span>Last chapter</span>
         <span>Progress</span>
         <span>Last read</span>
+        <span />
       </div>
       {series.map(entry => {
         const lastReadIso = toIso(entry.lastReadAt);
@@ -31,7 +32,7 @@ export function LibraryList({ series }: Props) {
           <Link
             key={entry.id}
             to={`/series/${entry.mangadexId}`}
-            className="grid grid-cols-[3rem_1fr_8rem_6rem_8rem] items-center gap-4 border-b border-[var(--color-rule)] px-2 py-2 transition-colors last:border-b-0 hover:bg-[var(--color-ink-raised)]"
+            className="grid grid-cols-[3rem_1fr_8rem_6rem_8rem_5rem] items-center gap-4 border-b border-[var(--color-rule)] px-2 py-2 transition-colors last:border-b-0 hover:bg-[var(--color-ink-raised)]"
           >
             <div className="aspect-[2/3] w-12 overflow-hidden rounded-[2px] bg-[var(--color-ink-sunken)]">
               {entry.coverPath ? (
@@ -70,6 +71,17 @@ export function LibraryList({ series }: Props) {
             <span className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-bone-muted)]">
               {lastReadIso ? relativeFromIso(lastReadIso) : '—'}
             </span>
+            {entry.mangadexId && entry.lastChapterId ? (
+              <Link
+                to={`/reader/${entry.mangadexId}/${entry.lastChapterId}`}
+                onClick={e => e.stopPropagation()}
+                className="justify-self-end font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase hover:text-[var(--color-accent)]"
+              >
+                Continue
+              </Link>
+            ) : (
+              <span />
+            )}
           </Link>
         );
       })}

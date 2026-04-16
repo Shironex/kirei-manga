@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useChapterPages } from '@/hooks/useChapterPages';
 import { useImagePreload } from '@/hooks/useImagePreload';
 import { useReaderKeyboard } from '@/hooks/useReaderKeyboard';
 import { useReaderPrefs } from '@/hooks/useReaderPrefs';
+import { useReaderProgress } from '@/hooks/useReaderProgress';
 import { useReaderStore } from '@/stores/reader-store';
 import { SinglePageView } from '@/components/reader/SinglePageView';
 import { DoublePageView } from '@/components/reader/DoublePageView';
@@ -32,9 +33,12 @@ export function ReaderPage() {
     chapterId: string;
   }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const reset = useReaderStore(s => s.reset);
   const setTotalPages = useReaderStore(s => s.setTotalPages);
+  const goto = useReaderStore(s => s.goto);
   const pageIndex = useReaderStore(s => s.pageIndex);
   const fit = useReaderStore(s => s.fit);
   const mode = useReaderStore(s => s.mode);
@@ -51,6 +55,29 @@ export function ReaderPage() {
   // setter that writes back through the socket bridge.
   const { setPrefs } = useReaderPrefs(mangadexSeriesId);
 
+  // Chapter metadata surfaces through router state (set by ChapterList). It's
+  // optional and purely used to enrich reader:update-progress payloads.
+  const chapterMeta = useMemo(() => {
+    const state = location.state as { chapter?: unknown } | null;
+    if (!state || typeof state !== 'object') return undefined;
+    const chapter = (state as { chapter?: Record<string, unknown> }).chapter;
+    if (!chapter || typeof chapter !== 'object') return undefined;
+    const chapterNumber = chapter.chapterNumber;
+    const volumeNumber = chapter.volumeNumber;
+    const title = chapter.title;
+    return {
+      chapterNumber:
+        typeof chapterNumber === 'number' && Number.isFinite(chapterNumber)
+          ? chapterNumber
+          : undefined,
+      volumeNumber:
+        typeof volumeNumber === 'number' && Number.isFinite(volumeNumber)
+          ? volumeNumber
+          : undefined,
+      title: typeof title === 'string' ? title : undefined,
+    };
+  }, [location.state]);
+
   useReaderKeyboard({
     onNext: next,
     onPrev: prev,
@@ -64,6 +91,14 @@ export function ReaderPage() {
 
   const { pages, loading, error, retry } = useChapterPages(chapterId);
 
+  const { startPage } = useReaderProgress({
+    mangadexSeriesId: mangadexSeriesId ?? null,
+    mangadexChapterId: chapterId ?? null,
+    pageCount: pages.length,
+    pageIndex,
+    chapterMeta,
+  });
+
   useEffect(() => {
     if (!chapterId || !mangadexSeriesId) return;
     reset({ chapterId, seriesId: mangadexSeriesId });
@@ -72,6 +107,32 @@ export function ReaderPage() {
   useEffect(() => {
     setTotalPages(pages.length);
   }, [pages.length, setTotalPages]);
+
+  // Resolve the initial page exactly once after pages load. Priority:
+  //   1. ?page=N override from the URL
+  //   2. startPage returned by reader:session-start
+  //   3. 0 (no-op — store default)
+  const initialPageAppliedRef = useRef(false);
+  useEffect(() => {
+    if (initialPageAppliedRef.current) return;
+    if (pages.length === 0) return;
+    const raw = searchParams.get('page');
+    if (raw !== null) {
+      const parsed = Number.parseInt(raw, 10);
+      if (Number.isFinite(parsed)) {
+        goto(parsed);
+        initialPageAppliedRef.current = true;
+        return;
+      }
+    }
+    if (startPage !== null && startPage > 0) {
+      goto(startPage);
+      initialPageAppliedRef.current = true;
+      return;
+    }
+    // Default-to-0 path — still mark as applied so subsequent renders don't retrigger.
+    initialPageAppliedRef.current = true;
+  }, [pages.length, searchParams, startPage, goto]);
 
   // Lock body scroll while the reader is mounted.
   useEffect(() => {

@@ -37,6 +37,12 @@ type LibraryStore = LibraryState & LibraryActions;
 let updatedHandler: ((payload: LibraryUpdatedEvent) => void) | null = null;
 let listenersInitialized = false;
 
+// Coalesce progress-changed broadcasts that don't carry a full series payload
+// into a single refresh so the Library list's Continue link + lastReadAt stay
+// fresh without fan-out refetches on every page turn.
+const PROGRESS_REFRESH_DEBOUNCE_MS = 500;
+let progressRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
 function buildIndex(series: Series[]): Record<string, string> {
   const index: Record<string, string> = {};
   for (const entry of series) {
@@ -237,7 +243,24 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
           return;
         }
         case 'progress-changed': {
-          // Slice E will own progress reconciliation.
+          // The backend may include the updated series row; if so, swap it in.
+          if (payload.series) {
+            const incoming = payload.series;
+            set({
+              series: state.series.map(s => (s.id === incoming.id ? incoming : s)),
+              mangadexIndex: incoming.mangadexId
+                ? { ...state.mangadexIndex, [incoming.mangadexId]: incoming.id }
+                : state.mangadexIndex,
+            });
+            return;
+          }
+          // No series payload — debounce a full refresh so the Library list's
+          // Continue link + lastReadAt stay in sync without thrashing.
+          if (progressRefreshTimer) clearTimeout(progressRefreshTimer);
+          progressRefreshTimer = setTimeout(() => {
+            progressRefreshTimer = null;
+            void get().refresh();
+          }, PROGRESS_REFRESH_DEBOUNCE_MS);
           return;
         }
         default:

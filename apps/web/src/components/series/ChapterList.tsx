@@ -95,9 +95,25 @@ function Row({
   mangadexSeriesId: string;
 }) {
   const dash = <span className="text-[var(--color-bone-faint)]">—</span>;
+  const chapterNumberRaw = chapter.chapter ? Number(chapter.chapter) : undefined;
+  const volumeNumberRaw = chapter.volume ? Number(chapter.volume) : undefined;
+  const linkState = {
+    chapter: {
+      chapterNumber:
+        typeof chapterNumberRaw === 'number' && Number.isFinite(chapterNumberRaw)
+          ? chapterNumberRaw
+          : undefined,
+      volumeNumber:
+        typeof volumeNumberRaw === 'number' && Number.isFinite(volumeNumberRaw)
+          ? volumeNumberRaw
+          : undefined,
+      title: chapter.title ?? undefined,
+    },
+  };
   return (
     <Link
       to={`/reader/${mangadexSeriesId}/${chapter.id}`}
+      state={linkState}
       role="row"
       className="grid grid-cols-[3rem_1fr] items-center gap-x-4 gap-y-1 border-b border-border py-2.5 text-[13px] hover:bg-[var(--color-ink-raised)] last:border-b-0 md:grid-cols-[3rem_3rem_1fr_14rem_6rem_1rem] md:gap-y-0"
     >
