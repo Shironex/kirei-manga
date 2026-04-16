@@ -1,5 +1,5 @@
 import type { Series } from '@kireimanga/shared';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { relativeFromIso } from '@/lib/relativeTime';
 
 interface Props {
@@ -14,6 +14,7 @@ function toIso(value: Date | string | undefined): string | null {
 }
 
 export function LibraryList({ series }: Props) {
+  const navigate = useNavigate();
   if (series.length === 0) return null;
   return (
     <div className="border-t border-[var(--color-rule)]">
@@ -29,10 +30,18 @@ export function LibraryList({ series }: Props) {
       {series.map(entry => {
         const lastReadIso = toIso(entry.lastReadAt);
         return (
-          <Link
+          <div
             key={entry.id}
-            to={`/series/${entry.mangadexId}`}
-            className="grid grid-cols-[3rem_1fr_8rem_6rem_8rem_5rem] items-center gap-4 border-b border-[var(--color-rule)] px-2 py-2 transition-colors last:border-b-0 hover:bg-[var(--color-ink-raised)]"
+            role="link"
+            tabIndex={0}
+            onClick={() => navigate(`/series/${entry.mangadexId}`)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate(`/series/${entry.mangadexId}`);
+              }
+            }}
+            className="grid cursor-pointer grid-cols-[3rem_1fr_8rem_6rem_8rem_5rem] items-center gap-4 border-b border-[var(--color-rule)] px-2 py-2 transition-colors last:border-b-0 hover:bg-[var(--color-ink-raised)] focus:outline-none focus-visible:bg-[var(--color-ink-raised)]"
           >
             <div className="aspect-[2/3] w-12 overflow-hidden rounded-[2px] bg-[var(--color-ink-sunken)]">
               {entry.coverPath ? (
@@ -82,7 +91,7 @@ export function LibraryList({ series }: Props) {
             ) : (
               <span />
             )}
-          </Link>
+          </div>
         );
       })}
     </div>

@@ -73,7 +73,9 @@ export function SeriesBanner({ series }: Props) {
             className={[
               'h-9 rounded-[2px] px-4 font-mono text-[11px] tracking-[0.22em] uppercase transition-colors',
               followed
-                ? 'border border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-accent-foreground)]'
+                ? continueChapterId
+                  ? 'border border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-[var(--color-accent-foreground)]'
+                  : 'border border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-accent-foreground)]'
                 : 'border border-border text-foreground hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]',
               busy ? 'cursor-wait opacity-60' : '',
             ]
