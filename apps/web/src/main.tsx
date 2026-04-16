@@ -5,6 +5,7 @@ import './styles/globals.css';
 import { initializeSocket, connectSocket } from './lib/socket';
 import { useSocketStore } from './stores/socket-store';
 import { useLibraryStore } from './stores/library-store';
+import { useSettingsStore } from './stores/settings-store';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -16,9 +17,11 @@ async function bootstrap(): Promise<void> {
   initializeSocket(port);
   useSocketStore.getState().initListeners();
   useLibraryStore.getState().initListeners();
+  useSettingsStore.getState().initListeners();
   useSocketStore.subscribe((s, prev) => {
     if (s.status === 'connected' && prev.status !== 'connected') {
       void useLibraryStore.getState().refresh();
+      void useSettingsStore.getState().hydrate();
     }
   });
   void connectSocket().catch(err => {
