@@ -224,6 +224,12 @@ async function fetchAndCache(
  *   kirei-page://mangadex/{chapterId}/{fileName}   — proxied via at-home + cached
  *   kirei-page://local/{chapterId}/{fileName}      — reserved for Slice F (404 for now)
  *
+ * Cache-first behavior (offline support):
+ *   Every request checks the disk cache under userData/pages/mangadex/{chapterId}/
+ *   before hitting the MangaDex at-home network. Chapters with `is_downloaded=1`
+ *   in the database have all their pages fully cached here, so they are served
+ *   entirely from disk without any network access — enabling offline reading.
+ *
  * Security:
  *  - chapterId and fileName must match [a-zA-Z0-9._-]+ (no traversal, no unicode).
  *  - Cached bytes live under userData/pages/mangadex/{chapterId}/ and are
@@ -255,7 +261,7 @@ export function registerKireiPageProtocol(): void {
 
       const filePath = cachePathFor(parsed);
 
-      // Cache hit.
+      // Cache hit — serves downloaded chapters (is_downloaded=1) entirely offline.
       try {
         const stat = await fs.promises.stat(filePath);
         if (stat.isFile() && stat.size > 0) {
