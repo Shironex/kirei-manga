@@ -7,6 +7,7 @@ import { useImagePreload } from '@/hooks/useImagePreload';
 import { useReaderKeyboard } from '@/hooks/useReaderKeyboard';
 import { useReaderPrefs } from '@/hooks/useReaderPrefs';
 import { useReaderProgress } from '@/hooks/useReaderProgress';
+import { useLocalReaderProgress } from '@/hooks/useLocalReaderProgress';
 import { useReaderStore } from '@/stores/reader-store';
 import { SinglePageView } from '@/components/reader/SinglePageView';
 import { DoublePageView } from '@/components/reader/DoublePageView';
@@ -111,13 +112,22 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
 
   const { pages, loading, error, retry } = useChapterPages(chapterId, source);
 
-  const { startPage } = useReaderProgress({
+  const { startPage: mangadexStartPage } = useReaderProgress({
     mangadexSeriesId: source === 'mangadex' ? (mangadexSeriesId ?? null) : null,
     mangadexChapterId: source === 'mangadex' ? (chapterId ?? null) : null,
     pageCount: pages.length,
     pageIndex,
     chapterMeta,
   });
+
+  const { startPage: localStartPage } = useLocalReaderProgress({
+    localSeriesId: source === 'local' ? (seriesId ?? null) : null,
+    localChapterId: source === 'local' ? (chapterId ?? null) : null,
+    pageCount: pages.length,
+    pageIndex,
+  });
+
+  const startPage = source === 'local' ? localStartPage : mangadexStartPage;
 
   useEffect(() => {
     if (!chapterId || !seriesId) return;
