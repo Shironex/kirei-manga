@@ -252,8 +252,12 @@ export const en = {
   'series.local.action.rescanning': 'Rescanning…',
   'series.local.action.remove': 'Remove',
   'series.local.action.removing': 'Removing…',
+  'series.local.confirm.eyebrow': 'Confirm removal',
+  'series.local.confirm.title': 'Remove from library?',
   'series.local.confirm.remove':
     'Remove "{title}" from the library? The files on disk aren\'t deleted.',
+  'series.local.confirm.confirmLabel': 'Remove',
+  'series.local.confirm.cancelLabel': 'Cancel',
   'series.local.toast.newChaptersTitle': 'New chapters',
   'series.local.toast.newChaptersBody': 'Found {count} new chapters.',
   'series.local.toast.newChaptersBody_one': 'Found 1 new chapter.',

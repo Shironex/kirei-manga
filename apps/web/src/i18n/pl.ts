@@ -258,8 +258,12 @@ export const pl = {
   'series.local.action.rescanning': 'Skanowanie…',
   'series.local.action.remove': 'Usuń',
   'series.local.action.removing': 'Usuwanie…',
+  'series.local.confirm.eyebrow': 'Potwierdź usunięcie',
+  'series.local.confirm.title': 'Usunąć z biblioteki?',
   'series.local.confirm.remove':
     'Usunąć „{title}” z biblioteki? Pliki na dysku zostaną na miejscu.',
+  'series.local.confirm.confirmLabel': 'Usuń',
+  'series.local.confirm.cancelLabel': 'Anuluj',
   'series.local.toast.newChaptersTitle': 'Nowe rozdziały',
   'series.local.toast.newChaptersBody': 'Znaleziono {count} nowych rozdziałów.',
   'series.local.toast.newChaptersBody_one': 'Znaleziono 1 nowy rozdział.',

@@ -15,6 +15,7 @@ import {
 import { BackButton } from '../components/layout/BackButton';
 import { EmptyState } from '../components/layout/EmptyState';
 import { LocalMetadataDrawer } from '../components/local/LocalMetadataDrawer';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { emitWithResponse } from '@/lib/socket';
 import { useToastStore } from '@/stores/toast-store';
 import { useT } from '@/hooks/useT';
@@ -49,6 +50,7 @@ export function LocalSeriesDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [rescanning, setRescanning] = useState(false);
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -124,8 +126,6 @@ export function LocalSeriesDetailPage() {
 
   const handleDelete = async (): Promise<void> => {
     if (!series || deleting) return;
-    const confirmed = window.confirm(t('series.local.confirm.remove', { title: series.title }));
-    if (!confirmed) return;
     setDeleting(true);
     try {
       const response = await emitWithResponse<LocalDeleteSeriesPayload, LocalDeleteSeriesResponse>(
@@ -140,6 +140,7 @@ export function LocalSeriesDetailPage() {
         title: t('series.local.toast.removedTitle'),
         body: t('series.local.toast.removedBody', { title: series.title }),
       });
+      setConfirmRemoveOpen(false);
       navigate('/');
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -149,6 +150,7 @@ export function LocalSeriesDetailPage() {
         body: message,
       });
       setDeleting(false);
+      setConfirmRemoveOpen(false);
     }
   };
 
@@ -279,7 +281,7 @@ export function LocalSeriesDetailPage() {
             </button>
             <button
               type="button"
-              onClick={() => void handleDelete()}
+              onClick={() => setConfirmRemoveOpen(true)}
               disabled={deleting}
               className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:cursor-wait disabled:opacity-60"
             >
@@ -294,6 +296,23 @@ export function LocalSeriesDetailPage() {
         onClose={() => setEditing(false)}
         series={series}
         onSaved={updated => setSeries(updated)}
+      />
+
+      <ConfirmDialog
+        open={confirmRemoveOpen}
+        onOpenChange={next => {
+          if (deleting) return;
+          setConfirmRemoveOpen(next);
+        }}
+        eyebrow={t('series.local.confirm.eyebrow')}
+        title={t('series.local.confirm.title')}
+        description={t('series.local.confirm.remove', { title: series.title })}
+        confirmLabel={t('series.local.confirm.confirmLabel')}
+        cancelLabel={t('series.local.confirm.cancelLabel')}
+        busyLabel={t('series.local.action.removing')}
+        busy={deleting}
+        variant="danger"
+        onConfirm={() => void handleDelete()}
       />
 
       <section className="mt-12 animate-fade-up">
