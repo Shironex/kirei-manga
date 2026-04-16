@@ -1,9 +1,25 @@
 import { app, BrowserWindow, Menu, shell, session } from 'electron';
+import * as fs from 'fs';
 import * as path from 'path';
 import { registerIpcHandlers } from './ipc/register';
 import { VITE_DEV_PORT } from '@kireimanga/shared';
 import { logger } from './logger';
 import { getBackendPort } from './backend-port';
+
+/**
+ * Resolve the icon path for the main window. In development the icon lives
+ * next to the source under `apps/desktop/resources/`. In packaged builds it
+ * lands under `process.resourcesPath` via electron-builder's extraResources
+ * mapping. Returns `undefined` if the file isn't present — Electron falls
+ * back to the executable's embedded icon in that case.
+ */
+function resolveIconPath(): string | undefined {
+  const devPath = path.join(__dirname, '..', '..', 'resources', 'icon.png');
+  const prodPath = path.join(process.resourcesPath, 'icon.png');
+  if (fs.existsSync(devPath)) return devPath;
+  if (fs.existsSync(prodPath)) return prodPath;
+  return undefined;
+}
 
 /**
  * Set Content Security Policy for the renderer process.
@@ -99,6 +115,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     Menu.setApplicationMenu(null);
   }
 
+  const iconPath = resolveIconPath();
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -108,6 +125,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     titleBarStyle: 'hidden',
     title: 'KireiManga',
     backgroundColor: '#0a0a0f',
+    ...(iconPath ? { icon: iconPath } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
