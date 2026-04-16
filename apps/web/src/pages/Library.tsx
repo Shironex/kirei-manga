@@ -1,4 +1,5 @@
 import type { Series } from '@kireimanga/shared';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '../components/layout/PageHeader';
 import { EmptyState } from '../components/layout/EmptyState';
 import { LibraryGrid } from '../components/library/LibraryGrid';
@@ -58,7 +59,8 @@ export function LibraryPage() {
   const sign = sortDir === 'asc' ? 1 : -1;
   const visible = [...searched].sort((a, b) => sign * compareSeries(a, b, sort));
 
-  const count = baseVisible.length;
+  const totalCount = baseVisible.length;
+  const visibleCount = visible.length;
 
   return (
     <>
@@ -68,21 +70,37 @@ export function LibraryPage() {
         title="Your shelf, quiet and kept."
         subtitle={
           <span className="font-mono text-[10px] tracking-[0.22em] uppercase">
-            {count} series
+            {totalCount} series
           </span>
         }
       />
-      {count === 0 ? (
+      {totalCount === 0 ? (
         <EmptyState
           glyph="書"
           title="No series followed yet."
           body="Start by browsing MangaDex to follow a series, or drop a folder of CBZ files into Settings → Local Library."
+          action={
+            <Link
+              to="/browse"
+              className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+            >
+              Browse MangaDex
+            </Link>
+          }
           hint="Ctrl + B  ·  Browse"
         />
       ) : (
         <>
           <LibraryControls />
-          {mode === 'grid' ? <LibraryGrid series={visible} /> : <LibraryList series={visible} />}
+          {visibleCount === 0 ? (
+            <p className="py-10 text-center font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
+              No series match your filters
+            </p>
+          ) : mode === 'grid' ? (
+            <LibraryGrid series={visible} />
+          ) : (
+            <LibraryList series={visible} />
+          )}
         </>
       )}
     </>

@@ -5,9 +5,10 @@ type Props = {
   title: string;
   body: ReactNode;
   hint?: ReactNode;
+  action?: ReactNode;
 };
 
-export function EmptyState({ glyph, title, body, hint }: Props) {
+export function EmptyState({ glyph, title, body, hint, action }: Props) {
   return (
     <div className="animate-fade-up paper-grain relative flex flex-1 items-center">
       <div className="relative flex w-full items-center gap-[clamp(2rem,6vw,5rem)] py-16 pr-12 pl-2">
@@ -29,6 +30,7 @@ export function EmptyState({ glyph, title, body, hint }: Props) {
             {title}
           </h2>
           <p className="mt-3 text-[13.5px] leading-relaxed text-muted-foreground">{body}</p>
+          {action && <div className="mt-6">{action}</div>}
           {hint && (
             <p className="mt-6 font-mono text-[10.5px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
               {hint}
