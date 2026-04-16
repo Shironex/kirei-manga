@@ -37,14 +37,19 @@
   --color-accent-foreground: var(--color-bengara-ink);
 
   /* Typography */
-  --font-display: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-fraunces: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
   --font-sans:
     'Geist', ui-sans-serif, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   --font-kanji: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', 'Noto Serif JP', serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  /* Reading-surface family + app-wide font-size scale, both driven by Settings → Appearance. */
-  --font-reading: var(--font-display);
+  /* Reading-surface family + app-wide font-size scale, both driven by Settings → Appearance.
+     `--font-display` intentionally resolves through `--font-reading` so that the Settings →
+     Appearance → Reading Font switch propagates to every `.font-display` narrative surface
+     (page mastheads, series titles, banners) without component changes. */
+  --font-reading: var(--font-fraunces);
+  --font-display: var(--font-reading);
   --app-font-scale: 1;
+  --library-grid-cols-lg: 5;
 
   /* Rhythm */
   --radius-hairline: 2px;
@@ -96,12 +101,18 @@ body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
-  font-size: calc(15px * var(--app-font-scale));
+  font-size: 15px;
   font-feature-settings: 'ss01', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   overflow: hidden;
+  /* Settings → Appearance → Font Size uniformly scales the UI (layout,
+     text, spacing, covers) via Chromium's `zoom`. Applied on `body` so
+     Radix portals (mounted under document.body) scale with the rest of
+     the app — `transform: scale` would break fixed/absolute anchoring,
+     and scaling `#root` alone would leave portaled content at 1x. */
+  zoom: var(--app-font-scale);
 }
 
 /* Selection */

@@ -16,6 +16,12 @@ export type Theme = 'sumi' | 'washi';
 export type FontSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 /**
+ * Library / Browse cover-grid density. Drives the column count at the `lg`
+ * breakpoint via `--library-grid-cols-lg` — fewer columns means bigger cards.
+ */
+export type CardSize = 'compact' | 'cozy' | 'spacious';
+
+/**
  * Reading-surface font family.
  * - fraunces: editorial serif (default — narrative match).
  * - mincho:   Shippori Mincho (already loaded for Japanese kanji).
@@ -31,6 +37,7 @@ export interface AppearanceSettings {
   theme: Theme;
   fontSize: FontSize;
   readingFont: ReadingFont;
+  cardSize: CardSize;
 }
 
 /**
@@ -68,7 +75,7 @@ export interface AppSettings {
 
 /** Defaults written to the store on first boot and used as merge base. */
 export const DEFAULT_APP_SETTINGS: AppSettings = {
-  appearance: { theme: 'sumi', fontSize: 'md', readingFont: 'fraunces' },
+  appearance: { theme: 'sumi', fontSize: 'md', readingFont: 'fraunces', cardSize: 'cozy' },
   reader: { mode: 'single', direction: 'rtl', fit: 'width', language: 'en' },
   library: { defaultChapterLanguage: 'en' },
   language: 'en',

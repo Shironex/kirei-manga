@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { FontSize, ReadingFont, Theme } from '@kireimanga/shared';
+import type { CardSize, FontSize, ReadingFont, Theme } from '@kireimanga/shared';
 import { useSettingsStore } from '@/stores/settings-store';
 
 const FONT_SCALE: Record<FontSize, number> = {
@@ -11,10 +11,21 @@ const FONT_SCALE: Record<FontSize, number> = {
 };
 
 const READING_FONT: Record<ReadingFont, string> = {
-  fraunces: 'var(--font-display)',
+  fraunces: 'var(--font-fraunces)',
   mincho: 'var(--font-kanji)',
   serif: "ui-serif, Georgia, 'Times New Roman', serif",
   sans: 'var(--font-sans)',
+};
+
+/**
+ * Desktop (`lg+`) column count per density step. Smaller number = bigger
+ * cards. Mobile/tablet column counts stay fixed since the viewport width
+ * already dictates them.
+ */
+const CARD_COLS_LG: Record<CardSize, number> = {
+  compact: 6,
+  cozy: 5,
+  spacious: 4,
 };
 
 function applyTheme(theme: Theme): void {
@@ -37,11 +48,21 @@ function applyReadingFont(font: ReadingFont): void {
   );
 }
 
+function applyCardSize(size: CardSize): void {
+  document.documentElement.style.setProperty(
+    '--library-grid-cols-lg',
+    String(CARD_COLS_LG[size] ?? CARD_COLS_LG.cozy)
+  );
+}
+
 /**
- * Subscribes the document root to `settings.appearance` — applies the
- * data-theme attribute (washi → light), the `--app-font-scale` CSS variable
- * (drives body font-size), and `--font-reading` (the family used for any
- * narrative copy that opts in via that variable). Mount once at the App root.
+ * Subscribes the document root to `settings.appearance`: applies the theme
+ * attribute (washi → light), `--app-font-scale` (body `zoom`, scales the
+ * whole UI uniformly — see globals.css), `--font-reading` (narrative
+ * typography — `.font-display` resolves through it, so page mastheads /
+ * series titles / banners pick up the user's choice), and
+ * `--library-grid-cols-lg` (cover-grid density at lg+). Mount once at the
+ * App root.
  */
 export function useAppearance(): void {
   const appearance = useSettingsStore(s => s.settings?.appearance);
@@ -51,5 +72,6 @@ export function useAppearance(): void {
     applyTheme(appearance.theme);
     applyFontScale(appearance.fontSize);
     applyReadingFont(appearance.readingFont);
+    applyCardSize(appearance.cardSize);
   }, [appearance]);
 }

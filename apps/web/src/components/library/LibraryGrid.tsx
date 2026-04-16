@@ -13,7 +13,7 @@ export function LibraryGrid({ series }: Props) {
   if (series.length === 0) return null;
   return (
     <section
-      className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-5"
+      className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-[repeat(var(--library-grid-cols-lg),minmax(0,1fr))]"
       style={{ gridAutoFlow: 'dense' }}
     >
       {series.map((entry, i) => {

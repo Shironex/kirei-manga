@@ -103,7 +103,7 @@ export function BrowsePage() {
 
             {feed.loading && feed.results.length === 0 && (
               <div
-                className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-5"
+                className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-[repeat(var(--library-grid-cols-lg),minmax(0,1fr))]"
                 style={{ gridAutoFlow: 'dense' }}
               >
                 {Array.from({ length: 10 }).map((_, i) => (
@@ -160,7 +160,7 @@ export function BrowsePage() {
 
         {hasQuery && loading && results.length === 0 && (
           <div
-            className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-5"
+            className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 lg:grid-cols-[repeat(var(--library-grid-cols-lg),minmax(0,1fr))]"
             style={{ gridAutoFlow: 'dense' }}
           >
             {Array.from({ length: 10 }).map((_, i) => (

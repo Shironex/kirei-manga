@@ -94,6 +94,12 @@ export const en = {
   'settings.appearance.readingFont.label': 'Reading font',
   'settings.appearance.readingFont.hint':
     'Editorial Fraunces, Shippori Mincho, generic serif, or sans.',
+  'settings.appearance.cardSize.label': 'Cover size',
+  'settings.appearance.cardSize.hint':
+    'Density of the library and browse grids. Compact fits more covers; spacious gives each more room.',
+  'settings.appearance.cardSize.compact': 'Compact',
+  'settings.appearance.cardSize.cozy': 'Cozy',
+  'settings.appearance.cardSize.spacious': 'Spacious',
 
   // Settings — Reader
   'settings.reader.title': 'Reading defaults',

@@ -95,6 +95,12 @@ export const pl = {
   'settings.appearance.readingFont.label': 'Czcionka do czytania',
   'settings.appearance.readingFont.hint':
     'Edytorska Fraunces, Shippori Mincho, szeryfowa lub bezszeryfowa.',
+  'settings.appearance.cardSize.label': 'Rozmiar okładek',
+  'settings.appearance.cardSize.hint':
+    'Gęstość siatki biblioteki i przeglądania. Kompaktowa mieści więcej okładek; przestronna daje im więcej miejsca.',
+  'settings.appearance.cardSize.compact': 'Kompaktowa',
+  'settings.appearance.cardSize.cozy': 'Wygodna',
+  'settings.appearance.cardSize.spacious': 'Przestronna',
 
   // Settings — Reader
   'settings.reader.title': 'Domyślne ustawienia czytnika',

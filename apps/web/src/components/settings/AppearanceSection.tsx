@@ -1,5 +1,6 @@
 import type {
   AppearanceSettings,
+  CardSize,
   FontSize,
   Language,
   ReadingFont,
@@ -49,6 +50,12 @@ export function AppearanceSection() {
     { value: 'pl', label: t('settings.language.option.pl') },
   ];
 
+  const CARD_SIZE_OPTIONS: ReadonlyArray<SegmentedOption<CardSize>> = [
+    { value: 'compact', label: t('settings.appearance.cardSize.compact') },
+    { value: 'cozy', label: t('settings.appearance.cardSize.cozy') },
+    { value: 'spacious', label: t('settings.appearance.cardSize.spacious') },
+  ];
+
   return (
     <SettingsSection
       kanji="色"
@@ -89,6 +96,18 @@ export function AppearanceSection() {
           value={appearance.readingFont}
           options={READING_FONT_OPTIONS}
           onChange={value => patch({ readingFont: value })}
+        />
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.appearance.cardSize.label')}
+        hint={t('settings.appearance.cardSize.hint')}
+      >
+        <Segmented<CardSize>
+          ariaLabel={t('settings.appearance.cardSize.label')}
+          value={appearance.cardSize}
+          options={CARD_SIZE_OPTIONS}
+          onChange={value => patch({ cardSize: value })}
         />
       </SettingRow>
 
