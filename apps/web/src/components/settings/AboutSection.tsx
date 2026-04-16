@@ -50,6 +50,7 @@ export function AboutSection() {
           <p className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-[var(--color-bone-faint)]">
             {t('settings.about.credits.prefix')}
             <Heart className="h-3 w-3 fill-[var(--color-accent)] stroke-[var(--color-accent)]" />
+            <span className="text-foreground">Shiro</span>
           </p>
         </div>
       </div>
