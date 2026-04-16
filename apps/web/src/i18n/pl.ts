@@ -19,6 +19,7 @@ export const pl = {
 
   // Common
   'common.retry': 'Spróbuj ponownie',
+  'common.back': 'Wstecz',
   'common.error.eyebrow': 'Coś poszło nie tak',
   'common.windowControls.minimize': 'Minimalizuj',
   'common.windowControls.maximize': 'Maksymalizuj',
@@ -89,9 +90,11 @@ export const pl = {
   'settings.appearance.description':
     'Przełączaj się między sumi (ciemny tusz) a washi (jasny papier), ustaw rozmiar interfejsu i wybierz krój do dłuższych tekstów.',
   'settings.appearance.theme.label': 'Motyw',
-  'settings.appearance.theme.hint': 'Sumi to ciemny motyw, a Washi przenosi całość na jasne, papierowe tło.',
+  'settings.appearance.theme.hint':
+    'Sumi to ciemny motyw, a Washi przenosi całość na jasne, papierowe tło.',
   'settings.appearance.fontSize.label': 'Rozmiar czcionki',
-  'settings.appearance.fontSize.hint': 'Zmienia skalę całego interfejsu: od bardzo małej do bardzo dużej.',
+  'settings.appearance.fontSize.hint':
+    'Zmienia skalę całego interfejsu: od bardzo małej do bardzo dużej.',
   'settings.appearance.readingFont.label': 'Czcionka do czytania',
   'settings.appearance.readingFont.hint':
     'Fraunces, Shippori Mincho, klasyczny szeryf albo prosty bezszeryfowy krój.',
@@ -112,8 +115,7 @@ export const pl = {
   'settings.reader.mode.double': 'Podwójna',
   'settings.reader.mode.webtoon': 'Webtoon',
   'settings.reader.direction.label': 'Domyślny kierunek',
-  'settings.reader.direction.hint':
-    'Od prawej do lewej w mandze, od lewej do prawej w komiksach.',
+  'settings.reader.direction.hint': 'Od prawej do lewej w mandze, od lewej do prawej w komiksach.',
   'settings.reader.fit.label': 'Domyślne dopasowanie',
   'settings.reader.fit.hint': 'Jak obraz strony wypełnia widok.',
   'settings.reader.fit.width': 'Szerokość',
@@ -137,7 +139,8 @@ export const pl = {
   'settings.library.cache.toast.sizeTitle': 'Rozmiar pamięci podręcznej',
   'settings.library.cache.toast.clearTitle': 'Wyczyść pamięć podręczną',
   'settings.library.cache.toast.clearedTitle': 'Pamięć podręczna wyczyszczona',
-  'settings.library.cache.toast.clearedBody': 'Usunięto zapisane strony o łącznym rozmiarze {size}.',
+  'settings.library.cache.toast.clearedBody':
+    'Usunięto zapisane strony o łącznym rozmiarze {size}.',
   'settings.library.cache.toast.clearFailed': 'Nie udało się wyczyścić pamięci podręcznej',
 
   // Settings — Updates
@@ -147,7 +150,8 @@ export const pl = {
     'Aktualna wersja i kanał wydań, z którego korzysta aplikacja. Aktualizacje sprawdzają się w tle, ale w każdej chwili możesz wymusić kontrolę ręcznie.',
   'settings.updates.version.label': 'Wersja',
   'settings.updates.channel.label': 'Kanał aktualizacji',
-  'settings.updates.channel.hint': 'Kanał beta dostaje nowe buildy wcześniej, ale zwykle są mniej dopracowane.',
+  'settings.updates.channel.hint':
+    'Kanał beta dostaje nowe buildy wcześniej, ale zwykle są mniej dopracowane.',
   'settings.updates.channel.stable': 'Stabilny',
   'settings.updates.channel.beta': 'Beta',
   'settings.updates.action.check': 'Sprawdź aktualizacje',
@@ -161,7 +165,8 @@ export const pl = {
   'settings.updates.status.downloading': 'Pobieranie… {percent}%',
   'settings.updates.status.ready': 'Aktualizacja gotowa. Uruchom ponownie, aby zainstalować.',
   'settings.updates.status.error': 'Błąd: {message}',
-  'settings.updates.status.pending': 'Nowe wydanie wciąż się publikuje. Spróbuj ponownie za chwilę.',
+  'settings.updates.status.pending':
+    'Nowe wydanie wciąż się publikuje. Spróbuj ponownie za chwilę.',
   'settings.updates.error.unknown': 'Nieznany błąd',
   'settings.updates.progress.aria': 'Postęp pobierania',
   'settings.updates.mac.body':
@@ -278,7 +283,8 @@ export const pl = {
   'series.local.drawer.field.score': 'Ocena',
   'series.local.drawer.field.scoreSuffix': '/ 10',
   'series.local.drawer.field.notes': 'Notatki',
-  'series.local.drawer.field.notes.placeholder': 'Notatki, przypomnienia, miejsce, w którym skończyłeś…',
+  'series.local.drawer.field.notes.placeholder':
+    'Notatki, przypomnienia, miejsce, w którym skończyłeś…',
   'series.local.drawer.mangadex.heading': 'Wyszukaj w MangaDex',
   'series.local.drawer.mangadex.unlink': 'Odłącz',
   'series.local.drawer.mangadex.searching': 'Szukanie…',

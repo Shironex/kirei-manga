@@ -20,6 +20,7 @@ export const en = {
 
   // Common
   'common.retry': 'Retry',
+  'common.back': 'Back',
   'common.error.eyebrow': 'Something went sideways',
   'common.windowControls.minimize': 'Minimize',
   'common.windowControls.maximize': 'Maximize',

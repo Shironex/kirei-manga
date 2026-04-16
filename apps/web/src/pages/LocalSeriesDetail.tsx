@@ -12,6 +12,7 @@ import {
   type Series,
   createLogger,
 } from '@kireimanga/shared';
+import { BackButton } from '../components/layout/BackButton';
 import { EmptyState } from '../components/layout/EmptyState';
 import { LocalMetadataDrawer } from '../components/local/LocalMetadataDrawer';
 import { emitWithResponse } from '@/lib/socket';
@@ -153,14 +154,17 @@ export function LocalSeriesDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-8 md:flex-row md:gap-10">
-        <div className="skeleton-pulse aspect-[2/3] w-full max-w-[280px] shrink-0 rounded-[2px] bg-[var(--color-ink-raised)]" />
-        <div className="flex flex-1 flex-col gap-4 pt-4">
-          <div className="skeleton-pulse h-px w-full bg-border" />
-          <div className="skeleton-pulse h-px w-full bg-border" />
-          <div className="skeleton-pulse h-px w-full bg-border" />
+      <>
+        <BackButton className="mb-6" />
+        <div className="flex flex-col gap-8 md:flex-row md:gap-10">
+          <div className="skeleton-pulse aspect-[2/3] w-full max-w-[280px] shrink-0 rounded-[2px] bg-[var(--color-ink-raised)]" />
+          <div className="flex flex-1 flex-col gap-4 pt-4">
+            <div className="skeleton-pulse h-px w-full bg-border" />
+            <div className="skeleton-pulse h-px w-full bg-border" />
+            <div className="skeleton-pulse h-px w-full bg-border" />
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -187,6 +191,7 @@ export function LocalSeriesDetailPage() {
 
   return (
     <>
+      <BackButton className="mb-6" />
       <section className="flex flex-col gap-8 md:flex-row md:items-start md:gap-10">
         <div className="relative aspect-[2/3] w-full max-w-[280px] shrink-0 overflow-hidden rounded-[2px] bg-[var(--color-ink-sunken)]">
           {series.coverPath ? (

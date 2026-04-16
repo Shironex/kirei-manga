@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ScanCandidateSeries, ScanResult } from '@kireimanga/shared';
+import { BackButton } from '../components/layout/BackButton';
 import { PageHeader } from '../components/layout/PageHeader';
 import { EmptyState } from '../components/layout/EmptyState';
 import { useFolderPicker, useScanRoot, useImport } from '@/hooks/useLocalImport';
@@ -115,6 +116,7 @@ export function LibraryImportPage() {
 
   return (
     <>
+      <BackButton className="mb-4" />
       <PageHeader
         eyebrow="Library · Import"
         kanji="取込"

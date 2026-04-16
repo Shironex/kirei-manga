@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { BookOpen, Compass, PanelLeftClose, PanelLeftOpen, Settings2 } from 'lucide-react';
+import { BookOpen, Compass, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import { useT } from '@/hooks/useT';
 import { useAppVersion } from '@/hooks/useAppVersion';
@@ -17,7 +17,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { to: '/', labelKey: 'nav.library', kanji: '書', icon: BookOpen, end: true },
   { to: '/browse', labelKey: 'nav.browse', kanji: '探', icon: Compass },
-  { to: '/settings', labelKey: 'nav.settings', kanji: '設', icon: Settings2 },
+  { to: '/settings', labelKey: 'nav.settings', kanji: '設', icon: Settings },
 ];
 
 const COLLAPSED_SIDEBAR_WIDTH = 56;
@@ -79,20 +79,29 @@ export function Sidebar() {
                         ].join(' ')}
                       />
                     )}
-                    <span
-                      className={[
-                        'font-kanji leading-none transition-colors',
-                        collapsed
-                          ? 'flex h-full w-full items-center justify-center text-center text-[15px]'
-                          : 'w-4 text-center text-[13px]',
-                        isActive ? 'text-[var(--color-accent)]' : 'text-[var(--color-bone-faint)]',
-                      ].join(' ')}
-                      aria-hidden
-                    >
-                      {item.kanji}
-                    </span>
-                    {!collapsed && (
+                    {collapsed ? (
+                      <item.icon
+                        className={[
+                          'h-[18px] w-[18px] stroke-[1.4] transition-colors',
+                          isActive
+                            ? 'text-[var(--color-accent)]'
+                            : 'text-[var(--color-bone-muted)] group-hover:text-foreground',
+                        ].join(' ')}
+                        aria-hidden
+                      />
+                    ) : (
                       <>
+                        <span
+                          className={[
+                            'font-kanji w-4 text-center text-[13px] leading-none transition-colors',
+                            isActive
+                              ? 'text-[var(--color-accent)]'
+                              : 'text-[var(--color-bone-faint)]',
+                          ].join(' ')}
+                          aria-hidden
+                        >
+                          {item.kanji}
+                        </span>
                         <span className="flex-1 tracking-wide">{t(item.labelKey)}</span>
                         <item.icon
                           className={[

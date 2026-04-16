@@ -14,6 +14,7 @@ import { emitWithResponse } from '@/lib/socket';
 import { SeriesBanner } from '@/components/series/SeriesBanner';
 import { ChapterList } from '@/components/series/ChapterList';
 import { BookmarksPanel } from '@/components/series/BookmarksPanel';
+import { BackButton } from '@/components/layout/BackButton';
 import { useT } from '@/hooks/useT';
 
 export function SeriesDetailPage() {
@@ -64,32 +65,38 @@ export function SeriesDetailPage() {
 
   if (loading && !series) {
     return (
-      <div className="flex flex-col gap-8 md:flex-row md:gap-10">
-        <div className="skeleton-pulse aspect-[2/3] w-full max-w-[280px] shrink-0 rounded-[2px] bg-[var(--color-ink-raised)]" />
-        <div className="flex flex-1 flex-col gap-4 pt-4">
-          <div className="skeleton-pulse h-px w-full bg-border" />
-          <div className="skeleton-pulse h-px w-full bg-border" />
-          <div className="skeleton-pulse h-px w-full bg-border" />
+      <>
+        <BackButton className="mb-6" />
+        <div className="flex flex-col gap-8 md:flex-row md:gap-10">
+          <div className="skeleton-pulse aspect-[2/3] w-full max-w-[280px] shrink-0 rounded-[2px] bg-[var(--color-ink-raised)]" />
+          <div className="flex flex-1 flex-col gap-4 pt-4">
+            <div className="skeleton-pulse h-px w-full bg-border" />
+            <div className="skeleton-pulse h-px w-full bg-border" />
+            <div className="skeleton-pulse h-px w-full bg-border" />
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="animate-fade-up flex flex-col items-start gap-3 border-l-2 border-[var(--color-accent)] py-2 pl-5">
-        <span className="font-mono text-[10px] tracking-[0.24em] text-[var(--color-accent)] uppercase">
-          {t('common.error.eyebrow')}
-        </span>
-        <p className="max-w-[52ch] text-[14px] text-foreground">{error}</p>
-        <button
-          type="button"
-          onClick={retry}
-          className="font-mono text-[11px] tracking-[0.18em] text-[var(--color-bone-muted)] underline-offset-4 uppercase hover:text-foreground hover:underline"
-        >
-          {t('common.retry')}
-        </button>
-      </div>
+      <>
+        <BackButton className="mb-6" />
+        <div className="animate-fade-up flex flex-col items-start gap-3 border-l-2 border-[var(--color-accent)] py-2 pl-5">
+          <span className="font-mono text-[10px] tracking-[0.24em] text-[var(--color-accent)] uppercase">
+            {t('common.error.eyebrow')}
+          </span>
+          <p className="max-w-[52ch] text-[14px] text-foreground">{error}</p>
+          <button
+            type="button"
+            onClick={retry}
+            className="font-mono text-[11px] tracking-[0.18em] text-[var(--color-bone-muted)] underline-offset-4 uppercase hover:text-foreground hover:underline"
+          >
+            {t('common.retry')}
+          </button>
+        </div>
+      </>
     );
   }
 
@@ -99,6 +106,7 @@ export function SeriesDetailPage() {
 
   return (
     <>
+      <BackButton className="mb-6" />
       <SeriesBanner series={series} />
       <ChapterList
         chapters={chaptersState.chapters}
