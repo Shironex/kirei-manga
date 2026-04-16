@@ -17,7 +17,7 @@ const VOLUME_RE = /(?:^|[^a-z])(?:vol|volume|v)[\s_.-]*(\d+)\b/i;
  *   - trailing ` - Chapter Title`         — keep as title on chapter rows, drop on series
  *   - leading/trailing whitespace + separators
  */
-const BRACKET_TAG_RE = /[\[\(\{][^\]\)\}]*[\]\)\}]/g;
+const BRACKET_TAG_RE = /[[({][^\])}]*[\])}]/g;
 
 export function parseChapterNumber(filename: string): number | null {
   const match = filename.match(CHAPTER_RE);
@@ -39,9 +39,5 @@ export function parseVolumeNumber(filename: string): number | null {
  * shows in the import-review table before the user edits it.
  */
 export function cleanTitle(raw: string): string {
-  return raw
-    .replace(BRACKET_TAG_RE, ' ')
-    .replace(/[_.]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return raw.replace(BRACKET_TAG_RE, ' ').replace(/[_.]+/g, ' ').replace(/\s+/g, ' ').trim();
 }

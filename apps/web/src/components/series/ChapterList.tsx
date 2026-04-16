@@ -193,7 +193,11 @@ function DownloadButton({
   isDownloaded: boolean;
 }) {
   const t = useT();
-  const { status, progress, download } = useDownloadChapter(chapterId, mangadexSeriesId, isDownloaded);
+  const { status, progress, download } = useDownloadChapter(
+    chapterId,
+    mangadexSeriesId,
+    isDownloaded
+  );
 
   if (status === 'complete') {
     return (
@@ -274,9 +278,7 @@ function LanguageFilter({
 function labelForLang(code: string): string {
   try {
     const locales =
-      typeof navigator !== 'undefined' && navigator.language
-        ? [navigator.language, 'en']
-        : ['en'];
+      typeof navigator !== 'undefined' && navigator.language ? [navigator.language, 'en'] : ['en'];
     const dn = new Intl.DisplayNames(locales, { type: 'language' });
     return dn.of(code) ?? code;
   } catch {

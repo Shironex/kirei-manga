@@ -128,8 +128,7 @@ export async function createTestDatabase(): Promise<CompatDatabase> {
     // its directory is where the WASM file sits. Resolving the main entry
     // works across pnpm hoisting layouts; resolving `sql.js/package.json`
     // does not (the package blocks that subpath via `exports`).
-    locateFile: (file: string) =>
-      path.join(path.dirname(require.resolve('sql.js')), file),
+    locateFile: (file: string) => path.join(path.dirname(require.resolve('sql.js')), file),
   });
   const sqljsDb = new SQL.Database();
   sqljsDb.run('PRAGMA foreign_keys = ON');

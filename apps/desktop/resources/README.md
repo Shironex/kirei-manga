@@ -6,10 +6,10 @@ here — `electron-builder.json` references the icon files below.
 
 ## Required files (release blocker for v0.1)
 
-| File           | Platform | Format              | Required dimensions |
-| -------------- | -------- | ------------------- | ------------------- |
-| `icon.icns`    | macOS    | Apple Icon Image    | 512×512 @1x and @2x |
-| `icon.ico`     | Windows  | Multi-res ICO       | 16, 32, 48, 256 px  |
+| File        | Platform | Format           | Required dimensions |
+| ----------- | -------- | ---------------- | ------------------- |
+| `icon.icns` | macOS    | Apple Icon Image | 512×512 @1x and @2x |
+| `icon.ico`  | Windows  | Multi-res ICO    | 16, 32, 48, 256 px  |
 
 These are intentionally **not committed** in v0.1. Packaging
 (`pnpm package` / `pnpm package:mac` / `pnpm package:win`) will fail until

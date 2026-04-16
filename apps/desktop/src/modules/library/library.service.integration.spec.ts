@@ -5,10 +5,7 @@ import { BookmarkService } from './bookmark.service';
 import type { DatabaseService } from '../database';
 import type { MangaDexService } from '../mangadex/mangadex.service';
 import type { SettingsService } from '../settings/settings.service';
-import {
-  createTestDatabase,
-  type CompatDatabase,
-} from '../database/__test__/sqljs-adapter';
+import { createTestDatabase, type CompatDatabase } from '../database/__test__/sqljs-adapter';
 
 /**
  * Integration test: LibraryService against a real in-memory SQLite DB
@@ -23,9 +20,7 @@ import {
  * touches `this.db.db` and `this.mangadex.getSeries`.
  */
 
-function buildDetailFixture(
-  overrides: Partial<MangaDexSeriesDetail> = {}
-): MangaDexSeriesDetail {
+function buildDetailFixture(overrides: Partial<MangaDexSeriesDetail> = {}): MangaDexSeriesDetail {
   return {
     id: 'mxid-1',
     title: 'Fixture Title',
@@ -270,9 +265,7 @@ describe('LibraryService (integration)', () => {
       expect(chapter!.read_at).toBeNull();
 
       const seriesRow = db
-        .prepare(
-          'SELECT last_read_at, last_chapter_id FROM series WHERE mangadex_id = ?'
-        )
+        .prepare('SELECT last_read_at, last_chapter_id FROM series WHERE mangadex_id = ?')
         .get('mxid-1') as { last_read_at: string | null; last_chapter_id: string | null };
       expect(seriesRow.last_read_at).not.toBeNull();
       expect(seriesRow.last_chapter_id).toBe('ch-1');
@@ -322,9 +315,7 @@ describe('LibraryService (integration)', () => {
       expect(result.chapter.lastReadPage).toBe(9);
 
       const chapter = db
-        .prepare(
-          'SELECT is_read, last_read_page FROM chapters WHERE mangadex_chapter_id = ?'
-        )
+        .prepare('SELECT is_read, last_read_page FROM chapters WHERE mangadex_chapter_id = ?')
         .get('ch-2') as { is_read: number; last_read_page: number };
       expect(chapter.is_read).toBe(1);
       expect(chapter.last_read_page).toBe(9);
@@ -344,11 +335,7 @@ describe('LibraryService (integration)', () => {
         pageCount: 10,
       });
 
-      const states = await service.getChapterStates(followed.id, [
-        'ch-1',
-        'ch-2',
-        'ch-missing',
-      ]);
+      const states = await service.getChapterStates(followed.id, ['ch-1', 'ch-2', 'ch-missing']);
 
       expect(Object.keys(states).sort()).toEqual(['ch-1', 'ch-2']);
       expect(states['ch-1']).toEqual({
@@ -395,9 +382,7 @@ describe('LibraryService (integration)', () => {
       expect(result.sessionId).toBeDefined();
       expect(result.startPage).toBe(0);
 
-      const count = db
-        .prepare('SELECT COUNT(*) AS c FROM reading_sessions')
-        .get() as { c: number };
+      const count = db.prepare('SELECT COUNT(*) AS c FROM reading_sessions').get() as { c: number };
       expect(count.c).toBe(1);
     });
 
@@ -439,9 +424,7 @@ describe('LibraryService (integration)', () => {
       expect(ended.success).toBe(true);
 
       const row = db
-        .prepare(
-          'SELECT end_page, ended_at, duration_seconds FROM reading_sessions WHERE id = ?'
-        )
+        .prepare('SELECT end_page, ended_at, duration_seconds FROM reading_sessions WHERE id = ?')
         .get(started.sessionId) as {
         end_page: number;
         ended_at: string | null;
@@ -462,9 +445,7 @@ describe('LibraryService (integration)', () => {
 
       expect(result.startPage).toBe(0);
       const chapter = db
-        .prepare(
-          'SELECT last_read_page, is_read FROM chapters WHERE mangadex_chapter_id = ?'
-        )
+        .prepare('SELECT last_read_page, is_read FROM chapters WHERE mangadex_chapter_id = ?')
         .get('ch-fresh') as { last_read_page: number; is_read: number } | undefined;
       expect(chapter).toBeDefined();
       expect(chapter!.last_read_page).toBe(0);

@@ -156,12 +156,7 @@ async function serveLocalCover(pathname: string): Promise<Response> {
     logger.warn(`[kirei-cover] Rejected malformed local URL: ${pathname}`);
     return new Response('Bad request', { status: 400 });
   }
-  const filePath = path.join(
-    getCoverRoot(),
-    'local',
-    parsed.seriesId,
-    parsed.fileName
-  );
+  const filePath = path.join(getCoverRoot(), 'local', parsed.seriesId, parsed.fileName);
   try {
     const stat = await fs.promises.stat(filePath);
     if (!stat.isFile() || stat.size === 0) {

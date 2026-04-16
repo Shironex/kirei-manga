@@ -31,7 +31,7 @@ interface HookState {
 export function useMangaDexSearch(
   query: string,
   filters?: SearchFilters,
-  options: Options = {},
+  options: Options = {}
 ): HookState {
   const { debounceMs = 250, minLength = 2 } = options;
   const status = useSocketStore(s => s.status);
@@ -60,7 +60,7 @@ export function useMangaDexSearch(
       f: SearchFilters | undefined,
       offset: number,
       append: boolean,
-      rid: number,
+      rid: number
     ) => {
       if (status !== 'connected') {
         setError('Disconnected');
@@ -78,7 +78,7 @@ export function useMangaDexSearch(
         };
         const response = await emitWithResponse<MangaDexSearchPayload, MangaDexSearchResponse>(
           MangaDexEvents.SEARCH,
-          payload,
+          payload
         );
         if (!mountedRef.current || rid !== requestIdRef.current) return;
         if (response.error) {
@@ -101,7 +101,7 @@ export function useMangaDexSearch(
         }
       }
     },
-    [status],
+    [status]
   );
 
   useEffect(() => {

@@ -22,8 +22,8 @@ function isValidChannel(value: unknown): value is UpdateChannel {
 function callUpdaterAPI<T>(
   action: string,
   fn: (
-    updater: NonNullable<NonNullable<typeof window.electronAPI>['updater']>,
-  ) => Promise<T> | undefined,
+    updater: NonNullable<NonNullable<typeof window.electronAPI>['updater']>
+  ) => Promise<T> | undefined
 ): Promise<T | undefined> {
   const updater = window.electronAPI?.updater;
   if (!updater) {
@@ -74,7 +74,7 @@ export const useUpdateStore = create<UpdateStore>()(
               set({ status: 'idle', error: null }, undefined, 'update/notEnabled');
             }
             return result;
-          }),
+          })
         ).catch((err: Error) => {
           set({ status: 'error', error: err.message }, undefined, 'update/checkError');
         });
@@ -84,17 +84,11 @@ export const useUpdateStore = create<UpdateStore>()(
         set(
           { status: 'downloading', progress: null, error: null },
           undefined,
-          'update/downloadStart',
+          'update/downloadStart'
         );
-        callUpdaterAPI('start download', updater => updater.startDownload()).catch(
-          (err: Error) => {
-            set(
-              { status: 'error', error: err.message },
-              undefined,
-              'update/downloadError',
-            );
-          },
-        );
+        callUpdaterAPI('start download', updater => updater.startDownload()).catch((err: Error) => {
+          set({ status: 'error', error: err.message }, undefined, 'update/downloadError');
+        });
       },
 
       installNow: () => {
@@ -116,18 +110,18 @@ export const useUpdateStore = create<UpdateStore>()(
                 error: null,
               },
               undefined,
-              'update/setChannelSuccess',
+              'update/setChannelSuccess'
             );
             u.checkForUpdates().catch((err: Error) => {
               logger.error('Re-check after channel switch failed:', err);
             });
             return result;
-          }),
+          })
         ).catch((err: Error) => {
           set(
             { isChannelSwitching: false, status: 'error', error: err.message },
             undefined,
-            'update/setChannelError',
+            'update/setChannelError'
           );
         });
       },
@@ -158,7 +152,7 @@ export const useUpdateStore = create<UpdateStore>()(
           set(
             { status: 'available', updateInfo: info, error: null },
             undefined,
-            'update/available',
+            'update/available'
           );
         });
         const unsubNotAvailable = updater.onUpdateNotAvailable(() => {
@@ -171,7 +165,7 @@ export const useUpdateStore = create<UpdateStore>()(
           set(
             { status: 'ready', updateInfo: info, progress: null },
             undefined,
-            'update/downloaded',
+            'update/downloaded'
           );
         });
         const unsubError = updater.onUpdateError(message => {
@@ -190,7 +184,7 @@ export const useUpdateStore = create<UpdateStore>()(
               error: null,
             },
             undefined,
-            'update/channelChanged',
+            'update/channelChanged'
           );
           updater.checkForUpdates().catch((err: Error) => {
             logger.error('Re-check after external channel switch failed:', err);
@@ -209,6 +203,6 @@ export const useUpdateStore = create<UpdateStore>()(
         };
       },
     }),
-    { name: 'update' },
-  ),
+    { name: 'update' }
+  )
 );

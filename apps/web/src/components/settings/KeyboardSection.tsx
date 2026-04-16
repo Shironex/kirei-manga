@@ -59,9 +59,7 @@ export function KeyboardSection() {
               <div className="flex flex-col gap-0.5">
                 <span className="text-[13px] text-foreground">{action}</span>
                 {s.hintKey && (
-                  <span className="text-[11px] text-[var(--color-bone-faint)]">
-                    {t(s.hintKey)}
-                  </span>
+                  <span className="text-[11px] text-[var(--color-bone-faint)]">{t(s.hintKey)}</span>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-1.5">

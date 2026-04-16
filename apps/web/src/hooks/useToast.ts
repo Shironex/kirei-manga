@@ -20,12 +20,9 @@ export interface UseToastResult {
 export function useToast(): UseToastResult {
   return useMemo<UseToastResult>(
     () => ({
-      info: (body, opts) =>
-        useToastStore.getState().show({ variant: 'info', body, ...opts }),
-      error: (body, opts) =>
-        useToastStore.getState().show({ variant: 'error', body, ...opts }),
-      success: (body, opts) =>
-        useToastStore.getState().show({ variant: 'success', body, ...opts }),
+      info: (body, opts) => useToastStore.getState().show({ variant: 'info', body, ...opts }),
+      error: (body, opts) => useToastStore.getState().show({ variant: 'error', body, ...opts }),
+      success: (body, opts) => useToastStore.getState().show({ variant: 'success', body, ...opts }),
       dismiss: (id: string) => useToastStore.getState().dismiss(id),
     }),
     []

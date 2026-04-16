@@ -2,12 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import JSZip from 'jszip';
-import {
-  openArchive,
-  inferArchiveFormat,
-  ZipArchiveReader,
-  FolderArchiveReader,
-} from './index';
+import { openArchive, inferArchiveFormat, ZipArchiveReader, FolderArchiveReader } from './index';
 
 async function makeTmp(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), 'kirei-open-archive-'));

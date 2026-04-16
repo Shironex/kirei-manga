@@ -1,9 +1,11 @@
 {
   "name": "@kireimanga/web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "KireiManga web frontend",
   "private": true,
-  "sideEffects": ["**/*.css"],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite",

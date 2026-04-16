@@ -11,7 +11,6 @@ export const en = {
   'nav.library': 'Library',
   'nav.browse': 'Browse',
   'nav.settings': 'Settings',
-  'nav.footer': 'v0.1',
   'nav.sidebar.collapse': 'Collapse sidebar',
   'nav.sidebar.expand': 'Expand sidebar',
 
@@ -31,6 +30,8 @@ export const en = {
   'library.eyebrow': 'Library',
   'library.title': 'Your shelf, quiet and kept.',
   'library.subtitle.count': '{count} series',
+  'library.subtitle.count_one': '{count} series',
+  'library.subtitle.count_other': '{count} series',
   'library.empty.title': 'No series followed yet.',
   'library.empty.body': 'Start by browsing MangaDex to find your first series.',
   'library.empty.cta': 'Browse MangaDex',
@@ -157,6 +158,10 @@ export const en = {
   'settings.updates.progress.aria': 'Download progress',
   'settings.updates.mac.body':
     'Auto-update is not available on macOS yet (builds are unsigned). Grab new versions manually from GitHub Releases.',
+  'settings.updates.logs.label': 'Logs',
+  'settings.updates.logs.hint': 'Open the folder where KireiManga writes its log files.',
+  'settings.updates.logs.action': 'Open logs folder',
+  'settings.updates.logs.error': 'Could not open the logs folder.',
 
   // Settings — Keyboard
   'settings.keyboard.title': 'Keyboard',
@@ -238,8 +243,9 @@ export const en = {
   'series.local.confirm.remove':
     'Remove "{title}" from the library? The files on disk aren\'t deleted.',
   'series.local.toast.newChaptersTitle': 'New chapters',
-  'series.local.toast.newChaptersBody':
-    'Found {count} new chapter{plural}.',
+  'series.local.toast.newChaptersBody': 'Found {count} new chapters.',
+  'series.local.toast.newChaptersBody_one': 'Found 1 new chapter.',
+  'series.local.toast.newChaptersBody_other': 'Found {count} new chapters.',
   'series.local.toast.upToDateTitle': 'Up to date',
   'series.local.toast.upToDateBody': 'No new chapters on disk.',
   'series.local.toast.rescanFailed': 'Rescan failed',
@@ -262,8 +268,7 @@ export const en = {
   'series.local.drawer.field.score': 'Score',
   'series.local.drawer.field.scoreSuffix': '/ 10',
   'series.local.drawer.field.notes': 'Notes',
-  'series.local.drawer.field.notes.placeholder':
-    'Thoughts, reminders, where you left off…',
+  'series.local.drawer.field.notes.placeholder': 'Thoughts, reminders, where you left off…',
   'series.local.drawer.mangadex.heading': 'Find on MangaDex',
   'series.local.drawer.mangadex.unlink': 'Unlink',
   'series.local.drawer.mangadex.searching': 'Searching…',

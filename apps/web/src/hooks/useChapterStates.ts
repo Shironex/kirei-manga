@@ -67,7 +67,6 @@ export function useChapterStates(
         // Swallow — stale snapshot is better than flashing to loading.
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localSeriesId, joinedKey, status]);
 
   // Patch in place whenever the backend reports progress on one of our chapters.

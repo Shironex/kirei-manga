@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { BookOpen, Compass, PanelLeftClose, PanelLeftOpen, Settings2 } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import { useT } from '@/hooks/useT';
+import { useAppVersion } from '@/hooks/useAppVersion';
 import { useUIStore } from '@/stores/ui-store';
 import { Tooltip } from '@/components/ui/Tooltip';
 
@@ -26,6 +27,8 @@ export function Sidebar() {
   const t = useT();
   const collapsed = useUIStore(s => s.sidebarCollapsed);
   const toggle = useUIStore(s => s.toggleSidebar);
+  const appVersion = useAppVersion();
+  const versionLabel = appVersion ? `v${appVersion}` : '';
 
   return (
     <aside
@@ -56,10 +59,10 @@ export function Sidebar() {
                 className={({ isActive }) =>
                   [
                     'group relative rounded-sm text-[13px] transition-colors duration-200',
-                    collapsed ? 'grid place-items-center' : 'flex w-full items-center gap-3 py-2 pr-3 pl-5',
-                    isActive
-                      ? 'text-foreground'
-                      : 'text-muted-foreground hover:text-foreground',
+                    collapsed
+                      ? 'grid place-items-center'
+                      : 'flex w-full items-center gap-3 py-2 pr-3 pl-5',
+                    isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
                   ].join(' ')
                 }
               >
@@ -106,10 +109,7 @@ export function Sidebar() {
             return (
               <div
                 key={item.to}
-                className={[
-                  'flex w-full',
-                  collapsed ? 'justify-center' : '',
-                ].join(' ')}
+                className={['flex w-full', collapsed ? 'justify-center' : ''].join(' ')}
               >
                 {collapsed ? (
                   <Tooltip content={t(item.labelKey)} side="right">
@@ -134,7 +134,7 @@ export function Sidebar() {
           {collapsed ? (
             <>
               <p className="font-mono text-[9px] tracking-[0.14em] text-[var(--color-bone-faint)] uppercase">
-                {t('nav.footer')}
+                {versionLabel}
               </p>
               <Tooltip content={t('nav.sidebar.expand')} side="right">
                 <button
@@ -152,7 +152,7 @@ export function Sidebar() {
               <div className="flex flex-col">
                 <div className="mb-3 h-px w-6 bg-[var(--color-rule-strong)]" />
                 <p className="font-mono text-[10px] tracking-[0.18em] text-[var(--color-bone-faint)] uppercase">
-                  {t('nav.footer')}
+                  {versionLabel}
                 </p>
               </div>
               <Tooltip content={t('nav.sidebar.collapse')} side="right">

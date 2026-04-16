@@ -19,11 +19,7 @@ export function LibraryGrid({ series }: Props) {
       {series.map((entry, i) => {
         const tall = (i + 1) % 5 === 0;
         return (
-          <LibraryCoverCard
-            key={entry.id}
-            series={entry}
-            sizeHint={tall ? 'tall' : 'default'}
-          />
+          <LibraryCoverCard key={entry.id} series={entry} sizeHint={tall ? 'tall' : 'default'} />
         );
       })}
     </section>

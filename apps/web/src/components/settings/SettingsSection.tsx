@@ -60,9 +60,7 @@ export function SettingRow({ label, hint, children }: RowProps) {
         <span className="font-mono text-[10px] tracking-[0.24em] text-[var(--color-bone-muted)] uppercase">
           {label}
         </span>
-        {hint && (
-          <span className="text-[12px] text-[var(--color-bone-faint)]">{hint}</span>
-        )}
+        {hint && <span className="text-[12px] text-[var(--color-bone-faint)]">{hint}</span>}
       </div>
       <div className="shrink-0">{children}</div>
     </div>

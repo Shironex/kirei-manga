@@ -53,9 +53,7 @@ export function WindowControls() {
       <button
         type="button"
         aria-label={
-          isMaximized
-            ? t('common.windowControls.restore')
-            : t('common.windowControls.maximize')
+          isMaximized ? t('common.windowControls.restore') : t('common.windowControls.maximize')
         }
         onClick={() => api.window.maximize()}
         className="flex h-full w-[46px] items-center justify-center text-[var(--color-bone-muted)] transition-colors hover:bg-[var(--color-ink-sunken)] hover:text-foreground"

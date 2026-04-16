@@ -54,10 +54,7 @@ export function LocalSeriesDetailPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    emitWithResponse<LocalGetSeriesPayload, LocalGetSeriesResponse>(
-      LocalEvents.GET_SERIES,
-      { id }
-    )
+    emitWithResponse<LocalGetSeriesPayload, LocalGetSeriesResponse>(LocalEvents.GET_SERIES, { id })
       .then(response => {
         if (cancelled) return;
         if (response.error) {
@@ -85,10 +82,10 @@ export function LocalSeriesDetailPage() {
     if (!series || rescanning) return;
     setRescanning(true);
     try {
-      const response = await emitWithResponse<
-        LocalRescanSeriesPayload,
-        LocalRescanSeriesResponse
-      >(LocalEvents.RESCAN_SERIES, { id: series.id });
+      const response = await emitWithResponse<LocalRescanSeriesPayload, LocalRescanSeriesResponse>(
+        LocalEvents.RESCAN_SERIES,
+        { id: series.id }
+      );
       if (response.error) {
         throw new Error(response.error);
       }
@@ -126,16 +123,14 @@ export function LocalSeriesDetailPage() {
 
   const handleDelete = async (): Promise<void> => {
     if (!series || deleting) return;
-    const confirmed = window.confirm(
-      t('series.local.confirm.remove', { title: series.title })
-    );
+    const confirmed = window.confirm(t('series.local.confirm.remove', { title: series.title }));
     if (!confirmed) return;
     setDeleting(true);
     try {
-      const response = await emitWithResponse<
-        LocalDeleteSeriesPayload,
-        LocalDeleteSeriesResponse
-      >(LocalEvents.DELETE_SERIES, { id: series.id });
+      const response = await emitWithResponse<LocalDeleteSeriesPayload, LocalDeleteSeriesResponse>(
+        LocalEvents.DELETE_SERIES,
+        { id: series.id }
+      );
       if (response.error || !response.success) {
         throw new Error(response.error ?? 'local:delete-series returned success=false');
       }

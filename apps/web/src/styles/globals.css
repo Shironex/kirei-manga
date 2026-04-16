@@ -13,15 +13,15 @@
 
 @theme {
   /* --- Dark (default) --- */
-  --color-ink: oklch(14% 0.008 55);           /* deep warm off-black */
+  --color-ink: oklch(14% 0.008 55); /* deep warm off-black */
   --color-ink-raised: oklch(18% 0.008 55);
   --color-ink-sunken: oklch(11% 0.008 55);
-  --color-bone: oklch(93% 0.014 82);          /* warm ivory text */
+  --color-bone: oklch(93% 0.014 82); /* warm ivory text */
   --color-bone-muted: oklch(68% 0.012 75);
-  --color-bone-faint: oklch(48% 0.010 70);
-  --color-rule: oklch(26% 0.008 55);          /* hairline */
-  --color-rule-strong: oklch(34% 0.010 55);
-  --color-bengara: oklch(58% 0.138 35);       /* iron-oxide red accent */
+  --color-bone-faint: oklch(48% 0.01 70);
+  --color-rule: oklch(26% 0.008 55); /* hairline */
+  --color-rule-strong: oklch(34% 0.01 55);
+  --color-bengara: oklch(58% 0.138 35); /* iron-oxide red accent */
   --color-bengara-ink: oklch(96% 0.012 80);
 
   /* Semantic aliases (used by components) */
@@ -59,15 +59,15 @@
 /* Light theme — washi paper + sumi ink */
 [data-theme='light'] {
   --color-ink: oklch(95% 0.012 85);
-  --color-ink-raised: oklch(98% 0.010 88);
+  --color-ink-raised: oklch(98% 0.01 88);
   --color-ink-sunken: oklch(91% 0.014 82);
   --color-bone: oklch(22% 0.008 55);
-  --color-bone-muted: oklch(42% 0.010 60);
+  --color-bone-muted: oklch(42% 0.01 60);
   --color-bone-faint: oklch(62% 0.012 65);
   --color-rule: oklch(82% 0.012 75);
   --color-rule-strong: oklch(70% 0.014 70);
   --color-bengara: oklch(46% 0.15 32);
-  --color-bengara-ink: oklch(97% 0.010 85);
+  --color-bengara-ink: oklch(97% 0.01 85);
 
   --color-background: var(--color-ink);
   --color-surface: var(--color-ink-raised);
@@ -155,7 +155,9 @@ body {
 @utility font-display {
   font-family: var(--font-display);
   font-optical-sizing: auto;
-  font-variation-settings: 'SOFT' 50, 'opsz' 96;
+  font-variation-settings:
+    'SOFT' 50,
+    'opsz' 96;
   letter-spacing: -0.02em;
 }
 

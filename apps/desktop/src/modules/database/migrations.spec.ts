@@ -19,18 +19,12 @@ interface MigrationRow {
   version: number;
 }
 
-function listColumns(
-  db: Awaited<ReturnType<typeof createTestDatabase>>,
-  table: string
-): string[] {
+function listColumns(db: Awaited<ReturnType<typeof createTestDatabase>>, table: string): string[] {
   const rows = db.prepare(`PRAGMA table_info(${table})`).all() as PragmaColumnRow[];
   return rows.map(r => r.name);
 }
 
-function listIndexes(
-  db: Awaited<ReturnType<typeof createTestDatabase>>,
-  table: string
-): string[] {
+function listIndexes(db: Awaited<ReturnType<typeof createTestDatabase>>, table: string): string[] {
   const rows = db.prepare(`PRAGMA index_list(${table})`).all() as PragmaIndexRow[];
   return rows.map(r => r.name);
 }

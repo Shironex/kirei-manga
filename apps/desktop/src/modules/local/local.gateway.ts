@@ -192,8 +192,7 @@ export class LocalGateway {
         const entries = await this.library.listChapterPages(payload.localChapterId);
         if (!entries) return { pages: [] };
         const pages = entries.map(
-          (entry, i) =>
-            `kirei-page://local/${payload.localChapterId}/${i}.${entry.ext}`
+          (entry, i) => `kirei-page://local/${payload.localChapterId}/${i}.${entry.ext}`
         );
         return { pages };
       },

@@ -4,12 +4,7 @@ import type { LocalArchiveFormat } from './local';
 /**
  * Reading status for a series in the local library.
  */
-export type ReadingStatus =
-  | 'reading'
-  | 'completed'
-  | 'planToRead'
-  | 'onHold'
-  | 'dropped';
+export type ReadingStatus = 'reading' | 'completed' | 'planToRead' | 'onHold' | 'dropped';
 
 /**
  * Series source — where a series originated from.

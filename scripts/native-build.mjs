@@ -33,7 +33,9 @@ if (!existsSync(nativeDir)) {
 
 const nodeAddonApi = resolve(nativeDir, 'node_modules', 'node-addon-api');
 if (!existsSync(nodeAddonApi)) {
-  console.log('Skipping native addon build (node-addon-api not installed in native/bubble-detector)');
+  console.log(
+    'Skipping native addon build (node-addon-api not installed in native/bubble-detector)'
+  );
   process.exit(0);
 }
 

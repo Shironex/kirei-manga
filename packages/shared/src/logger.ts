@@ -323,3 +323,19 @@ export function createLogger(context: string, options?: LoggerOptions): Logger {
 export function setTimestampsEnabled(enabled: boolean): void {
   timestampsEnabled = enabled;
 }
+
+/**
+ * Set the active log level at runtime. Accepts a level name
+ * (`'error' | 'warn' | 'info' | 'debug'`) — invalid values are ignored.
+ *
+ * The renderer calls this from `main.tsx` — `'debug'` in dev, `'info'` in
+ * prod so DevTools stays useful for post-release diagnostics without
+ * drowning in DEBUG noise. The Node.js side is gated by the `LOG_LEVEL`
+ * env var.
+ */
+export function setLogLevel(level: 'error' | 'warn' | 'info' | 'debug'): void {
+  const parsed = LOG_LEVEL_NAMES[level];
+  if (parsed !== undefined) {
+    currentLogLevel = parsed;
+  }
+}

@@ -27,7 +27,6 @@ jest.mock('electron', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 import { LocalLibraryService, computeLocalContentHash } from './local-library.service';
 import { LocalScannerService } from './scanner';
 import type { DatabaseService } from '../database';
@@ -155,11 +154,7 @@ describe('LocalLibraryService (integration)', () => {
   });
 
   it('recordProgress persists page and flips isRead on the final page', async () => {
-    await writeZip(path.join(tmp, 'My Series', 'Chapter 1.cbz'), [
-      '001.png',
-      '002.png',
-      '003.png',
-    ]);
+    await writeZip(path.join(tmp, 'My Series', 'Chapter 1.cbz'), ['001.png', '002.png', '003.png']);
     const scan = await scanner.scan(tmp);
     const { createdSeriesIds } = await service.import({
       rootPath: tmp,
@@ -257,9 +252,9 @@ describe('LocalLibraryService (integration)', () => {
     const firstLinked = await service.updateSeries(first, { mangadexId: 'mdx-shared' });
     expect(firstLinked?.mangadexId).toBe('mdx-shared');
 
-    await expect(
-      service.updateSeries(second, { mangadexId: 'mdx-shared' })
-    ).rejects.toThrow('mangadex-id-taken');
+    await expect(service.updateSeries(second, { mangadexId: 'mdx-shared' })).rejects.toThrow(
+      'mangadex-id-taken'
+    );
   });
 
   it('updateSeries merges a patch and clamps score to 1..10', async () => {
@@ -290,14 +285,38 @@ describe('computeLocalContentHash', () => {
   it('is stable regardless of input order', () => {
     const a = computeLocalContentHash({
       chapters: [
-        { relativePath: 'ch1.cbz', chapterNumber: 1, volumeNumber: null, pageCount: 10, format: 'cbz' },
-        { relativePath: 'ch2.cbz', chapterNumber: 2, volumeNumber: null, pageCount: 10, format: 'cbz' },
+        {
+          relativePath: 'ch1.cbz',
+          chapterNumber: 1,
+          volumeNumber: null,
+          pageCount: 10,
+          format: 'cbz',
+        },
+        {
+          relativePath: 'ch2.cbz',
+          chapterNumber: 2,
+          volumeNumber: null,
+          pageCount: 10,
+          format: 'cbz',
+        },
       ],
     });
     const b = computeLocalContentHash({
       chapters: [
-        { relativePath: 'ch2.cbz', chapterNumber: 2, volumeNumber: null, pageCount: 10, format: 'cbz' },
-        { relativePath: 'ch1.cbz', chapterNumber: 1, volumeNumber: null, pageCount: 10, format: 'cbz' },
+        {
+          relativePath: 'ch2.cbz',
+          chapterNumber: 2,
+          volumeNumber: null,
+          pageCount: 10,
+          format: 'cbz',
+        },
+        {
+          relativePath: 'ch1.cbz',
+          chapterNumber: 1,
+          volumeNumber: null,
+          pageCount: 10,
+          format: 'cbz',
+        },
       ],
     });
     expect(a).toBe(b);
@@ -306,13 +325,31 @@ describe('computeLocalContentHash', () => {
   it('differs when the chapter set differs', () => {
     const a = computeLocalContentHash({
       chapters: [
-        { relativePath: 'ch1.cbz', chapterNumber: 1, volumeNumber: null, pageCount: 10, format: 'cbz' },
+        {
+          relativePath: 'ch1.cbz',
+          chapterNumber: 1,
+          volumeNumber: null,
+          pageCount: 10,
+          format: 'cbz',
+        },
       ],
     });
     const b = computeLocalContentHash({
       chapters: [
-        { relativePath: 'ch1.cbz', chapterNumber: 1, volumeNumber: null, pageCount: 10, format: 'cbz' },
-        { relativePath: 'ch2.cbz', chapterNumber: 2, volumeNumber: null, pageCount: 10, format: 'cbz' },
+        {
+          relativePath: 'ch1.cbz',
+          chapterNumber: 1,
+          volumeNumber: null,
+          pageCount: 10,
+          format: 'cbz',
+        },
+        {
+          relativePath: 'ch2.cbz',
+          chapterNumber: 2,
+          volumeNumber: null,
+          pageCount: 10,
+          format: 'cbz',
+        },
       ],
     });
     expect(a).not.toBe(b);

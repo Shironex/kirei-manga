@@ -207,7 +207,10 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
     return (
       <ReaderShell onBack={() => navigate(-1)} indicator={t('reader.loading')}>
         <div className="flex flex-col items-center gap-3">
-          <span className="font-kanji text-[40px] text-[var(--color-accent)] opacity-90" aria-hidden>
+          <span
+            className="font-kanji text-[40px] text-[var(--color-accent)] opacity-90"
+            aria-hidden
+          >
             読
           </span>
           <span className="font-mono text-[11px] tracking-[0.18em] text-[var(--color-bone-faint)] uppercase">
@@ -242,7 +245,10 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
     return (
       <ReaderShell onBack={() => navigate(-1)} indicator={t('reader.empty.indicator')}>
         <div className="flex flex-col items-center gap-3 text-center">
-          <span className="font-kanji text-[40px] text-[var(--color-accent)] opacity-90" aria-hidden>
+          <span
+            className="font-kanji text-[40px] text-[var(--color-accent)] opacity-90"
+            aria-hidden
+          >
             空
           </span>
           <span className="font-display max-w-[32ch] text-[15px] leading-snug font-[360] text-muted-foreground">

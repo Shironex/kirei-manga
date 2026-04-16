@@ -58,20 +58,20 @@ Editorial ink-and-paper aesthetic. OKLCH sumi / kinari / bengara palette. Fraunc
 
 ### What's inside
 
-|                              |                                                                                                    |
-| ---------------------------- | -------------------------------------------------------------------------------------------------- |
-| **MangaDex Browse**          | Search by title, author, tag, demographic, or rating through MangaDex's official API               |
-| **Internal Library**         | Follow / unfollow, reading status (reading, completed, plan to read, on hold, dropped)             |
-| **Local Import (v0.2)**      | Scan a folder, import CBZ / ZIP / image-directory series alongside MangaDex                        |
-| **Reader**                   | Full-screen reader with single / double / webtoon modes, fit modes, and keyboard navigation        |
-| **Right-to-Left**            | Per-series reading direction preference                                                            |
-| **Progress Tracking**        | Resume where you left off on every chapter — works for MangaDex and local series                   |
-| **Offline Cache**            | Downloaded chapters are served from disk, no network needed                                        |
-| **Bookmarks**                | Per-page bookmarks with optional notes                                                             |
-| **New-Chapter Badges**       | Background update polling for followed series + on-demand rescan for local folders                 |
-| **Translation Overlay (v0.3)** | C++ OpenCV bubble detection + `manga-ocr` sidecar + DeepL / Google / Ollama rendering on page    |
-| **AniList Sync (v0.4)**      | OAuth login, list import, two-way progress sync                                                    |
-| **i18n**                     | English and Polish out of the box                                                                  |
+|                                |                                                                                               |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| **MangaDex Browse**            | Search by title, author, tag, demographic, or rating through MangaDex's official API          |
+| **Internal Library**           | Follow / unfollow, reading status (reading, completed, plan to read, on hold, dropped)        |
+| **Local Import (v0.2)**        | Scan a folder, import CBZ / ZIP / image-directory series alongside MangaDex                   |
+| **Reader**                     | Full-screen reader with single / double / webtoon modes, fit modes, and keyboard navigation   |
+| **Right-to-Left**              | Per-series reading direction preference                                                       |
+| **Progress Tracking**          | Resume where you left off on every chapter — works for MangaDex and local series              |
+| **Offline Cache**              | Downloaded chapters are served from disk, no network needed                                   |
+| **Bookmarks**                  | Per-page bookmarks with optional notes                                                        |
+| **New-Chapter Badges**         | Background update polling for followed series + on-demand rescan for local folders            |
+| **Translation Overlay (v0.3)** | C++ OpenCV bubble detection + `manga-ocr` sidecar + DeepL / Google / Ollama rendering on page |
+| **AniList Sync (v0.4)**        | OAuth login, list import, two-way progress sync                                               |
+| **i18n**                       | English and Polish out of the box                                                             |
 
 ### Getting started
 
@@ -95,21 +95,21 @@ Grab the latest version for your system from [Releases](https://github.com/Shiro
 
 ### Built with
 
-|           |                                                                    |
-| --------- | ------------------------------------------------------------------ |
-| Desktop   | Electron 40                                                        |
-| Backend   | NestJS 11 (embedded in the Electron main process)                  |
-| Frontend  | React 18, Vite 7, Tailwind CSS 4                                   |
-| Database  | better-sqlite3                                                     |
-| UI        | Radix UI, Lucide Icons, custom editorial design system             |
-| Real-time | Socket.IO (over localhost)                                         |
-| State     | Zustand                                                            |
-| Archives  | node-stream-zip (CBZ / ZIP), JSZip (test fixtures)                 |
-| Native    | C++ via node-addon-api (OpenCV bubble detection, v0.3)             |
-| OCR       | `manga-ocr` Python sidecar, PyInstaller bundle (v0.3)              |
-| Quality   | ESLint, Prettier                                                   |
-| Tests     | Jest (desktop + integration)                                       |
-| CI/CD     | GitHub Actions, electron-builder                                   |
+|           |                                                        |
+| --------- | ------------------------------------------------------ |
+| Desktop   | Electron 40                                            |
+| Backend   | NestJS 11 (embedded in the Electron main process)      |
+| Frontend  | React 18, Vite 7, Tailwind CSS 4                       |
+| Database  | better-sqlite3                                         |
+| UI        | Radix UI, Lucide Icons, custom editorial design system |
+| Real-time | Socket.IO (over localhost)                             |
+| State     | Zustand                                                |
+| Archives  | node-stream-zip (CBZ / ZIP), JSZip (test fixtures)     |
+| Native    | C++ via node-addon-api (OpenCV bubble detection, v0.3) |
+| OCR       | `manga-ocr` Python sidecar, PyInstaller bundle (v0.3)  |
+| Quality   | ESLint, Prettier                                       |
+| Tests     | Jest (desktop + integration)                           |
+| CI/CD     | GitHub Actions, electron-builder                       |
 
 ### Building from source
 
@@ -174,13 +174,13 @@ kirei-manga/
 
 Derived from the [PRD](docs/kireimanga-prd.md). All dates are approximate.
 
-| Milestone | Scope | Status |
-|---|---|---|
-| **v0.1 — MangaDex Reader** | MangaDex API, chapter streaming, internal library, reader shell | ✅ shipped |
-| **v0.2 — Local Library** | CBZ / folder import, unified library, local reader, metadata editor, MangaDex match, folder update polling | ✅ shipped |
-| v0.3 — Translation | C++ bubble detection, `manga-ocr` sidecar, DeepL / Google / Ollama overlay | planned |
-| v0.4 — AniList Sync | OAuth, read-progress sync, manga-list import | planned |
-| v0.5+ — Polish | Kanji hover dictionary, Anki export, translation corrections | backlog |
+| Milestone                  | Scope                                                                                                      | Status     |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------- |
+| **v0.1 — MangaDex Reader** | MangaDex API, chapter streaming, internal library, reader shell                                            | ✅ shipped |
+| **v0.2 — Local Library**   | CBZ / folder import, unified library, local reader, metadata editor, MangaDex match, folder update polling | ✅ shipped |
+| v0.3 — Translation         | C++ bubble detection, `manga-ocr` sidecar, DeepL / Google / Ollama overlay                                 | planned    |
+| v0.4 — AniList Sync        | OAuth, read-progress sync, manga-list import                                                               | planned    |
+| v0.5+ — Polish             | Kanji hover dictionary, Anki export, translation corrections                                               | backlog    |
 
 </details>
 
@@ -209,20 +209,20 @@ Redakcyjna estetyka tuszu i papieru. Paleta OKLCH sumi / kinari / bengara. Fraun
 
 ### Co znajdziesz w środku
 
-|                               |                                                                                                     |
-| ----------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Przeglądanie MangaDex**     | Szukaj po tytule, autorze, tagach, demografii lub ratingu przez oficjalne API MangaDex              |
-| **Wewnętrzna biblioteka**     | Obserwuj / przestań obserwować, status czytania (czytane, ukończone, planowane, wstrzymane, porzucone) |
-| **Import lokalny (v0.2)**     | Przeskanuj folder, zaimportuj serie CBZ / ZIP / katalog z obrazkami razem z MangaDex                |
-| **Czytnik**                   | Tryb pełnoekranowy, single / double / webtoon, tryby dopasowania, nawigacja z klawiatury            |
-| **Kierunek czytania**         | Ustawienie kierunku (RTL / LTR) per seria                                                           |
-| **Śledzenie postępu**         | Wznawianie od ostatniej strony w każdym rozdziale — dla MangaDex i serii lokalnych                  |
-| **Cache offline**             | Pobrane rozdziały serwowane z dysku, bez sieci                                                      |
-| **Zakładki**                  | Zakładki na konkretnej stronie z opcjonalnymi notatkami                                             |
-| **Odznaki nowych rozdziałów** | Automatyczne sprawdzanie aktualizacji + ręczne rescanowanie folderów lokalnych                      |
-| **Nakładka tłumaczeń (v0.3)** | Detekcja dymków w C++ (OpenCV) + sidecar `manga-ocr` + DeepL / Google / Ollama bezpośrednio na stronie |
-| **Synchronizacja AniList (v0.4)** | Logowanie OAuth, import listy, dwukierunkowa synchronizacja postępu                             |
-| **Język**                     | Angielski i polski w standardzie                                                                    |
+|                                   |                                                                                                        |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Przeglądanie MangaDex**         | Szukaj po tytule, autorze, tagach, demografii lub ratingu przez oficjalne API MangaDex                 |
+| **Wewnętrzna biblioteka**         | Obserwuj / przestań obserwować, status czytania (czytane, ukończone, planowane, wstrzymane, porzucone) |
+| **Import lokalny (v0.2)**         | Przeskanuj folder, zaimportuj serie CBZ / ZIP / katalog z obrazkami razem z MangaDex                   |
+| **Czytnik**                       | Tryb pełnoekranowy, single / double / webtoon, tryby dopasowania, nawigacja z klawiatury               |
+| **Kierunek czytania**             | Ustawienie kierunku (RTL / LTR) per seria                                                              |
+| **Śledzenie postępu**             | Wznawianie od ostatniej strony w każdym rozdziale — dla MangaDex i serii lokalnych                     |
+| **Cache offline**                 | Pobrane rozdziały serwowane z dysku, bez sieci                                                         |
+| **Zakładki**                      | Zakładki na konkretnej stronie z opcjonalnymi notatkami                                                |
+| **Odznaki nowych rozdziałów**     | Automatyczne sprawdzanie aktualizacji + ręczne rescanowanie folderów lokalnych                         |
+| **Nakładka tłumaczeń (v0.3)**     | Detekcja dymków w C++ (OpenCV) + sidecar `manga-ocr` + DeepL / Google / Ollama bezpośrednio na stronie |
+| **Synchronizacja AniList (v0.4)** | Logowanie OAuth, import listy, dwukierunkowa synchronizacja postępu                                    |
+| **Język**                         | Angielski i polski w standardzie                                                                       |
 
 ### Jak zacząć
 
@@ -263,13 +263,13 @@ pnpm dev
 
 Na podstawie [PRD](docs/kireimanga-prd.md).
 
-| Kamień milowy | Zakres | Status |
-|---|---|---|
-| **v0.1 — Czytnik MangaDex** | API MangaDex, streaming rozdziałów, biblioteka, podstawy czytnika | ✅ wydane |
+| Kamień milowy                 | Zakres                                                                                                      | Status    |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------- | --------- |
+| **v0.1 — Czytnik MangaDex**   | API MangaDex, streaming rozdziałów, biblioteka, podstawy czytnika                                           | ✅ wydane |
 | **v0.2 — Biblioteka lokalna** | Import CBZ / folderów, zjednoczona biblioteka, edytor metadanych, dopasowanie do MangaDex, polling folderów | ✅ wydane |
-| v0.3 — Tłumaczenia | Detekcja dymków (C++), sidecar `manga-ocr`, nakładka DeepL / Google / Ollama | planowane |
-| v0.4 — Synchronizacja AniList | OAuth, synchronizacja postępu, import listy | planowane |
-| v0.5+ — Dopracowanie | Słownik kanji pod kursorem, eksport Anki, poprawki tłumaczeń | w zapasie |
+| v0.3 — Tłumaczenia            | Detekcja dymków (C++), sidecar `manga-ocr`, nakładka DeepL / Google / Ollama                                | planowane |
+| v0.4 — Synchronizacja AniList | OAuth, synchronizacja postępu, import listy                                                                 | planowane |
+| v0.5+ — Dopracowanie          | Słownik kanji pod kursorem, eksport Anki, poprawki tłumaczeń                                                | w zapasie |
 
 </details>
 

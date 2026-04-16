@@ -1,11 +1,6 @@
 import StreamZip from 'node-stream-zip';
 import { lookup as mimeLookup } from 'mime-types';
-import {
-  type ArchiveReader,
-  type PageEntry,
-  getExtension,
-  isImageEntry,
-} from './archive-reader';
+import { type ArchiveReader, type PageEntry, getExtension, isImageEntry } from './archive-reader';
 import { naturalPageSort } from './natural-sort';
 
 /**

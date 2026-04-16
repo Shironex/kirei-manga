@@ -112,10 +112,10 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
     setSaving(true);
     setError(null);
     try {
-      const response = await emitWithResponse<
-        LocalUpdateSeriesPayload,
-        LocalUpdateSeriesResponse
-      >(LocalEvents.UPDATE_SERIES, { id: series.id, patch });
+      const response = await emitWithResponse<LocalUpdateSeriesPayload, LocalUpdateSeriesResponse>(
+        LocalEvents.UPDATE_SERIES,
+        { id: series.id, patch }
+      );
       if (response.error || !response.series) {
         // Re-raise with a friendlier message on the typed mangadex-id-taken
         // error so the user understands the collision without leaving the
@@ -162,9 +162,7 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
             disabled={saving}
             className="inline-flex h-9 items-center rounded-[2px] border border-[var(--color-accent)] bg-[var(--color-accent)] px-5 font-mono text-[11px] tracking-[0.22em] text-[var(--color-accent-foreground)] uppercase transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
           >
-            {saving
-              ? t('series.local.drawer.action.saving')
-              : t('series.local.drawer.action.save')}
+            {saving ? t('series.local.drawer.action.saving') : t('series.local.drawer.action.save')}
           </button>
         </div>
       }

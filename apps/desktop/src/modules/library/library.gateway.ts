@@ -53,7 +53,7 @@ export class LibraryGateway {
     private readonly bookmarkService: BookmarkService,
     private readonly libraryCacheService: LibraryCacheService,
     private readonly mangadexService: MangaDexService,
-    private readonly databaseService: DatabaseService,
+    private readonly databaseService: DatabaseService
   ) {
     logger.info('LibraryGateway initialized');
   }
@@ -235,10 +235,7 @@ export class LibraryGateway {
       action: 'reader:set-prefs',
       defaultResult: { series: null },
       handler: async () => {
-        const series = await this.libraryService.updateReaderPrefs(
-          payload.seriesId,
-          payload.prefs
-        );
+        const series = await this.libraryService.updateReaderPrefs(payload.seriesId, payload.prefs);
         this.server.emit(LibraryEvents.UPDATED, {
           action: 'prefs-changed',
           id: payload.seriesId,

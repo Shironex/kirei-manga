@@ -10,7 +10,6 @@ export const pl = {
   'nav.library': 'Biblioteka',
   'nav.browse': 'Przeglądaj',
   'nav.settings': 'Ustawienia',
-  'nav.footer': 'v0.1',
   'nav.sidebar.collapse': 'Zwiń panel',
   'nav.sidebar.expand': 'Rozwiń panel',
 
@@ -30,9 +29,12 @@ export const pl = {
   'library.eyebrow': 'Biblioteka',
   'library.title': 'Twoja półka, cicha i strzeżona.',
   'library.subtitle.count': '{count} serii',
+  'library.subtitle.count_one': '{count} seria',
+  'library.subtitle.count_few': '{count} serie',
+  'library.subtitle.count_many': '{count} serii',
+  'library.subtitle.count_other': '{count} serii',
   'library.empty.title': 'Brak obserwowanych serii.',
-  'library.empty.body':
-    'Zacznij od przeglądania MangaDex, aby znaleźć swoją pierwszą serię.',
+  'library.empty.body': 'Zacznij od przeglądania MangaDex, aby znaleźć swoją pierwszą serię.',
   'library.empty.cta': 'Przeglądaj MangaDex',
   'library.empty.cta.import': 'Importuj lokalne',
   'library.action.import': 'Importuj',
@@ -89,8 +91,7 @@ export const pl = {
   'settings.appearance.theme.label': 'Motyw',
   'settings.appearance.theme.hint': 'Sumi jest ciemny; Washi zmienia tło na papier washi.',
   'settings.appearance.fontSize.label': 'Rozmiar czcionki',
-  'settings.appearance.fontSize.hint':
-    'Skaluje cały interfejs od bardzo małego do bardzo dużego.',
+  'settings.appearance.fontSize.hint': 'Skaluje cały interfejs od bardzo małego do bardzo dużego.',
   'settings.appearance.readingFont.label': 'Czcionka do czytania',
   'settings.appearance.readingFont.hint':
     'Edytorska Fraunces, Shippori Mincho, szeryfowa lub bezszeryfowa.',
@@ -159,6 +160,10 @@ export const pl = {
   'settings.updates.progress.aria': 'Postęp pobierania',
   'settings.updates.mac.body':
     'Automatyczne aktualizacje nie są jeszcze dostępne na macOS (buildy nie są podpisane). Pobieraj nowe wersje ręcznie z GitHub Releases.',
+  'settings.updates.logs.label': 'Logi',
+  'settings.updates.logs.hint': 'Otwórz folder, w którym KireiManga zapisuje pliki logów.',
+  'settings.updates.logs.action': 'Otwórz folder z logami',
+  'settings.updates.logs.error': 'Nie udało się otworzyć folderu z logami.',
 
   // Settings — Keyboard
   'settings.keyboard.title': 'Klawiatura',
@@ -240,8 +245,11 @@ export const pl = {
   'series.local.confirm.remove':
     'Usunąć „{title}” z biblioteki? Pliki na dysku pozostaną nietknięte.',
   'series.local.toast.newChaptersTitle': 'Nowe rozdziały',
-  'series.local.toast.newChaptersBody':
-    'Znaleziono {count} nowych rozdziałów.',
+  'series.local.toast.newChaptersBody': 'Znaleziono {count} nowych rozdziałów.',
+  'series.local.toast.newChaptersBody_one': 'Znaleziono 1 nowy rozdział.',
+  'series.local.toast.newChaptersBody_few': 'Znaleziono {count} nowe rozdziały.',
+  'series.local.toast.newChaptersBody_many': 'Znaleziono {count} nowych rozdziałów.',
+  'series.local.toast.newChaptersBody_other': 'Znaleziono {count} nowych rozdziałów.',
   'series.local.toast.upToDateTitle': 'Wszystko aktualne',
   'series.local.toast.upToDateBody': 'Brak nowych rozdziałów na dysku.',
   'series.local.toast.rescanFailed': 'Skanowanie nie powiodło się',
@@ -264,8 +272,7 @@ export const pl = {
   'series.local.drawer.field.score': 'Ocena',
   'series.local.drawer.field.scoreSuffix': '/ 10',
   'series.local.drawer.field.notes': 'Notatki',
-  'series.local.drawer.field.notes.placeholder':
-    'Myśli, przypomnienia, na czym skończyłeś…',
+  'series.local.drawer.field.notes.placeholder': 'Myśli, przypomnienia, na czym skończyłeś…',
   'series.local.drawer.mangadex.heading': 'Znajdź na MangaDex',
   'series.local.drawer.mangadex.unlink': 'Odłącz',
   'series.local.drawer.mangadex.searching': 'Szukanie…',

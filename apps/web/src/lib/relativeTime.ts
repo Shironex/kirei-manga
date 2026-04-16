@@ -64,10 +64,7 @@ function toTimestamp(input: Date | number | string): number | null {
  * positive ("in 5 minutes"). Callers that only handle past times can ignore
  * the sign — `Intl.RelativeTimeFormat` handles the phrasing on its own.
  */
-export function formatRelativeTime(
-  input: Date | number | string,
-  locale: string = 'en'
-): string {
+export function formatRelativeTime(input: Date | number | string, locale: string = 'en'): string {
   const ts = toTimestamp(input);
   if (ts === null) return '';
   const diffMs = ts - Date.now();

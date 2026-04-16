@@ -1,12 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { lookup as mimeLookup } from 'mime-types';
-import {
-  type ArchiveReader,
-  type PageEntry,
-  getExtension,
-  isImageEntry,
-} from './archive-reader';
+import { type ArchiveReader, type PageEntry, getExtension, isImageEntry } from './archive-reader';
 import { naturalPageSort } from './natural-sort';
 
 /**

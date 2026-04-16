@@ -154,10 +154,7 @@ interface ResolvedUpstream {
  * Returns null if the filename isn't present in either list — happens when the
  * cached envelope is stale relative to a different chapter altogether (defensive).
  */
-function resolveUpstream(
-  env: MangaDexAtHomeResponse,
-  fileName: string
-): ResolvedUpstream | null {
+function resolveUpstream(env: MangaDexAtHomeResponse, fileName: string): ResolvedUpstream | null {
   if (env.chapter.data?.includes(fileName)) {
     return {
       url: `${env.baseUrl}/data/${env.chapter.hash}/${fileName}`,
@@ -190,10 +187,7 @@ async function fetchAndCache(
     try {
       env = await client.getChapterPages(parsed.chapterId);
     } catch (error) {
-      logger.error(
-        `[kirei-page] at-home lookup failed for ${parsed.chapterId}:`,
-        error
-      );
+      logger.error(`[kirei-page] at-home lookup failed for ${parsed.chapterId}:`, error);
       return new Response('Upstream resolve failed', { status: 502 });
     }
   }
@@ -227,9 +221,7 @@ async function fetchAndCache(
       client.invalidateAtHome(parsed.chapterId);
       return fetchAndCache(parsed, filePath, client, false);
     }
-    logger.error(
-      `[kirei-page] upstream ${fetched.status} for ${upstream.url} (refresh exhausted)`
-    );
+    logger.error(`[kirei-page] upstream ${fetched.status} for ${upstream.url} (refresh exhausted)`);
     return new Response('Upstream fetch failed', { status: 502 });
   }
 

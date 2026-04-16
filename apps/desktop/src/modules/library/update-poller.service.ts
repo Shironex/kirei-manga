@@ -24,7 +24,7 @@ export class UpdatePollerService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly mangadexService: MangaDexService,
-    private readonly databaseService: DatabaseService,
+    private readonly databaseService: DatabaseService
   ) {}
 
   onModuleInit(): void {
@@ -32,10 +32,7 @@ export class UpdatePollerService implements OnModuleInit, OnModuleDestroy {
 
     this.initialTimer = setTimeout(() => {
       this.runCheckUpdates();
-      this.intervalTimer = setInterval(
-        () => this.runCheckUpdates(),
-        POLL_INTERVAL_MS,
-      );
+      this.intervalTimer = setInterval(() => this.runCheckUpdates(), POLL_INTERVAL_MS);
     }, INITIAL_DELAY_MS);
   }
 
@@ -58,9 +55,7 @@ export class UpdatePollerService implements OnModuleInit, OnModuleDestroy {
 
       const withUpdates = results.filter(r => r.newCount > 0);
       if (withUpdates.length > 0) {
-        logger.info(
-          `Background check found updates for ${withUpdates.length} series`,
-        );
+        logger.info(`Background check found updates for ${withUpdates.length} series`);
       } else {
         logger.info('Background check complete — no new chapters');
       }

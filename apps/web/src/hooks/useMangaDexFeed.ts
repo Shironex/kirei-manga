@@ -74,7 +74,7 @@ export function useMangaDexFeed(filters: SearchFilters, enabled: boolean): HookS
         };
         const response = await emitWithResponse<MangaDexSearchPayload, MangaDexSearchResponse>(
           MangaDexEvents.SEARCH,
-          payload,
+          payload
         );
         if (!mountedRef.current || rid !== requestIdRef.current) return;
         if (response.error) {
@@ -101,7 +101,7 @@ export function useMangaDexFeed(filters: SearchFilters, enabled: boolean): HookS
         }
       }
     },
-    [status],
+    [status]
   );
 
   useEffect(() => {

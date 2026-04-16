@@ -23,9 +23,8 @@ export async function asyncPool<T, R>(
     }
   };
 
-  const workers = Array.from(
-    { length: Math.max(1, Math.min(limit, items.length)) },
-    () => worker()
+  const workers = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, () =>
+    worker()
   );
   await Promise.all(workers);
   return results;

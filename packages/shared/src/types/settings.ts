@@ -80,6 +80,4 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
  * settings:set IPC payload so callers can patch a single nested field without
  * supplying the rest of the section.
  */
-export type DeepPartial<T> = T extends object
-  ? { [K in keyof T]?: DeepPartial<T[K]> }
-  : T;
+export type DeepPartial<T> = T extends object ? { [K in keyof T]?: DeepPartial<T[K]> } : T;

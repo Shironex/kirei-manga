@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { createLogger } from '@kireimanga/shared';
-import type {
-  BookmarkWithChapter,
-  ChapterAddBookmarkPayload,
-} from '@kireimanga/shared';
+import type { BookmarkWithChapter, ChapterAddBookmarkPayload } from '@kireimanga/shared';
 import { DatabaseService } from '../database';
 import { LibraryService } from './library.service';
 
@@ -181,9 +178,9 @@ export class BookmarkService {
    * (which reports `changes`) and the sql.js test adapter (which stubs 0).
    */
   async remove(bookmarkId: string): Promise<{ success: boolean }> {
-    const existing = this.db.db
-      .prepare('SELECT id FROM bookmarks WHERE id = ?')
-      .get(bookmarkId) as { id: string } | undefined;
+    const existing = this.db.db.prepare('SELECT id FROM bookmarks WHERE id = ?').get(bookmarkId) as
+      | { id: string }
+      | undefined;
     if (!existing) {
       return { success: false };
     }

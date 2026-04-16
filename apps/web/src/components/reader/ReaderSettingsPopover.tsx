@@ -37,9 +37,7 @@ function Segment<T extends string>({
               onClick={() => onChange(opt.value)}
               className={[
                 'app-no-drag relative px-0 py-1.5 text-[12.5px] tracking-wide transition-colors',
-                active
-                  ? 'text-foreground'
-                  : 'text-[var(--color-bone-muted)] hover:text-foreground',
+                active ? 'text-foreground' : 'text-[var(--color-bone-muted)] hover:text-foreground',
                 disabled ? 'cursor-not-allowed' : '',
               ].join(' ')}
             >

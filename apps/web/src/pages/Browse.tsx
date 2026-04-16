@@ -126,7 +126,9 @@ export function BrowsePage() {
                 <ResultGrid results={feed.results} />
                 <InfiniteSentinel
                   onVisible={feed.loadMore}
-                  disabled={!feed.hasMore || feed.loading || feed.loadingMore || Boolean(feed.error)}
+                  disabled={
+                    !feed.hasMore || feed.loading || feed.loadingMore || Boolean(feed.error)
+                  }
                 />
                 {feed.loadingMore && (
                   <div className="flex justify-center py-4">

@@ -25,13 +25,7 @@ function fitClass(fit: FitMode): string {
   }
 }
 
-export function DoublePageView({
-  pages,
-  primaryIndex,
-  fit,
-  direction,
-  isBookmarked,
-}: Props) {
+export function DoublePageView({ pages, primaryIndex, fit, direction, isBookmarked }: Props) {
   const t = useT();
   // Spreads: [0] alone (cover), then [1,2], [3,4], ...
   const spreads = useMemo<number[][]>(() => {

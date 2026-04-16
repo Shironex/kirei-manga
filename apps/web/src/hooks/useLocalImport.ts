@@ -100,32 +100,26 @@ export function useScanRoot(): {
  */
 export function useImport(): {
   importing: boolean;
-  commit: (
-    rootPath: string,
-    candidates: ScanCandidateSeries[]
-  ) => Promise<LocalImportResponse>;
+  commit: (rootPath: string, candidates: ScanCandidateSeries[]) => Promise<LocalImportResponse>;
 } {
   const [importing, setImporting] = useState(false);
 
-  const commit = useCallback(
-    async (rootPath: string, candidates: ScanCandidateSeries[]) => {
-      setImporting(true);
-      try {
-        const response = await emitWithResponse<LocalImportPayload, LocalImportResponse>(
-          LocalEvents.IMPORT,
-          { rootPath, candidates },
-          120_000
-        );
-        if (response.error) {
-          throw new Error(response.error);
-        }
-        return response;
-      } finally {
-        setImporting(false);
+  const commit = useCallback(async (rootPath: string, candidates: ScanCandidateSeries[]) => {
+    setImporting(true);
+    try {
+      const response = await emitWithResponse<LocalImportPayload, LocalImportResponse>(
+        LocalEvents.IMPORT,
+        { rootPath, candidates },
+        120_000
+      );
+      if (response.error) {
+        throw new Error(response.error);
       }
-    },
-    []
-  );
+      return response;
+    } finally {
+      setImporting(false);
+    }
+  }, []);
 
   return { importing, commit };
 }

@@ -40,9 +40,7 @@ export function getLocalCoverRoot(): string {
  * filesystem. Only the *set* of chapters matters — order stability comes
  * from sorting the relative paths.
  */
-export function computeLocalContentHash(
-  candidate: Pick<ScanCandidateSeries, 'chapters'>
-): string {
+export function computeLocalContentHash(candidate: Pick<ScanCandidateSeries, 'chapters'>): string {
   const paths = candidate.chapters.map(c => c.relativePath).sort();
   const hash = createHash('sha1');
   for (const p of paths) {
@@ -179,13 +177,7 @@ export class LocalLibraryService {
                cover_path, local_root_path, local_content_hash, added_at
              ) VALUES (?, ?, 'local', 'reading', ?, ?, ?, datetime('now'))`
           )
-          .run(
-            seriesId,
-            candidate.suggestedTitle,
-            coverUrl,
-            candidate.absolutePath,
-            contentHash
-          );
+          .run(seriesId, candidate.suggestedTitle, coverUrl, candidate.absolutePath, contentHash);
 
         for (const chapter of candidate.chapters) {
           this.db.db
@@ -242,14 +234,12 @@ export class LocalLibraryService {
       // typed error the UI layer can recognise.
       try {
         this.db.db
-          .prepare(
-            "UPDATE series SET mangadex_id = ? WHERE id = ? AND source = 'local'"
-          )
+          .prepare("UPDATE series SET mangadex_id = ? WHERE id = ? AND source = 'local'")
           .run(patch.mangadexId, id);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         if (/UNIQUE|constraint/i.test(message)) {
-          throw new Error('mangadex-id-taken');
+          throw new Error('mangadex-id-taken', { cause: err });
         }
         throw err;
       }
@@ -285,12 +275,7 @@ export class LocalLibraryService {
              title = COALESCE(?, title)
          WHERE id = ? AND source = 'local'`
       )
-      .run(
-        patch.chapterNumber ?? null,
-        patch.volumeNumber ?? null,
-        patch.title ?? null,
-        chapterId
-      );
+      .run(patch.chapterNumber ?? null, patch.volumeNumber ?? null, patch.title ?? null, chapterId);
     return true;
   }
 
@@ -319,9 +304,7 @@ export class LocalLibraryService {
          WHERE series_id = ? AND source = 'local'`
       )
       .all(localSeriesId) as Array<{ local_path: string | null }>;
-    const existingPaths = new Set(
-      existing.map(r => r.local_path).filter((p): p is string => !!p)
-    );
+    const existingPaths = new Set(existing.map(r => r.local_path).filter((p): p is string => !!p));
 
     let inserted = 0;
     const tx = this.db.db.transaction(() => {
@@ -589,9 +572,7 @@ export class LocalLibraryService {
    */
   getChapterResumePage(chapterId: string): number {
     const row = this.db.db
-      .prepare(
-        "SELECT last_read_page FROM chapters WHERE id = ? AND source = 'local'"
-      )
+      .prepare("SELECT last_read_page FROM chapters WHERE id = ? AND source = 'local'")
       .get(chapterId) as { last_read_page: number } | undefined;
     return row?.last_read_page ?? 0;
   }

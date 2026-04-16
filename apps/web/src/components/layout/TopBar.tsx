@@ -53,12 +53,7 @@ export function TopBar() {
     >
       <div className="flex items-center gap-2.5">
         <div className="flex h-7 w-7 items-center justify-center overflow-hidden">
-          <img
-            src={mascotRead}
-            alt=""
-            aria-hidden
-            className="h-7 w-7 object-contain"
-          />
+          <img src={mascotRead} alt="" aria-hidden className="h-7 w-7 object-contain" />
         </div>
         <span className="font-display text-[13px] font-medium tracking-[0.02em] text-foreground">
           KireiManga

@@ -21,7 +21,7 @@ export function InfiniteSentinel({ onVisible, disabled, rootMargin = '600px' }: 
           if (entry.isIntersecting) callbackRef.current();
         }
       },
-      { rootMargin },
+      { rootMargin }
     );
     observer.observe(el);
     return () => observer.disconnect();

@@ -27,7 +27,10 @@ describe('MangaDexService', () => {
 
   it('normalizes raw manga entities into SearchResults with kirei-cover URLs', async () => {
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify(fixture), { status: 200, headers: { 'content-type': 'application/json' } })
+      new Response(JSON.stringify(fixture), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
     );
 
     const { results, total } = await service.search('anything');
@@ -61,7 +64,10 @@ describe('MangaDexService', () => {
   it('falls back through pickLocalized when English is unavailable', async () => {
     // Frieren fixture has no en title — ja should win via the preferred order.
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify(fixture), { status: 200, headers: { 'content-type': 'application/json' } })
+      new Response(JSON.stringify(fixture), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
     );
 
     const { results } = await service.search('q');
@@ -73,7 +79,10 @@ describe('MangaDexService', () => {
 
   it('serializes contentRating filter with bracket array syntax', async () => {
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify(fixture), { status: 200, headers: { 'content-type': 'application/json' } })
+      new Response(JSON.stringify(fixture), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
     );
 
     await service.search('q', { contentRating: ['safe', 'suggestive'] });

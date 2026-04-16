@@ -98,7 +98,7 @@ export class LocalScannerService {
 
     const candidates: ScanCandidateSeries[] = [];
     for (const series of detected) {
-      const chapters = await this.probeChapters(series.chapters, (archivePath) => {
+      const chapters = await this.probeChapters(series.chapters, archivePath => {
         read += 1;
         listener?.({
           phase: 'reading-archives',
@@ -298,36 +298,36 @@ export class LocalScannerService {
       ARCHIVE_READ_CONCURRENCY,
       detected,
       async c => {
-      onOne(c.absolutePath);
-      try {
-        const reader = await openArchive(c.absolutePath, c.format);
-        const pages = await reader.listPages();
-        await reader.close();
-        const candidate: ScanCandidateChapter = {
-          relativePath: c.relativePath,
-          chapterNumber: parseChapterNumber(c.nameForParse),
-          volumeNumber: parseVolumeNumber(c.nameForParse),
-          pageCount: pages.length,
-          format: c.format,
-        };
-        const coverEntry = pages[0];
-        // For folder chapters the first image is a real filesystem path the
-        // importer can copy. For archive chapters we don't surface a cover
-        // path — the importer re-opens the archive and reads the first page
-        // directly (keeps the scan result filesystem-path-free for archives).
-        const probed: ProbedChapter = { candidate };
-        if (c.format === 'folder' && coverEntry) {
-          probed.coverCandidatePath = path.join(c.absolutePath, coverEntry.name);
+        onOne(c.absolutePath);
+        try {
+          const reader = await openArchive(c.absolutePath, c.format);
+          const pages = await reader.listPages();
+          await reader.close();
+          const candidate: ScanCandidateChapter = {
+            relativePath: c.relativePath,
+            chapterNumber: parseChapterNumber(c.nameForParse),
+            volumeNumber: parseVolumeNumber(c.nameForParse),
+            pageCount: pages.length,
+            format: c.format,
+          };
+          const coverEntry = pages[0];
+          // For folder chapters the first image is a real filesystem path the
+          // importer can copy. For archive chapters we don't surface a cover
+          // path — the importer re-opens the archive and reads the first page
+          // directly (keeps the scan result filesystem-path-free for archives).
+          const probed: ProbedChapter = { candidate };
+          if (c.format === 'folder' && coverEntry) {
+            probed.coverCandidatePath = path.join(c.absolutePath, coverEntry.name);
+          }
+          return probed;
+        } catch (err) {
+          logger.warn(
+            `scanner: skipping unreadable chapter ${c.absolutePath}: ${
+              err instanceof Error ? err.message : String(err)
+            }`
+          );
+          return null;
         }
-        return probed;
-      } catch (err) {
-        logger.warn(
-          `scanner: skipping unreadable chapter ${c.absolutePath}: ${
-            err instanceof Error ? err.message : String(err)
-          }`
-        );
-        return null;
-      }
       }
     );
 
@@ -339,9 +339,7 @@ export class LocalScannerService {
       return await fs.readdir(p, { withFileTypes: true });
     } catch (err) {
       logger.warn(
-        `scanner: readdir failed for ${p}: ${
-          err instanceof Error ? err.message : String(err)
-        }`
+        `scanner: readdir failed for ${p}: ${err instanceof Error ? err.message : String(err)}`
       );
       return [];
     }
@@ -362,11 +360,7 @@ function isImageFile(name: string): boolean {
  * path relative paths are computed against — the scanner keeps those paths
  * so the import step can persist them without re-walking.
  */
-function toChapter(
-  seriesRoot: string,
-  parent: string,
-  dirent: Dirent
-): DetectedChapter | null {
+function toChapter(seriesRoot: string, parent: string, dirent: Dirent): DetectedChapter | null {
   const abs = path.join(parent, dirent.name);
   const format = inferArchiveFormat(abs, dirent.isDirectory());
   if (!format || format === 'folder' || format === 'cbr') {

@@ -27,10 +27,7 @@ function applyTheme(theme: Theme): void {
 }
 
 function applyFontScale(size: FontSize): void {
-  document.documentElement.style.setProperty(
-    '--app-font-scale',
-    String(FONT_SCALE[size] ?? 1)
-  );
+  document.documentElement.style.setProperty('--app-font-scale', String(FONT_SCALE[size] ?? 1));
 }
 
 function applyReadingFont(font: ReadingFont): void {

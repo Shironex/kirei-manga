@@ -32,7 +32,7 @@ export class MangaDexGateway implements OnGatewayInit {
 
   constructor(
     private readonly mangadexService: MangaDexService,
-    private readonly databaseService: DatabaseService,
+    private readonly databaseService: DatabaseService
   ) {
     logger.info('MangaDexGateway initialized');
   }
@@ -50,7 +50,7 @@ export class MangaDexGateway implements OnGatewayInit {
       handler: async () => {
         const { results, total, offset, limit } = await this.mangadexService.search(
           payload.query,
-          payload.filters,
+          payload.filters
         );
         return { results, total, offset, limit };
       },
@@ -102,7 +102,7 @@ export class MangaDexGateway implements OnGatewayInit {
     this.mangadexService.downloadChapter(
       payload.chapterId,
       payload.mangadexSeriesId,
-      this.databaseService,
+      this.databaseService
     );
     return { success: true };
   }

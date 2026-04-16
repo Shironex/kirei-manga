@@ -252,9 +252,7 @@ export class MangaDexClient {
    * Full-text + filter search on `/manga`. Applies sensible defaults:
    * `limit=24`, `includes=['cover_art','author','artist']`.
    */
-  async search(
-    filters: SearchFilters
-  ): Promise<MangaDexApiListResponse<MangaDexMangaEntity>> {
+  async search(filters: SearchFilters): Promise<MangaDexApiListResponse<MangaDexMangaEntity>> {
     const merged: SearchFilters = {
       limit: 24,
       includes: ['cover_art', 'author', 'artist'],
@@ -277,9 +275,7 @@ export class MangaDexClient {
   }
 
   /** Single-series fetch with cover/author/artist relationships expanded. */
-  async getSeries(
-    id: string
-  ): Promise<MangaDexApiEntityResponse<MangaDexMangaEntity>> {
+  async getSeries(id: string): Promise<MangaDexApiEntityResponse<MangaDexMangaEntity>> {
     const params = new URLSearchParams();
     for (const inc of ['cover_art', 'author', 'artist']) {
       params.append('includes[]', inc);

@@ -6,7 +6,11 @@ const SUMI = { r: 20, g: 18, b: 14, alpha: 1 };
 async function compose(mascotPath, outPath, canvas = 512, mascot = 320) {
   const mascotBuf = readFileSync(mascotPath);
   const resized = await sharp(mascotBuf).resize(mascot, mascot, { kernel: 'lanczos3' }).toBuffer();
-  const bg = await sharp({ create: { width: canvas, height: canvas, channels: 4, background: SUMI } }).png().toBuffer();
+  const bg = await sharp({
+    create: { width: canvas, height: canvas, channels: 4, background: SUMI },
+  })
+    .png()
+    .toBuffer();
   const composed = await sharp(bg)
     .composite([{ input: resized, gravity: 'center' }])
     .png()

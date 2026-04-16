@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Download, ExternalLink, Loader2, RefreshCw, Sparkles } from 'lucide-react';
+import { Download, ExternalLink, FolderOpen, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import {
   GITHUB_RELEASES_URL,
   UPDATE_ERROR_RELEASE_PENDING,
   type UpdateChannel,
 } from '@kireimanga/shared';
 import { useT } from '@/hooks/useT';
+import { useToast } from '@/hooks/useToast';
 import { useUpdateStore } from '@/stores/update-store';
 import { Segmented, type SegmentedOption } from './Segmented';
 import { SettingRow, SettingsSection } from './SettingsSection';
 
 export function UpdatesSection() {
   const t = useT();
+  const toast = useToast();
   const status = useUpdateStore(s => s.status);
   const updateInfo = useUpdateStore(s => s.updateInfo);
   const progress = useUpdateStore(s => s.progress);
@@ -51,6 +53,16 @@ export function UpdatesSection() {
 
   const openReleases = () => {
     window.open(GITHUB_RELEASES_URL, '_blank', 'noopener,noreferrer');
+  };
+
+  const openLogsFolder = async () => {
+    try {
+      await window.electronAPI?.app.openLogsFolder();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err), {
+        title: t('settings.updates.logs.error'),
+      });
+    }
   };
 
   const statusLine = (() => {
@@ -96,6 +108,17 @@ export function UpdatesSection() {
         <span className="font-mono text-[12px] tracking-[0.08em] tabular-nums text-foreground">
           {version ?? '—'}
         </span>
+      </SettingRow>
+
+      <SettingRow label={t('settings.updates.logs.label')} hint={t('settings.updates.logs.hint')}>
+        <button
+          type="button"
+          onClick={openLogsFolder}
+          className="inline-flex items-center gap-2 rounded-sm border border-border bg-[var(--color-ink-sunken)] px-3 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--color-bone-muted)] transition-colors hover:border-[var(--color-accent)] hover:text-foreground"
+        >
+          <FolderOpen className="h-3.5 w-3.5" />
+          {t('settings.updates.logs.action')}
+        </button>
       </SettingRow>
 
       {!isMac && (

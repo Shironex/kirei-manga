@@ -51,19 +51,13 @@ export function LibraryPage() {
   });
 
   const sourceFiltered =
-    sourceFilter === 'all'
-      ? baseVisible
-      : baseVisible.filter(s => s.source === sourceFilter);
+    sourceFilter === 'all' ? baseVisible : baseVisible.filter(s => s.source === sourceFilter);
 
   const statusFiltered =
-    statusFilter === 'all'
-      ? sourceFiltered
-      : sourceFiltered.filter(s => s.status === statusFilter);
+    statusFilter === 'all' ? sourceFiltered : sourceFiltered.filter(s => s.status === statusFilter);
 
   const searched = query
-    ? statusFiltered.filter(s =>
-        fuzzyIncludes(`${s.title} ${s.titleJapanese ?? ''}`, query)
-      )
+    ? statusFiltered.filter(s => fuzzyIncludes(`${s.title} ${s.titleJapanese ?? ''}`, query))
     : statusFiltered;
 
   const sign = sortDir === 'asc' ? 1 : -1;

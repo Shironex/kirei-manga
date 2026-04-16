@@ -1,4 +1,7 @@
-import { registerKireiCoverProtocol, setMangaDexClient as setCoverMangaDexClient } from './kirei-cover';
+import {
+  registerKireiCoverProtocol,
+  setMangaDexClient as setCoverMangaDexClient,
+} from './kirei-cover';
 import type { MangaDexCoverFetcher } from './kirei-cover';
 import {
   registerKireiPageProtocol,

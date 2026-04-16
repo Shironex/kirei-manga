@@ -20,10 +20,7 @@ async function makeTmpDir(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), 'kirei-archive-reader-'));
 }
 
-async function buildZip(
-  targetPath: string,
-  files: Record<string, Buffer | string>
-): Promise<void> {
+async function buildZip(targetPath: string, files: Record<string, Buffer | string>): Promise<void> {
   const zip = new JSZip();
   for (const [name, content] of Object.entries(files)) {
     zip.file(name, content);
@@ -35,11 +32,7 @@ async function buildZip(
 describe('naturalPageSort', () => {
   it('orders numeric sequences without leading zeros correctly', () => {
     const input = ['page_10.jpg', 'page_1.jpg', 'page_2.jpg'];
-    expect([...input].sort(naturalPageSort)).toEqual([
-      'page_1.jpg',
-      'page_2.jpg',
-      'page_10.jpg',
-    ]);
+    expect([...input].sort(naturalPageSort)).toEqual(['page_1.jpg', 'page_2.jpg', 'page_10.jpg']);
   });
 
   it('handles mixed prefixes and punctuation', () => {
@@ -104,11 +97,7 @@ describe('ZipArchiveReader', () => {
     const pages = await reader.listPages();
     await reader.close();
 
-    expect(pages.map(p => p.name)).toEqual([
-      'page_1.jpg',
-      'page_2.jpg',
-      'page_10.jpg',
-    ]);
+    expect(pages.map(p => p.name)).toEqual(['page_1.jpg', 'page_2.jpg', 'page_10.jpg']);
   });
 
   it('readPage returns the entry bytes and a matching mime', async () => {
@@ -130,9 +119,9 @@ describe('ZipArchiveReader', () => {
 
     const reader = new ZipArchiveReader(cbz);
     await reader.listPages();
-    await expect(
-      reader.readPage({ name: 'evil.jpg', ext: 'jpg' })
-    ).rejects.toThrow(/unknown entry/);
+    await expect(reader.readPage({ name: 'evil.jpg', ext: 'jpg' })).rejects.toThrow(
+      /unknown entry/
+    );
     await reader.close();
   });
 });
@@ -157,11 +146,7 @@ describe('FolderArchiveReader', () => {
     const reader = new FolderArchiveReader(tmp);
     const pages = await reader.listPages();
 
-    expect(pages.map(p => p.name)).toEqual([
-      'page_1.jpg',
-      'page_2.jpg',
-      'page_10.jpg',
-    ]);
+    expect(pages.map(p => p.name)).toEqual(['page_1.jpg', 'page_2.jpg', 'page_10.jpg']);
   });
 
   it('readPage returns file bytes and the correct mime', async () => {
@@ -181,8 +166,8 @@ describe('FolderArchiveReader', () => {
 
     const reader = new FolderArchiveReader(tmp);
     await reader.listPages();
-    await expect(
-      reader.readPage({ name: '../etc/passwd', ext: '' })
-    ).rejects.toThrow(/unknown entry|suspicious/);
+    await expect(reader.readPage({ name: '../etc/passwd', ext: '' })).rejects.toThrow(
+      /unknown entry|suspicious/
+    );
   });
 });

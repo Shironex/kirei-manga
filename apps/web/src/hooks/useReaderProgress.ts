@@ -178,10 +178,10 @@ export function useReaderProgress(args: UseReaderProgressArgs): UseReaderProgres
         sessionStartedAtRef.current = null;
         void (async () => {
           try {
-            const res = await emitWithResponse<
-              ReaderSessionEndPayload,
-              ReaderSessionEndResponse
-            >(ReaderEvents.SESSION_END, payload);
+            const res = await emitWithResponse<ReaderSessionEndPayload, ReaderSessionEndResponse>(
+              ReaderEvents.SESSION_END,
+              payload
+            );
             if (res.error) {
               showToast({ variant: 'error', title: 'Reader session', body: res.error });
             }

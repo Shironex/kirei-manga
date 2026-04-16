@@ -26,13 +26,7 @@ function fitClass(fit: FitMode): string {
   }
 }
 
-export function SinglePageView({
-  pageUrl,
-  pageNumber,
-  totalPages,
-  fit,
-  isBookmarked,
-}: Props) {
+export function SinglePageView({ pageUrl, pageNumber, totalPages, fit, isBookmarked }: Props) {
   const t = useT();
   const zoom = useReaderStore(s => s.zoom);
   const setZoom = useReaderStore(s => s.setZoom);
@@ -61,7 +55,9 @@ export function SinglePageView({
         src={pageUrl}
         alt={`Page ${pageNumber} of ${totalPages}`}
         draggable={false}
-        style={zoom !== 1 ? { transform: `scale(${zoom})`, transformOrigin: 'center center' } : undefined}
+        style={
+          zoom !== 1 ? { transform: `scale(${zoom})`, transformOrigin: 'center center' } : undefined
+        }
         className={`select-none ${fitClass(fit)}`}
       />
       {showBookmarkDot && (

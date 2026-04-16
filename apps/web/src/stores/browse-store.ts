@@ -44,9 +44,13 @@ export const useBrowseStore = create<BrowseState & BrowseActions>()(set => ({
 
   setQuery: q => set({ query: q }),
   toggleContentRating: value =>
-    set(state => ({ filters: { ...state.filters, contentRating: toggle(state.filters.contentRating, value) } })),
+    set(state => ({
+      filters: { ...state.filters, contentRating: toggle(state.filters.contentRating, value) },
+    })),
   toggleDemographic: value =>
-    set(state => ({ filters: { ...state.filters, demographic: toggle(state.filters.demographic, value) } })),
+    set(state => ({
+      filters: { ...state.filters, demographic: toggle(state.filters.demographic, value) },
+    })),
   toggleStatus: value =>
     set(state => ({ filters: { ...state.filters, status: toggle(state.filters.status, value) } })),
   toggleLanguage: value =>

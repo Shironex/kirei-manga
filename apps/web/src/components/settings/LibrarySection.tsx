@@ -168,17 +168,9 @@ export function LibrarySection() {
   );
 }
 
-function LanguageSelect({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (next: string) => void;
-}) {
+function LanguageSelect({ value, onChange }: { value: string; onChange: (next: string) => void }) {
   const hasValue = LANGUAGE_OPTIONS.some(o => o.code === value);
-  const opts = hasValue
-    ? LANGUAGE_OPTIONS
-    : [...LANGUAGE_OPTIONS, { code: value, label: value }];
+  const opts = hasValue ? LANGUAGE_OPTIONS : [...LANGUAGE_OPTIONS, { code: value, label: value }];
   return (
     <div className="relative">
       <select

@@ -258,8 +258,8 @@ function normalizeToMangaDexSeriesDetail(entity: MangaDexMangaEntity): MangaDexS
  */
 function normalizeToChapterListItem(entity: MangaDexChapterEntity): ChapterListItem {
   const a = entity.attributes;
-  const scanlationGroup = entity.relationships?.find(r => r.type === 'scanlation_group')
-    ?.attributes?.name;
+  const scanlationGroup = entity.relationships?.find(r => r.type === 'scanlation_group')?.attributes
+    ?.name;
   // The chapter feed includes a `manga` relationship by default — surface it
   // so the reader can resolve a series without a second round-trip. Empty
   // string fallback keeps the type non-nullable while flagging upstream gaps.
@@ -287,7 +287,8 @@ function normalizeToChapter(entity: MangaDexChapterEntity, seriesId: string): Ch
     seriesId,
     title: a.title ?? undefined,
     chapterNumber: Number.isFinite(chapterNumber) ? chapterNumber : 0,
-    volumeNumber: volumeNumber !== undefined && Number.isFinite(volumeNumber) ? volumeNumber : undefined,
+    volumeNumber:
+      volumeNumber !== undefined && Number.isFinite(volumeNumber) ? volumeNumber : undefined,
     source: 'mangadex',
     mangadexChapterId: entity.id,
     pageCount: a.pages,
@@ -335,7 +336,7 @@ export class MangaDexService {
 
   async search(
     query: string,
-    filters?: SearchFilters,
+    filters?: SearchFilters
   ): Promise<{ results: SearchResult[]; total: number; offset: number; limit: number }> {
     const merged: SearchFilters = {
       ...(filters ?? {}),
@@ -423,7 +424,14 @@ export class MangaDexService {
   downloadChapter(
     chapterId: string,
     mangadexSeriesId: string,
-    db?: { db: { prepare(sql: string): { run(...args: unknown[]): unknown; get(...args: unknown[]): unknown } } }
+    db?: {
+      db: {
+        prepare(sql: string): {
+          run(...args: unknown[]): unknown;
+          get(...args: unknown[]): unknown;
+        };
+      };
+    }
   ): void {
     // Already in-flight — skip.
     if (this.downloadQueue.has(chapterId)) {
@@ -453,7 +461,14 @@ export class MangaDexService {
   private async executeDownload(
     chapterId: string,
     mangadexSeriesId: string,
-    db?: { db: { prepare(sql: string): { run(...args: unknown[]): unknown; get(...args: unknown[]): unknown } } }
+    db?: {
+      db: {
+        prepare(sql: string): {
+          run(...args: unknown[]): unknown;
+          get(...args: unknown[]): unknown;
+        };
+      };
+    }
   ): Promise<void> {
     let pagesRoot: string;
     try {
@@ -544,7 +559,9 @@ export class MangaDexService {
             .run(randomUUID(), seriesRow.id, chapterId, total);
           logger.info(`Marked chapter ${chapterId} as downloaded (series ${seriesRow.id})`);
         } else {
-          logger.warn(`Series with mangadex_id=${mangadexSeriesId} not found in library — skipping DB upsert`);
+          logger.warn(
+            `Series with mangadex_id=${mangadexSeriesId} not found in library — skipping DB upsert`
+          );
         }
       } catch (err) {
         logger.error(`Failed to upsert chapter row for ${chapterId}:`, err);
@@ -562,9 +579,15 @@ export class MangaDexService {
    *
    * @param db - The DatabaseService instance for querying followed series.
    */
-  async checkUpdates(
-    db?: { db: { prepare(sql: string): { run(...args: unknown[]): unknown; get(...args: unknown[]): unknown; all(...args: unknown[]): unknown[] } } }
-  ): Promise<Array<{ seriesId: string; newCount: number }>> {
+  async checkUpdates(db?: {
+    db: {
+      prepare(sql: string): {
+        run(...args: unknown[]): unknown;
+        get(...args: unknown[]): unknown;
+        all(...args: unknown[]): unknown[];
+      };
+    };
+  }): Promise<Array<{ seriesId: string; newCount: number }>> {
     if (!db) {
       logger.warn('checkUpdates called without database — skipping');
       return [];
@@ -583,9 +606,7 @@ export class MangaDexService {
 
         if (row.last_checked_at) {
           // Count chapters published after the last check.
-          newCount = chapters.filter(
-            ch => ch.attributes.publishAt > row.last_checked_at!
-          ).length;
+          newCount = chapters.filter(ch => ch.attributes.publishAt > row.last_checked_at!).length;
         } else {
           // First check — don't flood the user with notifications for all
           // existing chapters. Set count to 0 and record the checkpoint.

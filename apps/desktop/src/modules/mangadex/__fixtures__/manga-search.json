@@ -53,10 +53,7 @@
       "type": "manga",
       "attributes": {
         "title": { "ja": "葬送のフリーレン" },
-        "altTitles": [
-          { "ja-ro": "Sousou no Frieren" },
-          { "en": "Frieren: Beyond Journey's End" }
-        ],
+        "altTitles": [{ "ja-ro": "Sousou no Frieren" }, { "en": "Frieren: Beyond Journey's End" }],
         "description": {
           "ja": "旅の終わりを見届けたフリーレンの、次の旅が始まる。"
         },

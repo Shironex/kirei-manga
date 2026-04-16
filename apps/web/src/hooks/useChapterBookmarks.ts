@@ -55,10 +55,10 @@ export function useChapterBookmarks(
     const rid = ++requestIdRef.current;
     void (async () => {
       try {
-        const res = await emitWithResponse<
-          ChapterGetBookmarksPayload,
-          ChapterGetBookmarksResponse
-        >(ChapterEvents.GET_BOOKMARKS, { mangadexSeriesId });
+        const res = await emitWithResponse<ChapterGetBookmarksPayload, ChapterGetBookmarksResponse>(
+          ChapterEvents.GET_BOOKMARKS,
+          { mangadexSeriesId }
+        );
         if (!mountedRef.current) return;
         if (rid !== requestIdRef.current) return;
         if (res.error) {
@@ -118,19 +118,19 @@ export function useChapterBookmarks(
       const existing = bookmarkByPage.get(page);
       try {
         if (existing) {
-          await emitWithResponse<
-            ChapterRemoveBookmarkPayload,
-            ChapterRemoveBookmarkResponse
-          >(ChapterEvents.REMOVE_BOOKMARK, { bookmarkId: existing.id });
+          await emitWithResponse<ChapterRemoveBookmarkPayload, ChapterRemoveBookmarkResponse>(
+            ChapterEvents.REMOVE_BOOKMARK,
+            { bookmarkId: existing.id }
+          );
         } else {
-          await emitWithResponse<
-            ChapterAddBookmarkPayload,
-            ChapterAddBookmarkResponse
-          >(ChapterEvents.ADD_BOOKMARK, {
-            mangadexSeriesId,
-            mangadexChapterId,
-            page,
-          });
+          await emitWithResponse<ChapterAddBookmarkPayload, ChapterAddBookmarkResponse>(
+            ChapterEvents.ADD_BOOKMARK,
+            {
+              mangadexSeriesId,
+              mangadexChapterId,
+              page,
+            }
+          );
         }
       } catch (err) {
         logger.warn('bookmark toggle failed', err);

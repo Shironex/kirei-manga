@@ -114,9 +114,7 @@ export class LibraryService {
   async getReaderPrefs(seriesId: string): Promise<ReaderSettings> {
     const defaults = this.getReaderDefaults();
     const row = this.db.db
-      .prepare(
-        'SELECT reader_mode, reader_direction, reader_fit FROM series WHERE id = ?'
-      )
+      .prepare('SELECT reader_mode, reader_direction, reader_fit FROM series WHERE id = ?')
       .get(seriesId) as
       | Pick<SeriesRow, 'reader_mode' | 'reader_direction' | 'reader_fit'>
       | undefined;
@@ -150,9 +148,9 @@ export class LibraryService {
       )
       .run(prefs.mode ?? null, prefs.direction ?? null, prefs.fit ?? null, seriesId);
 
-    const row = this.db.db
-      .prepare('SELECT * FROM series WHERE id = ?')
-      .get(seriesId) as SeriesRow | undefined;
+    const row = this.db.db.prepare('SELECT * FROM series WHERE id = ?').get(seriesId) as
+      | SeriesRow
+      | undefined;
     return row ? this.rowToSeries(row) : null;
   }
 
@@ -166,9 +164,9 @@ export class LibraryService {
 
   /** Return a single series by id, or `null` if not found. */
   async getSeries(id: string): Promise<Series | null> {
-    const row = this.db.db
-      .prepare('SELECT * FROM series WHERE id = ?')
-      .get(id) as SeriesRow | undefined;
+    const row = this.db.db.prepare('SELECT * FROM series WHERE id = ?').get(id) as
+      | SeriesRow
+      | undefined;
     return row ? this.rowToSeries(row) : null;
   }
 
@@ -193,17 +191,9 @@ export class LibraryService {
         `INSERT INTO series (id, title, title_japanese, cover_path, source, mangadex_id, status, added_at)
          VALUES (?, ?, ?, ?, 'mangadex', ?, 'reading', datetime('now'))`
       )
-      .run(
-        id,
-        detail.title,
-        detail.titleJapanese ?? null,
-        detail.coverUrl ?? null,
-        mangadexId
-      );
+      .run(id, detail.title, detail.titleJapanese ?? null, detail.coverUrl ?? null, mangadexId);
 
-    const inserted = this.db.db
-      .prepare('SELECT * FROM series WHERE id = ?')
-      .get(id) as SeriesRow;
+    const inserted = this.db.db.prepare('SELECT * FROM series WHERE id = ?').get(id) as SeriesRow;
     return this.rowToSeries(inserted);
   }
 
@@ -221,9 +211,9 @@ export class LibraryService {
    */
   async updateStatus(id: string, status: ReadingStatus): Promise<Series | null> {
     this.db.db.prepare('UPDATE series SET status = ? WHERE id = ?').run(status, id);
-    const row = this.db.db
-      .prepare('SELECT * FROM series WHERE id = ?')
-      .get(id) as SeriesRow | undefined;
+    const row = this.db.db.prepare('SELECT * FROM series WHERE id = ?').get(id) as
+      | SeriesRow
+      | undefined;
     return row ? this.rowToSeries(row) : null;
   }
 
@@ -468,12 +458,8 @@ export class LibraryService {
       .run(randomUUID(), localSeriesId, params.mangadexChapterId);
 
     const row = this.db.db
-      .prepare(
-        'SELECT id, last_read_page FROM chapters WHERE mangadex_chapter_id = ?'
-      )
-      .get(params.mangadexChapterId) as
-      | { id: string; last_read_page: number }
-      | undefined;
+      .prepare('SELECT id, last_read_page FROM chapters WHERE mangadex_chapter_id = ?')
+      .get(params.mangadexChapterId) as { id: string; last_read_page: number } | undefined;
     if (!row) {
       throw new Error('failed to upsert chapter row for session start');
     }
@@ -523,9 +509,6 @@ export class LibraryService {
    * series detail page, signalling they've "seen" the update notification.
    */
   async markSeen(localSeriesId: string): Promise<void> {
-    this.db.db
-      .prepare('UPDATE series SET new_chapter_count = 0 WHERE id = ?')
-      .run(localSeriesId);
+    this.db.db.prepare('UPDATE series SET new_chapter_count = 0 WHERE id = ?').run(localSeriesId);
   }
-
 }

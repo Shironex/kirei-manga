@@ -17,6 +17,6 @@ export const useUIStore = create<UIState & UIActions>()(
       toggleSidebar: () => set(state => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSidebarCollapsed: sidebarCollapsed => set({ sidebarCollapsed }),
     }),
-    { name: 'kireimanga-ui' },
-  ),
+    { name: 'kireimanga-ui' }
+  )
 );

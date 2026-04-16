@@ -1,16 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type {
-  ScanCandidateSeries,
-  ScanResult,
-} from '@kireimanga/shared';
+import type { ScanCandidateSeries, ScanResult } from '@kireimanga/shared';
 import { PageHeader } from '../components/layout/PageHeader';
 import { EmptyState } from '../components/layout/EmptyState';
-import {
-  useFolderPicker,
-  useScanRoot,
-  useImport,
-} from '@/hooks/useLocalImport';
+import { useFolderPicker, useScanRoot, useImport } from '@/hooks/useLocalImport';
 import { useToastStore } from '@/stores/toast-store';
 
 type Phase = 'idle' | 'scanning' | 'review' | 'importing' | 'done';
@@ -70,9 +63,7 @@ export function LibraryImportPage() {
   }, [pick, scan, resetScan]);
 
   const toggle = (index: number): void => {
-    setRows(prev =>
-      prev.map(r => (r.index === index ? { ...r, selected: !r.selected } : r))
-    );
+    setRows(prev => prev.map(r => (r.index === index ? { ...r, selected: !r.selected } : r)));
   };
 
   const rename = (index: number, title: string): void => {
@@ -215,10 +206,7 @@ export function LibraryImportPage() {
                 {rows.map(row => {
                   const candidate = scanResult.candidates[row.index];
                   return (
-                    <li
-                      key={row.index}
-                      className="flex items-center gap-5 py-4"
-                    >
+                    <li key={row.index} className="flex items-center gap-5 py-4">
                       <input
                         type="checkbox"
                         checked={row.selected}
@@ -256,9 +244,7 @@ export function LibraryImportPage() {
                   {importing ? 'Importing…' : `Import ${selectedCount}`}
                 </button>
               </div>
-              {error && (
-                <p className="text-[13px] text-[var(--color-accent)]">{error}</p>
-              )}
+              {error && <p className="text-[13px] text-[var(--color-accent)]">{error}</p>}
             </>
           )}
         </div>

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { LibraryEvents, type LibraryMarkSeenPayload, type LibraryMarkSeenResponse } from '@kireimanga/shared';
+import {
+  LibraryEvents,
+  type LibraryMarkSeenPayload,
+  type LibraryMarkSeenResponse,
+} from '@kireimanga/shared';
 import { useMangaDexSeries } from '@/hooks/useMangaDexSeries';
 import { useMangaDexChapters } from '@/hooks/useMangaDexChapters';
 import { useChapterStates } from '@/hooks/useChapterStates';
@@ -34,11 +38,13 @@ export function SeriesDetailPage() {
         ? 'en'
         : langs[0];
     setLang(next);
-  }, [series?.id, defaultChapterLanguage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [series?.id, defaultChapterLanguage]);
 
   const chaptersState = useMangaDexChapters(mangadexId, lang);
 
-  const localSeriesId = useLibraryStore(s => (mangadexId ? (s.mangadexIndex[mangadexId] ?? null) : null));
+  const localSeriesId = useLibraryStore(s =>
+    mangadexId ? (s.mangadexIndex[mangadexId] ?? null) : null
+  );
 
   // Clear the new-chapter badge when the user opens the series detail page.
   useEffect(() => {
@@ -49,16 +55,11 @@ export function SeriesDetailPage() {
     );
     // Also clear the local store badge immediately for responsiveness.
     useLibraryStore.setState(state => ({
-      series: state.series.map(s =>
-        s.id === localSeriesId ? { ...s, newChapterCount: 0 } : s
-      ),
+      series: state.series.map(s => (s.id === localSeriesId ? { ...s, newChapterCount: 0 } : s)),
     }));
   }, [localSeriesId]);
 
-  const chapterIds = useMemo(
-    () => chaptersState.chapters.map(c => c.id),
-    [chaptersState.chapters]
-  );
+  const chapterIds = useMemo(() => chaptersState.chapters.map(c => c.id), [chaptersState.chapters]);
   const chapterStates = useChapterStates(localSeriesId, chapterIds);
 
   if (loading && !series) {

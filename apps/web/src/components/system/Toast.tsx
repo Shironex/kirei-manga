@@ -40,7 +40,6 @@ export function Toast({ toast }: ToastProps) {
         handle.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const isError = toast.variant === 'error';

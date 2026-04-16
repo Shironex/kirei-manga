@@ -33,8 +33,7 @@ export function ReaderChrome({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement | null>(null);
 
-  const isMac =
-    typeof window !== 'undefined' && window.electronAPI?.platform === 'darwin';
+  const isMac = typeof window !== 'undefined' && window.electronAPI?.platform === 'darwin';
 
   // Dismiss popover on outside click.
   useEffect(() => {

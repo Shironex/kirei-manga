@@ -56,10 +56,10 @@ export function useSeriesBookmarks(mangadexSeriesId: string | null): {
     setError(null);
     void (async () => {
       try {
-        const res = await emitWithResponse<
-          ChapterGetBookmarksPayload,
-          ChapterGetBookmarksResponse
-        >(ChapterEvents.GET_BOOKMARKS, { mangadexSeriesId });
+        const res = await emitWithResponse<ChapterGetBookmarksPayload, ChapterGetBookmarksResponse>(
+          ChapterEvents.GET_BOOKMARKS,
+          { mangadexSeriesId }
+        );
         if (!mountedRef.current) return;
         if (rid !== requestIdRef.current) return;
         if (res.error) {
@@ -108,10 +108,10 @@ export function useSeriesBookmarks(mangadexSeriesId: string | null): {
 
   const remove = useCallback(async (bookmarkId: string) => {
     try {
-      await emitWithResponse<
-        ChapterRemoveBookmarkPayload,
-        ChapterRemoveBookmarkResponse
-      >(ChapterEvents.REMOVE_BOOKMARK, { bookmarkId });
+      await emitWithResponse<ChapterRemoveBookmarkPayload, ChapterRemoveBookmarkResponse>(
+        ChapterEvents.REMOVE_BOOKMARK,
+        { bookmarkId }
+      );
     } catch (err) {
       logger.warn('chapter:remove-bookmark failed', err);
     }

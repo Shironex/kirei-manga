@@ -45,7 +45,7 @@ export function useDownloadChapter(
     if (initiallyDownloaded && status === 'idle') {
       setStatus('complete');
     }
-  }, [initiallyDownloaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initiallyDownloaded]);
 
   // Listen for progress events scoped to this chapter.
   useEffect(() => {

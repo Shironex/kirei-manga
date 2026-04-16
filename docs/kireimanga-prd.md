@@ -1,5 +1,7 @@
 # 綺麗漫画 · KireiManga
+
 ## Product Requirements Document (PRD)
+
 **Version:** 0.1 · **Status:** Draft  
 **Author:** Shironex  
 **Stack:** Electron · React · TypeScript · NestJS · better-sqlite3 · C++ (node-addon-api)
@@ -12,19 +14,19 @@ KireiManga is a **daily-use desktop manga reading companion** — a polished, lo
 
 It is part of the **Shiro suite** alongside ShiroAni (anime) and Shiranami (music), sharing the same AniList account, design language, and monorepo patterns.
 
-> *"Read any manga, in any language."*
+> _"Read any manga, in any language."_
 
 ---
 
 ## 2. Goals
 
-| Goal | Description |
-|---|---|
-| **Daily habit** | Become the app users open every time they read manga, not a one-off tool |
-| **Local-first** | All reading data stored locally in SQLite, works fully offline |
-| **Translation** | First desktop manga reader with real-time OCR + translation overlay |
-| **AniList sync** | Automatically sync reading progress with user's AniList account |
-| **Suite fit** | Reuse architecture, UI components, and auth patterns from ShiroAni |
+| Goal             | Description                                                              |
+| ---------------- | ------------------------------------------------------------------------ |
+| **Daily habit**  | Become the app users open every time they read manga, not a one-off tool |
+| **Local-first**  | All reading data stored locally in SQLite, works fully offline           |
+| **Translation**  | First desktop manga reader with real-time OCR + translation overlay      |
+| **AniList sync** | Automatically sync reading progress with user's AniList account          |
+| **Suite fit**    | Reuse architecture, UI components, and auth patterns from ShiroAni       |
 
 ---
 
@@ -55,6 +57,7 @@ It is part of the **Shiro suite** alongside ShiroAni (anime) and Shiranami (musi
 The first shippable version is a clean, fast manga reader built around MangaDex. No local library, no AniList.
 
 **MangaDex Integration**
+
 - Browse MangaDex catalog via official API (no scraping)
 - Search by title, author, tags, demographic, content rating
 - Read chapters directly in-app with online page streaming
@@ -63,6 +66,7 @@ The first shippable version is a clean, fast manga reader built around MangaDex.
 - Language filter for chapters (EN, PL, JP, etc.)
 
 **Internal Library (MangaDex-backed)**
+
 - Follow/unfollow series — stored locally in SQLite
 - Reading status per series: reading, completed, plan to read, on hold, dropped
 - Auto-track reading progress (last read chapter + page)
@@ -70,12 +74,14 @@ The first shippable version is a clean, fast manga reader built around MangaDex.
 - Bookmarks per page
 
 **Series Details Panel**
+
 - MangaDex metadata: synopsis, genres, author, artist, status, rating
 - Chapter list with read/unread state, language filter
 - Cover and banner image
 - New chapter badges
 
 **Reader**
+
 - Full-screen reader with keyboard navigation (arrow keys, A/D, space)
 - Reading modes: single page, double page (auto-detect cover), webtoon vertical scroll
 - RTL / LTR direction toggle per series
@@ -85,6 +91,7 @@ The first shippable version is a clean, fast manga reader built around MangaDex.
 - Bookmarks per page
 
 **Library View**
+
 - Grid view with covers
 - List view with chapter progress
 - Sort by: title, last read, date added, progress
@@ -92,6 +99,7 @@ The first shippable version is a clean, fast manga reader built around MangaDex.
 - Search followed series by title
 
 **Settings**
+
 - Theme (dark/light, custom accent colors)
 - Default reading mode
 - Keyboard shortcut customization
@@ -103,6 +111,7 @@ The first shippable version is a clean, fast manga reader built around MangaDex.
 ### 5.2 v0.2 — Local Library
 
 **Local Library**
+
 - Import folders of images or CBZ / CBR / ZIP archives
 - Scan a root folder recursively and auto-detect manga series
 - Store library metadata in SQLite (title, cover, chapter list, reading progress)
@@ -117,6 +126,7 @@ The first shippable version is a clean, fast manga reader built around MangaDex.
 The translation pipeline runs entirely locally except for the translation API call.
 
 **Pipeline overview:**
+
 ```
 Page image
   → C++ / OpenCV: speech bubble region detection
@@ -127,18 +137,21 @@ Page image
 ```
 
 **Bubble Detection (C++ native module)**
+
 - OpenCV-based contour detection for white/light speech bubble regions
 - Filter out screen tones, panel borders, and non-bubble shapes
 - Return list of bounding polygons per page
 - Runs in a worker thread, does not block the UI
 
 **OCR (manga-ocr Python sidecar)**
+
 - `manga-ocr` ML model — specifically trained on manga fonts, vertical text, stylized fonts
 - Bundled as a prebuilt binary / PyInstaller executable shipped with the app
 - Communicates via IPC (stdin/stdout or named pipe) to avoid Python env requirements for the user
 - Fallback: Tesseract (JP) if manga-ocr binary fails
 
 **Translation**
+
 - Primary: DeepL API (user provides their own free API key — 500k chars/month)
 - Secondary: Google Translate API (user provides key)
 - Tertiary: Local model via Ollama (fully offline, lower quality)
@@ -146,12 +159,14 @@ Page image
 - Per-series language override
 
 **Translation Cache**
+
 - Cache key: SHA256 of page image + bubble bounding box
 - Stored in SQLite alongside library data
 - Never re-translates the same page/bubble combination
 - Cache is portable (follows library folder)
 
 **Overlay UI**
+
 - Translated text boxes rendered on canvas over the original page
 - Text auto-fits to bubble bounding box (font size scales down)
 - Toggle: show translation / show original / show both (split)
@@ -160,6 +175,7 @@ Page image
 - Report bad translation (flag for manual correction, stored locally)
 
 **Translation Settings**
+
 - Enable/disable translation per series
 - Choose translation provider
 - Choose target language
@@ -172,6 +188,7 @@ Page image
 ### 5.4 v0.4 — AniList Sync
 
 **AniList Integration**
+
 - Login with AniList OAuth
 - Import user's manga list (reading, completed, plan to read, etc.)
 - Auto-sync reading progress: mark chapters read on AniList as you read
@@ -252,59 +269,59 @@ kirei-manga/
 ```typescript
 // Series — a manga title
 interface Series {
-  id: string                  // UUID
-  title: string
-  titleJapanese?: string
-  coverPath?: string          // Local path or cached URL
-  source: 'local' | 'mangadex'
-  mangadexId?: string
-  anilistId?: number
-  status: ReadingStatus       // reading | completed | planToRead | onHold | dropped
-  score?: number              // 1–10
-  notes?: string
-  addedAt: Date
-  lastReadAt?: Date
+  id: string; // UUID
+  title: string;
+  titleJapanese?: string;
+  coverPath?: string; // Local path or cached URL
+  source: 'local' | 'mangadex';
+  mangadexId?: string;
+  anilistId?: number;
+  status: ReadingStatus; // reading | completed | planToRead | onHold | dropped
+  score?: number; // 1–10
+  notes?: string;
+  addedAt: Date;
+  lastReadAt?: Date;
 }
 
 // Chapter
 interface Chapter {
-  id: string
-  seriesId: string
-  title?: string
-  chapterNumber: number
-  volumeNumber?: number
-  source: 'local' | 'mangadex'
-  mangadexChapterId?: string
-  localPath?: string          // Folder or archive path
-  pageCount: number
-  isDownloaded: boolean
-  isRead: boolean
-  lastReadPage: number
-  readAt?: Date
+  id: string;
+  seriesId: string;
+  title?: string;
+  chapterNumber: number;
+  volumeNumber?: number;
+  source: 'local' | 'mangadex';
+  mangadexChapterId?: string;
+  localPath?: string; // Folder or archive path
+  pageCount: number;
+  isDownloaded: boolean;
+  isRead: boolean;
+  lastReadPage: number;
+  readAt?: Date;
 }
 
 // Translation cache entry
 interface TranslationCache {
-  id: string
-  pageHash: string            // SHA256 of page image bytes
-  bubbleIndex: number         // Index of bubble on this page
-  boundingBox: BoundingBox    // { x, y, w, h }
-  originalText: string        // OCR result
-  translatedText: string
-  targetLanguage: string      // 'en' | 'pl' | etc.
-  provider: string            // 'deepl' | 'google' | 'ollama'
-  createdAt: Date
+  id: string;
+  pageHash: string; // SHA256 of page image bytes
+  bubbleIndex: number; // Index of bubble on this page
+  boundingBox: BoundingBox; // { x, y, w, h }
+  originalText: string; // OCR result
+  translatedText: string;
+  targetLanguage: string; // 'en' | 'pl' | etc.
+  provider: string; // 'deepl' | 'google' | 'ollama'
+  createdAt: Date;
 }
 
 // Reading session (for progress tracking)
 interface ReadingSession {
-  id: string
-  chapterId: string
-  startPage: number
-  endPage: number
-  startedAt: Date
-  endedAt?: Date
-  durationSeconds: number
+  id: string;
+  chapterId: string;
+  startPage: number;
+  endPage: number;
+  startedAt: Date;
+  endedAt?: Date;
+  durationSeconds: number;
 }
 ```
 
@@ -316,42 +333,42 @@ All communication between the Electron renderer and the NestJS backend uses IPC 
 
 ```typescript
 // Internal library (MangaDex-backed, stored in SQLite)
-'library:get-all'            // () => Series[]
-'library:get-series'         // (id: string) => Series
-'library:follow'             // (mangadexId: string) => Series
-'library:unfollow'           // (id: string) => void
-'library:update-status'      // (id: string, status: ReadingStatus) => Series
-'library:update-progress'    // (id: string, chapterId: string, page: number) => void
+'library:get-all'; // () => Series[]
+'library:get-series'; // (id: string) => Series
+'library:follow'; // (mangadexId: string) => Series
+'library:unfollow'; // (id: string) => void
+'library:update-status'; // (id: string, status: ReadingStatus) => Series
+'library:update-progress'; // (id: string, chapterId: string, page: number) => void
 
 // MangaDex
-'mangadex:search'            // (query: string, filters: SearchFilters) => SearchResult[]
-'mangadex:get-series'        // (mangadexId: string) => MangaDexSeries
-'mangadex:get-chapters'      // (mangadexId: string, lang: string) => Chapter[]
-'mangadex:get-pages'         // (chapterId: string) => string[]
-'mangadex:download-chapter'  // (chapterId: string) => void (streams progress events)
-'mangadex:check-updates'     // () => SeriesUpdate[]
+'mangadex:search'; // (query: string, filters: SearchFilters) => SearchResult[]
+'mangadex:get-series'; // (mangadexId: string) => MangaDexSeries
+'mangadex:get-chapters'; // (mangadexId: string, lang: string) => Chapter[]
+'mangadex:get-pages'; // (chapterId: string) => string[]
+'mangadex:download-chapter'; // (chapterId: string) => void (streams progress events)
+'mangadex:check-updates'; // () => SeriesUpdate[]
 
 // Local library (v0.2)
-'local:scan-folder'          // (path: string) => Series[]
-'local:get-pages'            // (chapterId: string) => string[] (local file paths)
-'local:update-series'        // (id: string, data: Partial<Series>) => Series
-'local:delete-series'        // (id: string) => void
+'local:scan-folder'; // (path: string) => Series[]
+'local:get-pages'; // (chapterId: string) => string[] (local file paths)
+'local:update-series'; // (id: string, data: Partial<Series>) => Series
+'local:delete-series'; // (id: string) => void
 
 // AniList (v0.3)
-'anilist:login'              // () => void (opens OAuth window)
-'anilist:get-list'           // () => AniListEntry[]
-'anilist:sync-progress'      // (anilistId: number, chapter: number) => void
+'anilist:login'; // () => void (opens OAuth window)
+'anilist:get-list'; // () => AniListEntry[]
+'anilist:sync-progress'; // (anilistId: number, chapter: number) => void
 
 // Chapters (shared)
-'chapter:mark-read'          // (chapterId: string) => void
-'chapter:add-bookmark'       // (chapterId: string, page: number) => void
-'chapter:get-bookmarks'      // (chapterId: string) => Bookmark[]
+'chapter:mark-read'; // (chapterId: string) => void
+'chapter:add-bookmark'; // (chapterId: string, page: number) => void
+'chapter:get-bookmarks'; // (chapterId: string) => Bookmark[]
 
 // Translation (v0.4)
-'translation:detect-bubbles' // (pageImagePath: string) => BoundingBox[]
-'translation:ocr-page'       // (pageImagePath: string, boxes: BoundingBox[]) => OcrResult[]
-'translation:translate'      // (texts: string[], targetLang: string) => string[]
-'translation:get-cache'      // (pageHash: string) => TranslationCache[]
+'translation:detect-bubbles'; // (pageImagePath: string) => BoundingBox[]
+'translation:ocr-page'; // (pageImagePath: string, boxes: BoundingBox[]) => OcrResult[]
+'translation:translate'; // (texts: string[], targetLang: string) => string[]
+'translation:get-cache'; // (pageHash: string) => TranslationCache[]
 ```
 
 ---
@@ -364,6 +381,7 @@ The C++ module handles speech bubble detection using OpenCV.
 **Output:** array of bounding boxes `{ x, y, w, h, confidence }`
 
 **Algorithm:**
+
 1. Load image via OpenCV
 2. Convert to grayscale
 3. Apply adaptive thresholding to separate white bubbles from screentone backgrounds
@@ -392,6 +410,7 @@ The Python OCR engine runs as a separate process bundled with the app.
 **Response:** `{ "results": [{ "box_index": 0, "text": "テキスト" }] }`
 
 **Bundling:**
+
 - Built with PyInstaller into a single executable
 - Shipped inside `resources/sidecar/` in the Electron package
 - Launched by NestJS on app start, kept alive as a child process
@@ -408,6 +427,7 @@ When starting a new session to analyze existing codebases, focus on the followin
 ### ShiroAni (Primary Reference)
 
 Areas to study:
+
 - `apps/desktop/src/main/` — Electron main process, window management, auto-updater
 - NestJS embedded backend setup and IPC bridge pattern
 - AniList OAuth implementation
@@ -421,6 +441,7 @@ Areas to study:
 ### Shiranami (Secondary Reference)
 
 Areas to study:
+
 - Local file library management (how local audio files are scanned/indexed)
 - File system watcher implementation
 - Cover art / metadata extraction
@@ -430,35 +451,35 @@ Areas to study:
 
 ## 12. Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Desktop shell | Electron 40+ |
-| Backend | NestJS 10 (embedded in Electron main) |
-| Frontend | React 18, Vite 7, Tailwind CSS 4 |
-| Database | better-sqlite3 |
-| State management | Zustand |
-| UI components | Radix UI, Lucide Icons |
-| Native addon | C++ via node-addon-api (OpenCV for bubble detection) |
-| OCR | manga-ocr (Python sidecar, PyInstaller bundle) |
-| Translation | DeepL API / Google Translate API / Ollama (local) |
+| Layer            | Technology                                              |
+| ---------------- | ------------------------------------------------------- |
+| Desktop shell    | Electron 40+                                            |
+| Backend          | NestJS 10 (embedded in Electron main)                   |
+| Frontend         | React 18, Vite 7, Tailwind CSS 4                        |
+| Database         | better-sqlite3                                          |
+| State management | Zustand                                                 |
+| UI components    | Radix UI, Lucide Icons                                  |
+| Native addon     | C++ via node-addon-api (OpenCV for bubble detection)    |
+| OCR              | manga-ocr (Python sidecar, PyInstaller bundle)          |
+| Translation      | DeepL API / Google Translate API / Ollama (local)       |
 | Image processing | OpenCV (C++) + sharp (JS, for page preloading/resizing) |
-| Archive reading | node-stream-zip (CBZ), node-rar (CBR) |
-| Real-time | Socket.IO (same as ShiroAni) |
-| Tests | Jest, Vitest |
-| CI/CD | GitHub Actions |
-| Package manager | pnpm + pnpm workspaces |
+| Archive reading  | node-stream-zip (CBZ), node-rar (CBR)                   |
+| Real-time        | Socket.IO (same as ShiroAni)                            |
+| Tests            | Jest, Vitest                                            |
+| CI/CD            | GitHub Actions                                          |
+| Package manager  | pnpm + pnpm workspaces                                  |
 
 ---
 
 ## 13. Milestones
 
-| Milestone | Scope | Target |
-|---|---|---|
+| Milestone              | Scope                                                                    | Target   |
+| ---------------------- | ------------------------------------------------------------------------ | -------- |
 | v0.1 — MangaDex Reader | MangaDex API, chapter streaming, reader, offline cache, internal library | Week 1–2 |
-| v0.2 — Local Library | CBZ/folder reader, local series management, unified library view | Week 3–4 |
-| v0.3 — Translation | Bubble detection, manga-ocr, DeepL overlay | Week 5–7 |
-| v0.4 — AniList Sync | OAuth, progress sync, import/export manga list | Week 8 |
-| v0.5 — Polish | Dictionary hover, Anki export, perf improvements | Week 9+ |
+| v0.2 — Local Library   | CBZ/folder reader, local series management, unified library view         | Week 3–4 |
+| v0.3 — Translation     | Bubble detection, manga-ocr, DeepL overlay                               | Week 5–7 |
+| v0.4 — AniList Sync    | OAuth, progress sync, import/export manga list                           | Week 8   |
+| v0.5 — Polish          | Dictionary hover, Anki export, perf improvements                         | Week 9+  |
 
 ---
 
@@ -473,4 +494,4 @@ Areas to study:
 
 ---
 
-*End of PRD v0.1*
+_End of PRD v0.1_

@@ -275,14 +275,10 @@ export const useLibraryStore = create<LibraryStore>()((set, get) => ({
     updatesAvailableHandler = (payload: LibraryUpdatesAvailableEvent) => {
       const state = get();
       if (!payload.results || payload.results.length === 0) return;
-      const countBySeriesId = new Map(
-        payload.results.map(r => [r.seriesId, r.newCount])
-      );
+      const countBySeriesId = new Map(payload.results.map(r => [r.seriesId, r.newCount]));
       set({
         series: state.series.map(s =>
-          countBySeriesId.has(s.id)
-            ? { ...s, newChapterCount: countBySeriesId.get(s.id) }
-            : s
+          countBySeriesId.has(s.id) ? { ...s, newChapterCount: countBySeriesId.get(s.id) } : s
         ),
       });
     };

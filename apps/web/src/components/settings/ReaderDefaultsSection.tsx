@@ -1,10 +1,5 @@
 import { ChevronDown } from 'lucide-react';
-import type {
-  FitMode,
-  ReaderDefaults,
-  ReaderDirection,
-  ReaderMode,
-} from '@kireimanga/shared';
+import type { FitMode, ReaderDefaults, ReaderDirection, ReaderMode } from '@kireimanga/shared';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useT } from '@/hooks/useT';
 import { Segmented, type SegmentedOption } from './Segmented';
@@ -65,10 +60,7 @@ export function ReaderDefaultsSection() {
       title={t('settings.reader.title')}
       description={t('settings.reader.description')}
     >
-      <SettingRow
-        label={t('settings.reader.mode.label')}
-        hint={t('settings.reader.mode.hint')}
-      >
+      <SettingRow label={t('settings.reader.mode.label')} hint={t('settings.reader.mode.hint')}>
         <Segmented<ReaderMode>
           ariaLabel={t('settings.reader.mode.label')}
           value={reader.mode}
@@ -89,10 +81,7 @@ export function ReaderDefaultsSection() {
         />
       </SettingRow>
 
-      <SettingRow
-        label={t('settings.reader.fit.label')}
-        hint={t('settings.reader.fit.hint')}
-      >
+      <SettingRow label={t('settings.reader.fit.label')} hint={t('settings.reader.fit.hint')}>
         <Segmented<FitMode>
           ariaLabel={t('settings.reader.fit.label')}
           value={reader.fit}
@@ -111,19 +100,11 @@ export function ReaderDefaultsSection() {
   );
 }
 
-function LanguageSelect({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (next: string) => void;
-}) {
+function LanguageSelect({ value, onChange }: { value: string; onChange: (next: string) => void }) {
   // Fall back to a one-off entry for codes not in the curated list so a
   // future settings round-trip with an unfamiliar code still renders sanely.
   const hasValue = LANGUAGE_OPTIONS.some(o => o.code === value);
-  const opts = hasValue
-    ? LANGUAGE_OPTIONS
-    : [...LANGUAGE_OPTIONS, { code: value, label: value }];
+  const opts = hasValue ? LANGUAGE_OPTIONS : [...LANGUAGE_OPTIONS, { code: value, label: value }];
   return (
     <div className="relative">
       <select
