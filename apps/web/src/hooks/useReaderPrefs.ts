@@ -14,6 +14,7 @@ import { emitWithResponse } from '@/lib/socket';
 import { useReaderStore } from '@/stores/reader-store';
 import { useSocketStore } from '@/stores/socket-store';
 import { useToastStore } from '@/stores/toast-store';
+import { useT } from '@/hooks/useT';
 
 const PERSIST_DEBOUNCE_MS = 500;
 
@@ -33,12 +34,16 @@ export function useReaderPrefs(seriesId: string | undefined): ReaderPrefsHook {
   const setDirection = useReaderStore(s => s.setDirection);
   const setFit = useReaderStore(s => s.setFit);
   const showToast = useToastStore(s => s.show);
+  const t = useT();
 
   // Coalesce rapid pref changes into a single debounced emit per (series).
   const pendingRef = useRef<Partial<ReaderSettings>>({});
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seriesIdRef = useRef<string | undefined>(seriesId);
   seriesIdRef.current = seriesId;
+  // Held in a ref so unmount flush doesn't retrigger on language change.
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const flush = useCallback(async () => {
     timerRef.current = null;
@@ -55,14 +60,14 @@ export function useReaderPrefs(seriesId: string | undefined): ReaderPrefsHook {
       if (res.error) {
         showToast({
           variant: 'error',
-          title: 'Reader preferences',
+          title: tRef.current('reader.toast.prefsTitle'),
           body: res.error,
         });
       }
     } catch (err) {
       showToast({
         variant: 'error',
-        title: 'Reader preferences',
+        title: tRef.current('reader.toast.prefsTitle'),
         body: err instanceof Error ? err.message : String(err),
       });
     }
@@ -84,7 +89,7 @@ export function useReaderPrefs(seriesId: string | undefined): ReaderPrefsHook {
         if (res.error) {
           showToast({
             variant: 'error',
-            title: 'Reader preferences',
+            title: tRef.current('reader.toast.prefsTitle'),
             body: res.error,
           });
           return;
@@ -96,7 +101,7 @@ export function useReaderPrefs(seriesId: string | undefined): ReaderPrefsHook {
         if (cancelled) return;
         showToast({
           variant: 'error',
-          title: 'Reader preferences',
+          title: tRef.current('reader.toast.prefsTitle'),
           body: err instanceof Error ? err.message : String(err),
         });
       }

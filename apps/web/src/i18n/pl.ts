@@ -21,6 +21,8 @@ export const pl = {
   'common.retry': 'Spróbuj ponownie',
   'common.back': 'Wstecz',
   'common.error.eyebrow': 'Coś poszło nie tak',
+  'common.failed': 'Nie powiodło się',
+  'common.close': 'Zamknij',
   'common.windowControls.minimize': 'Minimalizuj',
   'common.windowControls.maximize': 'Maksymalizuj',
   'common.windowControls.restore': 'Przywróć',
@@ -70,6 +72,25 @@ export const pl = {
   'library.list.col.lastRead': 'Ostatnio czytane',
   'library.list.continue': 'Czytaj dalej',
   'library.card.localBadge': 'Z dysku',
+
+  // Library import page (standalone flow; mirrors onboarding.shelf.*)
+  'libraryImport.eyebrow': 'Biblioteka · Import',
+  'libraryImport.title': 'Dodaj swoją mangę.',
+  'libraryImport.subtitle':
+    'Wskaż folder. Foldery z plikami CBZ lub katalogami obrazów działają na płasko albo w podfolderach tomów — skaner sobie poradzi.',
+  'libraryImport.pick.title': 'Wybierz folder, żeby zacząć.',
+  'libraryImport.pick.body':
+    'Każdy podfolder wybranego katalogu jest traktowany jako seria. Rozdziały mogą być archiwami CBZ / ZIP albo katalogami z numerowanymi obrazami.',
+  'libraryImport.pick.hint': 'Obsługa CBR pojawi się w kolejnym wydaniu',
+  'libraryImport.action.choose': 'Wybierz folder',
+  'libraryImport.empty.title': 'Nic nie znaleziono.',
+  'libraryImport.empty.body':
+    'W tym katalogu nie znaleziono folderów CBZ ani obrazów. Wskaż inny folder albo sprawdź układ plików.',
+  'libraryImport.empty.action': 'Wybierz inny folder',
+
+  // Library — toast titles emitted from hooks
+  'library.toast.followFailedTitle': 'Nie udało się obserwować',
+  'library.toast.unfollowFailedTitle': 'Nie udało się przestać obserwować',
 
   // Settings
   'settings.eyebrow': 'Ustawienia',
@@ -352,6 +373,11 @@ export const pl = {
 
   // Reader — per-page overlays (shared across Single/Double/Webtoon views)
   'reader.page.bookmarked': 'Zakładka dodana',
+
+  // Reader — toast titles emitted from reader hooks
+  'reader.toast.progressTitle': 'Postęp czytania',
+  'reader.toast.sessionTitle': 'Sesja czytania',
+  'reader.toast.prefsTitle': 'Ustawienia czytnika',
 
   // Toast
   'toast.eyebrow.error': 'BŁĄD',

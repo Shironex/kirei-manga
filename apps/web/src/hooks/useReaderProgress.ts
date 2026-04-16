@@ -11,6 +11,7 @@ import {
 import { emitWithResponse } from '@/lib/socket';
 import { useSocketStore } from '@/stores/socket-store';
 import { useToastStore } from '@/stores/toast-store';
+import { useT } from '@/hooks/useT';
 
 const PROGRESS_DEBOUNCE_MS = 750;
 
@@ -48,6 +49,7 @@ export function useReaderProgress(args: UseReaderProgressArgs): UseReaderProgres
 
   const status = useSocketStore(s => s.status);
   const showToast = useToastStore(s => s.show);
+  const t = useT();
 
   const [startPage, setStartPage] = useState<number | null>(null);
 
@@ -67,6 +69,10 @@ export function useReaderProgress(args: UseReaderProgressArgs): UseReaderProgres
   chapterIdRef.current = mangadexChapterId;
   const metaRef = useRef(chapterMeta);
   metaRef.current = chapterMeta;
+  // Held in a ref so the unmount cleanup effect doesn't re-run (and prematurely
+  // fire session-end) when the user switches language mid-read.
+  const tRef = useRef(t);
+  tRef.current = t;
 
   // Debounced progress writer.
   const progressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -97,12 +103,12 @@ export function useReaderProgress(args: UseReaderProgressArgs): UseReaderProgres
         payload
       );
       if (res.error) {
-        showToast({ variant: 'error', title: 'Reader progress', body: res.error });
+        showToast({ variant: 'error', title: tRef.current('reader.toast.progressTitle'), body: res.error });
       }
     } catch (err) {
       showToast({
         variant: 'error',
-        title: 'Reader progress',
+        title: tRef.current('reader.toast.progressTitle'),
         body: err instanceof Error ? err.message : String(err),
       });
     }
@@ -127,7 +133,7 @@ export function useReaderProgress(args: UseReaderProgressArgs): UseReaderProgres
         );
         if (cancelled) return;
         if (res.error) {
-          showToast({ variant: 'error', title: 'Reader session', body: res.error });
+          showToast({ variant: 'error', title: tRef.current('reader.toast.sessionTitle'), body: res.error });
           return;
         }
         sessionIdRef.current = res.sessionId;
@@ -137,7 +143,7 @@ export function useReaderProgress(args: UseReaderProgressArgs): UseReaderProgres
         if (cancelled) return;
         showToast({
           variant: 'error',
-          title: 'Reader session',
+          title: tRef.current('reader.toast.sessionTitle'),
           body: err instanceof Error ? err.message : String(err),
         });
       }
@@ -183,7 +189,7 @@ export function useReaderProgress(args: UseReaderProgressArgs): UseReaderProgres
               payload
             );
             if (res.error) {
-              showToast({ variant: 'error', title: 'Reader session', body: res.error });
+              showToast({ variant: 'error', title: tRef.current('reader.toast.sessionTitle'), body: res.error });
             }
           } catch {
             // Unmount path — swallow; toast host may already be gone.

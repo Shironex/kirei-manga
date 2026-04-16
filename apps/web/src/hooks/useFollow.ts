@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLibraryStore } from '@/stores/library-store';
 import { useToastStore } from '@/stores/toast-store';
+import { useT } from '@/hooks/useT';
 
 export interface UseFollowResult {
   followed: boolean;
@@ -15,6 +16,7 @@ export interface UseFollowResult {
  * when no id is provided.
  */
 export function useFollow(mangadexId: string | undefined): UseFollowResult {
+  const t = useT();
   const followed = useLibraryStore(s =>
     mangadexId ? Boolean(s.mangadexIndex[mangadexId]) : false
   );
@@ -36,7 +38,9 @@ export function useFollow(mangadexId: string | undefined): UseFollowResult {
       setError(message);
       useToastStore.getState().show({
         variant: 'error',
-        title: followed ? "Couldn't unfollow" : "Couldn't follow",
+        title: followed
+          ? t('library.toast.unfollowFailedTitle')
+          : t('library.toast.followFailedTitle'),
         body: message,
       });
     } finally {

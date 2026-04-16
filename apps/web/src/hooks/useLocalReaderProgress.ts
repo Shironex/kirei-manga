@@ -9,6 +9,7 @@ import {
 import { emitWithResponse } from '@/lib/socket';
 import { useSocketStore } from '@/stores/socket-store';
 import { useToastStore } from '@/stores/toast-store';
+import { useT } from '@/hooks/useT';
 
 const PROGRESS_DEBOUNCE_MS = 750;
 
@@ -36,9 +37,13 @@ export function useLocalReaderProgress(
 
   const status = useSocketStore(s => s.status);
   const showToast = useToastStore(s => s.show);
+  const t = useT();
 
   const [startPage, setStartPage] = useState<number | null>(null);
   const resumeFetchedRef = useRef(false);
+  // Held in a ref so unmount flush doesn't retrigger when language changes.
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const seriesIdRef = useRef<string | null>(localSeriesId);
   seriesIdRef.current = localSeriesId;
@@ -71,12 +76,12 @@ export function useLocalReaderProgress(
         ReaderUpdateLocalProgressResponse
       >(ReaderEvents.UPDATE_LOCAL_PROGRESS, payload);
       if (res.error) {
-        showToast({ variant: 'error', title: 'Reader progress', body: res.error });
+        showToast({ variant: 'error', title: tRef.current('reader.toast.progressTitle'), body: res.error });
       }
     } catch (err) {
       showToast({
         variant: 'error',
-        title: 'Reader progress',
+        title: tRef.current('reader.toast.progressTitle'),
         body: err instanceof Error ? err.message : String(err),
       });
     }

@@ -6,6 +6,7 @@ import { PageHeader } from '../components/layout/PageHeader';
 import { EmptyState } from '../components/layout/EmptyState';
 import { useFolderPicker, useScanRoot, useImport } from '@/hooks/useLocalImport';
 import { useToastStore } from '@/stores/toast-store';
+import { useT } from '@/hooks/useT';
 
 type Phase = 'idle' | 'scanning' | 'review' | 'importing' | 'done';
 
@@ -23,6 +24,7 @@ interface ReviewRow {
  * component only reflects the latest tick.
  */
 export function LibraryImportPage() {
+  const t = useT();
   const navigate = useNavigate();
   const pushToast = useToastStore(s => s.show);
   const { pick } = useFolderPicker();
@@ -83,8 +85,8 @@ export function LibraryImportPage() {
     if (selected.length === 0) {
       pushToast({
         variant: 'error',
-        title: 'Nothing selected',
-        body: 'Pick at least one series before importing.',
+        title: t('onboarding.shelf.toast.empty.title'),
+        body: t('onboarding.shelf.toast.empty.body'),
       });
       return;
     }
@@ -96,8 +98,11 @@ export function LibraryImportPage() {
       setPhase('done');
       pushToast({
         variant: 'success',
-        title: 'Import finished',
-        body: `${result.createdSeriesIds.length} added · ${result.skipped} skipped`,
+        title: t('onboarding.shelf.toast.done.title'),
+        body: t('onboarding.shelf.toast.done.body', {
+          added: result.createdSeriesIds.length,
+          skipped: result.skipped,
+        }),
       });
       navigate('/');
     } catch (err) {
@@ -105,7 +110,7 @@ export function LibraryImportPage() {
       setError(message);
       setPhase('review');
     }
-  }, [rows, scanResult, commit, pushToast, navigate]);
+  }, [rows, scanResult, commit, pushToast, navigate, t]);
 
   const progressRatio = useMemo(() => {
     if (!progress || progress.total === 0) return 0;
@@ -118,33 +123,33 @@ export function LibraryImportPage() {
     <>
       <BackButton className="mb-4" />
       <PageHeader
-        eyebrow="Library · Import"
+        eyebrow={t('libraryImport.eyebrow')}
         kanji="取込"
-        title="Bring your manga in."
-        subtitle="Point at a folder. Folders of CBZ or image directories work either flat or in volume sub-folders — the scanner figures it out."
+        title={t('libraryImport.title')}
+        subtitle={t('libraryImport.subtitle')}
       />
 
       {phase === 'idle' && (
         <div className="flex flex-col gap-8">
           <EmptyState
             glyph="取"
-            title="Pick a folder to begin."
-            body="Each folder under the one you choose is treated as a series. Chapters can be CBZ / ZIP archives, or directories of numbered images."
+            title={t('libraryImport.pick.title')}
+            body={t('libraryImport.pick.body')}
             action={
               <button
                 type="button"
                 onClick={pickAndScan}
                 className="inline-flex h-9 items-center rounded-[2px] border border-[var(--color-accent)] bg-[var(--color-accent)] px-4 font-mono text-[11px] tracking-[0.22em] text-[var(--color-ink)] uppercase transition-colors hover:bg-transparent hover:text-[var(--color-accent)]"
               >
-                Choose folder
+                {t('libraryImport.action.choose')}
               </button>
             }
-            hint="CBR support lands in a follow-up"
+            hint={t('libraryImport.pick.hint')}
           />
           {error && (
             <div className="animate-fade-up flex flex-col items-start gap-2 border-l-2 border-[var(--color-accent)] py-2 pl-5">
               <span className="font-mono text-[10px] tracking-[0.24em] text-[var(--color-accent)] uppercase">
-                Failed
+                {t('common.failed')}
               </span>
               <p className="max-w-[56ch] text-[14px] text-foreground">{error}</p>
             </div>
@@ -156,7 +161,9 @@ export function LibraryImportPage() {
         <div className="animate-fade-up flex flex-col gap-6 py-10">
           <div className="flex items-center gap-3">
             <span className="font-mono text-[10px] tracking-[0.26em] text-[var(--color-accent)] uppercase">
-              {progress?.phase === 'reading-archives' ? 'Reading archives' : 'Scanning'}
+              {progress?.phase === 'reading-archives'
+                ? t('onboarding.shelf.scan.readingArchives')
+                : t('onboarding.shelf.scan.scanning')}
             </span>
             <span className="block h-px flex-1 bg-[var(--color-rule)]" />
             <span className="font-mono text-[10px] tracking-[0.22em] text-[var(--color-bone-faint)] uppercase">
@@ -182,15 +189,15 @@ export function LibraryImportPage() {
           {rows.length === 0 ? (
             <EmptyState
               glyph="空"
-              title="Nothing detected."
-              body="No CBZ or image folders were found under this root. Pick a different folder or check the layout."
+              title={t('libraryImport.empty.title')}
+              body={t('libraryImport.empty.body')}
               action={
                 <button
                   type="button"
                   onClick={pickAndScan}
                   className="inline-flex h-9 items-center rounded-[2px] border border-border px-4 font-mono text-[11px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
                 >
-                  Choose another folder
+                  {t('libraryImport.empty.action')}
                 </button>
               }
             />
@@ -198,10 +205,10 @@ export function LibraryImportPage() {
             <>
               <div className="flex items-baseline justify-between border-b border-[var(--color-rule)] pb-3">
                 <span className="font-mono text-[10px] tracking-[0.26em] text-[var(--color-bone-faint)] uppercase">
-                  Review · {rows.length} series detected
+                  {t('onboarding.shelf.review.detected', { count: rows.length })}
                 </span>
                 <span className="font-mono text-[10px] tracking-[0.22em] text-foreground uppercase">
-                  {selectedCount} selected
+                  {t('onboarding.shelf.review.selected', { count: selectedCount })}
                 </span>
               </div>
               <ul className="flex flex-col divide-y divide-[var(--color-rule)]">
@@ -235,7 +242,7 @@ export function LibraryImportPage() {
                   onClick={pickAndScan}
                   className="font-mono text-[11px] tracking-[0.22em] text-[var(--color-bone-muted)] underline-offset-4 uppercase hover:text-foreground hover:underline"
                 >
-                  Pick different folder
+                  {t('onboarding.shelf.action.pickAnother')}
                 </button>
                 <button
                   type="button"
@@ -243,7 +250,9 @@ export function LibraryImportPage() {
                   onClick={commitSelection}
                   className="inline-flex h-9 items-center rounded-[2px] border border-[var(--color-accent)] bg-[var(--color-accent)] px-4 font-mono text-[11px] tracking-[0.22em] text-[var(--color-ink)] uppercase transition-colors hover:bg-transparent hover:text-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {importing ? 'Importing…' : `Import ${selectedCount}`}
+                  {importing
+                    ? t('onboarding.shelf.action.importing')
+                    : t('onboarding.shelf.action.import', { count: selectedCount })}
                 </button>
               </div>
               {error && <p className="text-[13px] text-[var(--color-accent)]">{error}</p>}

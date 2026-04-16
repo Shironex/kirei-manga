@@ -22,6 +22,8 @@ export const en = {
   'common.retry': 'Retry',
   'common.back': 'Back',
   'common.error.eyebrow': 'Something went sideways',
+  'common.failed': 'Failed',
+  'common.close': 'Close',
   'common.windowControls.minimize': 'Minimize',
   'common.windowControls.maximize': 'Maximize',
   'common.windowControls.restore': 'Restore',
@@ -69,6 +71,25 @@ export const en = {
   'library.list.col.lastRead': 'Last read',
   'library.list.continue': 'Continue',
   'library.card.localBadge': 'Local',
+
+  // Library import page (standalone flow; mirrors onboarding.shelf.*)
+  'libraryImport.eyebrow': 'Library · Import',
+  'libraryImport.title': 'Bring your manga in.',
+  'libraryImport.subtitle':
+    'Point at a folder. Folders of CBZ or image directories work either flat or in volume sub-folders — the scanner figures it out.',
+  'libraryImport.pick.title': 'Pick a folder to begin.',
+  'libraryImport.pick.body':
+    'Each folder under the one you choose is treated as a series. Chapters can be CBZ / ZIP archives, or directories of numbered images.',
+  'libraryImport.pick.hint': 'CBR support lands in a follow-up',
+  'libraryImport.action.choose': 'Choose folder',
+  'libraryImport.empty.title': 'Nothing detected.',
+  'libraryImport.empty.body':
+    'No CBZ or image folders were found under this root. Pick a different folder or check the layout.',
+  'libraryImport.empty.action': 'Choose another folder',
+
+  // Library — toast titles emitted from hooks
+  'library.toast.followFailedTitle': "Couldn't follow",
+  'library.toast.unfollowFailedTitle': "Couldn't unfollow",
 
   // Settings
   'settings.eyebrow': 'Settings',
@@ -343,6 +364,11 @@ export const en = {
 
   // Reader — per-page overlays (shared across Single/Double/Webtoon views)
   'reader.page.bookmarked': 'Bookmarked',
+
+  // Reader — toast titles emitted from reader hooks
+  'reader.toast.progressTitle': 'Reader progress',
+  'reader.toast.sessionTitle': 'Reader session',
+  'reader.toast.prefsTitle': 'Reader preferences',
 
   // Toast
   'toast.eyebrow.error': 'ERROR',
