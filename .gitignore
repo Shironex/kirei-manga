@@ -47,3 +47,7 @@ Thumbs.db
 .claude
 .planning/
 .worktrees/
+
+# NVIDIA driver UMD log droppings
+NVIDIA Corporation/
+*.umdlog
