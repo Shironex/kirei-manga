@@ -63,6 +63,7 @@ export interface LibraryChapterStatePatch {
   isRead: boolean;
   lastReadPage: number;
   pageCount: number;
+  isDownloaded: boolean;
 }
 
 export interface LibraryGetChapterStatesResponse {

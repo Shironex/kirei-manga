@@ -395,7 +395,7 @@ export class LibraryService {
     const placeholders = mangadexChapterIds.map(() => '?').join(', ');
     const rows = this.db.db
       .prepare(
-        `SELECT mangadex_chapter_id, is_read, last_read_page, page_count
+        `SELECT mangadex_chapter_id, is_read, last_read_page, page_count, is_downloaded
          FROM chapters
          WHERE series_id = ? AND mangadex_chapter_id IN (${placeholders})`
       )
@@ -404,6 +404,7 @@ export class LibraryService {
       is_read: number;
       last_read_page: number;
       page_count: number;
+      is_downloaded: number;
     }>;
 
     const out: Record<string, LibraryChapterStatePatch> = {};
@@ -412,6 +413,7 @@ export class LibraryService {
         isRead: r.is_read === 1,
         lastReadPage: r.last_read_page,
         pageCount: r.page_count,
+        isDownloaded: r.is_downloaded === 1,
       };
     }
     return out;

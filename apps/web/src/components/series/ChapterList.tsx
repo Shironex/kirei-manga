@@ -1,8 +1,9 @@
 import type * as React from 'react';
-import { ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, Download, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { ChapterListItem, LibraryChapterStatePatch } from '@kireimanga/shared';
 import { relativeFromIso } from '@/lib/relativeTime';
+import { useDownloadChapter } from '@/hooks/useDownloadChapter';
 
 type ChapterStateMap = Record<string, LibraryChapterStatePatch> | null;
 
@@ -151,7 +152,7 @@ function Row({
       to={`/reader/${mangadexSeriesId}/${chapter.id}`}
       state={linkState}
       role="row"
-      className="grid grid-cols-[3rem_1fr] items-center gap-x-4 gap-y-1 border-b border-border py-2.5 text-[13px] hover:bg-[var(--color-ink-raised)] last:border-b-0 md:grid-cols-[3rem_3rem_1fr_14rem_6rem_1rem] md:gap-y-0"
+      className="grid grid-cols-[3rem_1fr] items-center gap-x-4 gap-y-1 border-b border-border py-2.5 text-[13px] hover:bg-[var(--color-ink-raised)] last:border-b-0 md:grid-cols-[3rem_3rem_1fr_14rem_6rem_1rem_2.5rem] md:gap-y-0"
     >
       <span className="font-mono text-[11px] tracking-[0.16em] text-[var(--color-bone-faint)] uppercase">
         {chapter.volume ? `v${chapter.volume}` : dash}
@@ -169,7 +170,61 @@ function Row({
         {relativeFromIso(chapter.publishAt)}
       </span>
       {renderReadDot(state)}
+      <DownloadButton
+        chapterId={chapter.id}
+        mangadexSeriesId={mangadexSeriesId}
+        isDownloaded={state?.isDownloaded ?? false}
+      />
     </Link>
+  );
+}
+
+function DownloadButton({
+  chapterId,
+  mangadexSeriesId,
+  isDownloaded,
+}: {
+  chapterId: string;
+  mangadexSeriesId: string;
+  isDownloaded: boolean;
+}) {
+  const { status, progress, download } = useDownloadChapter(chapterId, mangadexSeriesId, isDownloaded);
+
+  if (status === 'complete') {
+    return (
+      <span
+        className="hidden items-center justify-center text-[var(--color-bone-muted)] md:flex"
+        aria-label="Downloaded"
+      >
+        <Check className="h-3.5 w-3.5" />
+      </span>
+    );
+  }
+
+  if (status === 'downloading') {
+    return (
+      <span
+        className="hidden items-center justify-center text-[var(--color-bone-muted)] md:flex"
+        aria-label={progress ? `Downloading ${progress.current}/${progress.total}` : 'Downloading'}
+      >
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={e => {
+        e.preventDefault();
+        e.stopPropagation();
+        download();
+      }}
+      className="hidden items-center justify-center text-[var(--color-bone-faint)] transition-colors hover:text-foreground md:flex"
+      aria-label="Download chapter"
+    >
+      <Download className="h-3.5 w-3.5" />
+    </button>
   );
 }
 

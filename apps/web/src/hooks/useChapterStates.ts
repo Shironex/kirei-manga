@@ -86,6 +86,7 @@ export function useChapterStates(
             isRead: chapter.isRead,
             lastReadPage: chapter.lastReadPage,
             pageCount: chapter.pageCount,
+            isDownloaded: prev[chapter.mangadexChapterId]?.isDownloaded ?? false,
           },
         };
       });
