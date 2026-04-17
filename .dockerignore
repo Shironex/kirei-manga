@@ -1,0 +1,25 @@
+**/node_modules
+**/dist
+**/.astro
+**/.turbo
+**/.next
+**/.cache
+**/.git
+**/.env
+**/.env.*
+!**/.env.example
+**/.DS_Store
+**/Thumbs.db
+
+# Landing auto-fetched font cache (regenerated on demand, not used in build)
+apps/landing/assets/fonts
+
+# Desktop build artefacts never needed for the landing image
+apps/desktop/out
+apps/desktop/release
+
+# Editor / OS noise
+.vscode
+.idea
+*.log
+coverage
