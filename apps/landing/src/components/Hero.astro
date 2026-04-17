@@ -1,5 +1,7 @@
 ---
+import { Image } from 'astro:assets';
 import { GITHUB_REPO_URL, LANDING_VERSION } from '../lib/site';
+import mascotRead from '../assets/mascot-read.png';
 ---
 
 <section class="hero section" id="top">
@@ -50,7 +52,7 @@ import { GITHUB_REPO_URL, LANDING_VERSION } from '../lib/site';
     <div class="hero-frame reveal">
       <aside class="tate-inner" aria-hidden="true" data-i18n="hero.tate">静かに読む場所</aside>
       <figure class="hero-portrait">
-        <img src="/mascot-read.png" alt="Kirei reading quietly" data-i18n-alt="hero.portraitAlt" />
+        <Image src={mascotRead} alt="Kirei reading quietly" widths={[320, 480, 640]} sizes="(max-width: 768px) 60vw, 22rem" loading="eager" data-i18n-alt="hero.portraitAlt" />
         <figcaption class="hero-portrait-caption">
           <span data-i18n="hero.portraitCaption">Plate 0 · Frontispiece</span>
           <span class="kanji" aria-hidden="true">綺麗</span>

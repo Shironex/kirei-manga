@@ -7,7 +7,8 @@
     "dev": "astro dev --port 3000",
     "build": "astro build",
     "preview": "astro preview",
-    "check": "astro check"
+    "check": "astro check",
+    "og": "node scripts/generate-og.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.8",
@@ -16,5 +17,9 @@
     "astro": "^6.1.4",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "satori": "^0.26.0",
+    "sharp": "^0.34.5"
   }
 }

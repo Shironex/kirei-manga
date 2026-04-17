@@ -1,11 +1,17 @@
 ---
+import { Image } from 'astro:assets';
+import libraryShot from '../assets/screenshots/library.png';
+import seriesShot from '../assets/screenshots/series.png';
+import importShot from '../assets/screenshots/import.png';
+import readerShot from '../assets/screenshots/reader.png';
+
 const plates = [
   {
     num: 'Pl. I',
     key: '01',
     title: 'Library',
     note: 'A calm shelf with fast search, filters, and lazy cover loading that stays smooth even with a large collection.',
-    src: '/screenshots/library.png',
+    src: libraryShot,
     alt: 'KireiManga library view with covers in a clean grid',
     span: 'plate-span-7',
   },
@@ -14,7 +20,7 @@ const plates = [
     key: '02',
     title: 'Series Detail',
     note: 'Synopsis, chapters, follow status, and reading direction stay together on one clean page.',
-    src: '/screenshots/series.png',
+    src: seriesShot,
     alt: 'Series detail page showing synopsis and chapter list',
     span: 'plate-span-5',
   },
@@ -23,7 +29,7 @@ const plates = [
     key: '03',
     title: 'Local Import',
     note: 'Choose a folder, scan archives or image folders, review metadata, and confirm the import.',
-    src: '/screenshots/import.png',
+    src: importShot,
     alt: 'Local import review screen',
     span: 'plate-span-6',
   },
@@ -32,7 +38,7 @@ const plates = [
     key: '04',
     title: 'Reader',
     note: 'Full screen reading with fit controls, keyboard navigation, and per series reading direction.',
-    src: '/screenshots/reader.png',
+    src: readerShot,
     alt: 'KireiManga reader in full screen mode',
     span: 'plate-span-6',
   },
@@ -58,7 +64,7 @@ const plates = [
     {plates.map(plate => (
       <figure class={`plate reveal ${plate.span}`}>
         <div class="plate-frame">
-          <img src={plate.src} alt={plate.alt} data-i18n-alt={`gallery.${plate.key}.alt`} loading="lazy" />
+          <Image src={plate.src} alt={plate.alt} data-i18n-alt={`gallery.${plate.key}.alt`} widths={[480, 768, 1024, 1280]} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 720px" loading="lazy" />
         </div>
         <figcaption class="plate-caption">
           <div>

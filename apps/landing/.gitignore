@@ -1,3 +1,6 @@
 .astro
 dist
 node_modules
+
+# OG generator — fonts auto-fetched on first run
+assets/fonts

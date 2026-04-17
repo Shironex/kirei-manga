@@ -24,6 +24,7 @@
     "dev:landing": "pnpm --filter @kireimanga/landing dev",
     "build": "pnpm build:packages && pnpm --filter @kireimanga/web build && pnpm --filter @kireimanga/desktop build",
     "build:landing": "pnpm --filter @kireimanga/landing build",
+    "og:landing": "pnpm --filter @kireimanga/landing og",
     "build:packages": "pnpm --filter @kireimanga/shared build",
     "package": "pnpm build && pnpm --filter @kireimanga/desktop package",
     "package:win": "pnpm build && pnpm --filter @kireimanga/desktop package:win",
