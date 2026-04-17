@@ -1,0 +1,8 @@
+build/
+prebuilds/
+vendor/opencv-build/
+vendor/opencv-install/
+vendor/opencv-src/
+vendor/opencv-env.sh
+vendor/opencv-env.ps1
+*.tar.gz

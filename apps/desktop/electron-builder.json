@@ -30,7 +30,11 @@
       "to": "icon-32.png"
     }
   ],
-  "asarUnpack": ["**/node_modules/better-sqlite3/**", "**/build/Release/*.node"],
+  "asarUnpack": [
+    "**/node_modules/better-sqlite3/**",
+    "**/build/Release/*.node",
+    "**/node_modules/@kireimanga/bubble-detector/prebuilds/**/*.node"
+  ],
   "artifactName": "${productName}-${version}-${arch}.${ext}",
   "nodeGypRebuild": false,
   "npmRebuild": false,
