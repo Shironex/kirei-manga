@@ -23,6 +23,7 @@ jobs:
       web: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.web == 'true' }}
       desktop: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.desktop == 'true' }}
       native: ${{ steps.filter.outputs.native == 'true' }}
+      sidecar: ${{ steps.filter.outputs.sidecar == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -49,6 +50,9 @@ jobs:
               - 'apps/desktop/**'
             native:
               - 'native/**'
+              - '.github/workflows/ci.yml'
+            sidecar:
+              - 'sidecar/**'
               - '.github/workflows/ci.yml'
 
   lint:
@@ -232,10 +236,79 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  # Validates the manga-ocr sidecar bundles to a single executable. Artifact
+  # is consumed by release.yml and downloaded by the desktop on first
+  # translation request. Matrix mirrors native-prebuild — same OS/arch tuples.
+  sidecar-build:
+    name: Sidecar Build (${{ matrix.platform }}-${{ matrix.arch }})
+    needs: [changes]
+    if: needs.changes.outputs.sidecar == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win32
+            arch: x64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+          - os: macos-13
+            platform: darwin
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            sidecar/manga-ocr/requirements.txt
+            sidecar/manga-ocr/requirements-build.txt
+
+      - name: Cache pip download cache
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-${{ matrix.arch }}-sidecar-py3.11-${{ hashFiles('sidecar/manga-ocr/requirements*.txt') }}
+          path: |
+            ~/.cache/pip
+            ~/AppData/Local/pip/Cache
+
+      - name: Install sidecar dependencies
+        shell: bash
+        run: pip install -r sidecar/manga-ocr/requirements.txt -r sidecar/manga-ocr/requirements-build.txt
+
+      - name: Build sidecar bundle
+        shell: bash
+        run: python sidecar/manga-ocr/build.py
+
+      - name: Verify bundle exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          out_dir="sidecar/manga-ocr/release/${{ matrix.platform }}-${{ matrix.arch }}"
+          binary="kirei-ocr"
+          if [[ "${{ matrix.platform }}" == "win32" ]]; then
+            binary="kirei-ocr.exe"
+          fi
+          ls -la "$out_dir"
+          test -f "$out_dir/$binary"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kirei-ocr-${{ matrix.platform }}-${{ matrix.arch }}
+          path: sidecar/manga-ocr/release/${{ matrix.platform }}-${{ matrix.arch }}/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0  # binary is already PyInstaller-compressed; double-zip wastes time
+
   ci-result:
     name: CI Result
     if: always()
-    needs: [lint, typecheck, test-web, test-desktop, native-prebuild]
+    needs: [lint, typecheck, test-web, test-desktop, native-prebuild, sidecar-build]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI outcome

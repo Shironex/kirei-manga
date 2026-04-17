@@ -122,3 +122,18 @@ Pass `--no-strip` for an unstripped binary (POSIX only; Windows ignores).
 From the repo root, `pnpm build:sidecar` wraps the venv invocation —
 useful for CI and matches the `pnpm native:build` / `pnpm fetch-prebuilds`
 ergonomics.
+
+## Distribution
+
+CI uploads each platform's bundle as a release asset on every tagged release:
+
+    https://github.com/Shironex/kirei-manga/releases/download/v<version>/kirei-ocr-<platform>-<arch>.tar.gz
+
+Where `<platform>-<arch>` is one of:
+
+- `win32-x64`
+- `darwin-arm64`
+- `darwin-x64` (currently built but not yet packaged into the desktop installer — see release.yml TODO)
+
+The desktop downloads on first translation request (Slice D.4) and extracts to
+the user-data directory. Bundle size ~450MB.
