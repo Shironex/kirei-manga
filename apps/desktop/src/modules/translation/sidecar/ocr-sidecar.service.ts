@@ -69,7 +69,7 @@ export class OcrSidecarService implements OnModuleInit, OnModuleDestroy {
   private status: OcrSidecarStatus = { state: 'not-downloaded' };
   private nextId = 0;
   private readonly pending = new Map<string, PendingRequest>();
-  private readonly queue: Array<() => void> = [];
+  private readonly queue: Array<{ resolve: () => void; reject: (err: Error) => void }> = [];
   private inFlight = false;
   private restartCount = 0;
   private readyPromise: Promise<void> | null = null;
@@ -283,10 +283,13 @@ export class OcrSidecarService implements OnModuleInit, OnModuleDestroy {
       this.inFlight = true;
       return Promise.resolve();
     }
-    return new Promise<void>(resolve => {
-      this.queue.push(() => {
-        this.inFlight = true;
-        resolve();
+    return new Promise<void>((resolve, reject) => {
+      this.queue.push({
+        resolve: () => {
+          this.inFlight = true;
+          resolve();
+        },
+        reject,
       });
     });
   }
@@ -294,7 +297,7 @@ export class OcrSidecarService implements OnModuleInit, OnModuleDestroy {
   private releaseSlot(): void {
     this.inFlight = false;
     const next = this.queue.shift();
-    if (next) next();
+    if (next) next.resolve();
   }
 
   /**
@@ -342,7 +345,13 @@ export class OcrSidecarService implements OnModuleInit, OnModuleDestroy {
           windowsHide: true,
         });
       } catch (err) {
-        reject(err instanceof Error ? err : new Error(String(err)));
+        // Synchronous spawn failure (e.g. ENOENT, corrupted binary) is a crash:
+        // funnel it through the same exit-handling path so the restart-budget
+        // / backoff machinery kicks in instead of bypassing it. Without this
+        // a flaky binary would spin-fail with no backoff.
+        const error = err instanceof Error ? err : new Error(String(err));
+        this.handleProcessExit(null, null);
+        reject(error);
         return;
       }
 
@@ -448,16 +457,19 @@ export class OcrSidecarService implements OnModuleInit, OnModuleDestroy {
     this.shuttingDown = false;
     this.buffer = '';
 
+    const exitReason = `sidecar exited (code=${code ?? 'null'}, signal=${signal ?? 'null'})`;
     // Reject every in-flight request — the responses can never arrive.
     for (const [id, pending] of this.pending) {
       clearTimeout(pending.timeout);
-      pending.reject(
-        new OcrSidecarError(`sidecar exited (code=${code ?? 'null'}, signal=${signal ?? 'null'})`)
-      );
+      pending.reject(new OcrSidecarError(exitReason));
       this.pending.delete(id);
     }
     this.inFlight = false;
-    // Drop any waiters — they'd just hang on a never-coming slot.
+    // Reject any queued slot waiters too — otherwise their callers would hang
+    // forever on a slot that will never be released.
+    for (const waiter of this.queue) {
+      waiter.reject(new OcrSidecarError(exitReason));
+    }
     this.queue.length = 0;
 
     if (wasShuttingDown) {

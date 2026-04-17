@@ -373,4 +373,288 @@ describe('OcrSidecarService', () => {
       { boxIndex: 1, text: '' },
     ]);
   });
+
+  describe('crash & restart edge cases', () => {
+    it('escalates backoff to 1s, 2s, 4s on repeated crashes without ready', async () => {
+      // Each crashed child exits *before* ever sending `ready:true` so
+      // `restartCount` is never reset. We assert the restart timer fires at
+      // exactly +1s, +2s, +4s — anything earlier or later is a regression.
+      useFakeTimersForRestart();
+      const harness = makeHarness();
+      const child0 = await bringUpFakeTimers(harness);
+
+      // Crash #1: scheduled restart should be at +1s.
+      child0.emitExit(1);
+      jest.advanceTimersByTime(999);
+      await flush();
+      expect(harness.spawnFn).toHaveBeenCalledTimes(1);
+      jest.advanceTimersByTime(1);
+      await flush();
+      expect(harness.spawnFn).toHaveBeenCalledTimes(2);
+
+      // Crash #2 (no `ready` emitted): scheduled restart should be at +2s.
+      harness.spawned[1].emitExit(1);
+      await flush();
+      jest.advanceTimersByTime(1_999);
+      await flush();
+      expect(harness.spawnFn).toHaveBeenCalledTimes(2);
+      jest.advanceTimersByTime(1);
+      await flush();
+      expect(harness.spawnFn).toHaveBeenCalledTimes(3);
+
+      // Crash #3 (no `ready`): scheduled restart should be at +4s.
+      harness.spawned[2].emitExit(1);
+      await flush();
+      jest.advanceTimersByTime(3_999);
+      await flush();
+      expect(harness.spawnFn).toHaveBeenCalledTimes(3);
+      jest.advanceTimersByTime(1);
+      await flush();
+      expect(harness.spawnFn).toHaveBeenCalledTimes(4);
+
+      // Crash #4: budget exhausted → unhealthy, no further spawn.
+      harness.spawned[3].emitExit(1);
+      await flush();
+      jest.advanceTimersByTime(10_000);
+      await flush();
+      expect(harness.spawnFn).toHaveBeenCalledTimes(4);
+      expect(harness.service.getStatus().state).toBe('unhealthy');
+    });
+
+    it('resets restart count after successful ready', async () => {
+      // Distinct from the budget-exhaustion test: here we emit `ready` between
+      // crashes, so the second crash should be billed as the *first* crash of
+      // a fresh budget — backoff is +1s again, not +2s.
+      useFakeTimersForRestart();
+      const harness = makeHarness();
+      const child0 = await bringUpFakeTimers(harness);
+
+      // First crash → restart at +1s.
+      child0.emitExit(1);
+      jest.advanceTimersByTime(1_000);
+      await flush();
+      expect(harness.spawnFn).toHaveBeenCalledTimes(2);
+
+      // Second child reaches ready: restartCount resets to 0.
+      const child1 = harness.spawned[1];
+      child1.emitStdout({ id: null, ready: true });
+      await flush();
+      expect(harness.service.getStatus().state).toBe('ready');
+
+      // Crash again. Budget was reset, so backoff is the *first* slot (+1s),
+      // not the second (+2s). Verify by stepping just under 1s and confirming
+      // no spawn yet, then crossing the threshold.
+      child1.emitExit(1);
+      jest.advanceTimersByTime(999);
+      await flush();
+      expect(harness.spawnFn).toHaveBeenCalledTimes(2);
+      jest.advanceTimersByTime(1);
+      await flush();
+      expect(harness.spawnFn).toHaveBeenCalledTimes(3);
+
+      // Tear down the still-starting child #3 so no orphan timers / processes
+      // leak into the next test.
+      const shutdown = harness.service.shutdown();
+      await flush();
+      harness.spawned[2].emitExit(0);
+      await shutdown;
+    });
+
+    it('rejects in-flight and queued requests when sidecar crashes mid-flight', async () => {
+      // Two concurrent ocr() calls: the first claims the in-flight slot and
+      // sits in `pending`; the second waits in the slot queue. A crash before
+      // either completes must reject *both* — historically the queued waiter
+      // would hang forever because the queue was cleared without rejecting.
+      const harness = makeHarness();
+      const child = await bringUp(harness);
+
+      const first = harness.service.ocr('/in-flight.jpg', []);
+      const second = harness.service.ocr('/queued.jpg', []);
+      // Suppress unhandled-rejection noise; we await both below.
+      first.catch(() => {});
+      second.catch(() => {});
+      await flush();
+
+      // Sanity: only the first request was actually sent.
+      const sent = child.writtenLines().filter(l => l.op === 'ocr');
+      expect(sent).toHaveLength(1);
+      expect(sent[0].image_path).toBe('/in-flight.jpg');
+
+      // Crash the sidecar before either response arrives.
+      child.emitExit(1);
+      await flush();
+
+      await expect(first).rejects.toBeInstanceOf(OcrSidecarError);
+      await expect(first).rejects.toThrow(/sidecar exited/);
+      await expect(second).rejects.toBeInstanceOf(OcrSidecarError);
+      await expect(second).rejects.toThrow(/sidecar exited/);
+
+      // Cancel the pending real-timer auto-restart so it doesn't fire after
+      // the test ends and emit a stray "Spawning OCR sidecar" log.
+      await harness.service.shutdown();
+    });
+
+    it('does not restart after explicit shutdown', async () => {
+      // shutdown() must mark the exit as expected: no crash bookkeeping, no
+      // restart timer, no spawn beyond the original. We advance well past the
+      // entire backoff schedule (1+2+4=7s) to be sure.
+      useFakeTimersForRestart();
+      const harness = makeHarness();
+      const child = await bringUpFakeTimers(harness);
+
+      const shutdownPromise = harness.service.shutdown();
+      await flush();
+
+      // The service wrote `{op:'shutdown'}` and is waiting for exit.
+      expect(child.lastWritten()?.op).toBe('shutdown');
+
+      // Sidecar honours the shutdown.
+      child.emitExit(0);
+      await shutdownPromise;
+
+      // Walk past the full backoff window — nothing new should spawn.
+      jest.advanceTimersByTime(10_000);
+      await flush();
+
+      expect(harness.spawnFn).toHaveBeenCalledTimes(1);
+      const state = harness.service.getStatus().state;
+      expect(['not-downloaded', 'unhealthy']).toContain(state);
+    });
+
+    it('handles spawn-throws by treating it as a crash', async () => {
+      // Synchronous spawn failure (e.g. corrupted binary, ENOENT) should hit
+      // the same restart-budget machinery as a runtime crash. Without this,
+      // a flaky binary would either bypass backoff (spin-fail) or surface
+      // the raw error to every caller until the process magically appears.
+      useFakeTimersForRestart();
+
+      const downloader = {
+        isAvailable: jest.fn().mockResolvedValue(true),
+        download: jest.fn().mockResolvedValue('/fake/kirei-ocr'),
+        binaryPath: jest.fn().mockReturnValue('/fake/kirei-ocr'),
+      } as unknown as jest.Mocked<OcrSidecarDownloader>;
+
+      const spawned: FakeChild[] = [];
+      let spawnCalls = 0;
+      const spawnFn = jest.fn(() => {
+        spawnCalls += 1;
+        if (spawnCalls === 1) {
+          throw new Error('ENOENT: kirei-ocr binary missing');
+        }
+        const child = new FakeChild();
+        spawned.push(child);
+        return child as unknown as ChildProcess;
+      });
+
+      const service = new OcrSidecarService(
+        downloader,
+        spawnFn as unknown as typeof import('child_process').spawn
+      );
+
+      // First ocr() triggers spawn → throws → service records crash + schedules restart.
+      const firstOcr = service.ocr('/x.jpg', []);
+      firstOcr.catch(() => {});
+      await flush();
+      await expect(firstOcr).rejects.toThrow(/ENOENT/);
+      expect(service.getStatus().state).toBe('crashed');
+      expect(spawnFn).toHaveBeenCalledTimes(1);
+
+      // Backoff fires at +1s → second spawn succeeds.
+      jest.advanceTimersByTime(1_000);
+      await flush();
+      expect(spawnFn).toHaveBeenCalledTimes(2);
+      const child = spawned[0];
+      child.emitStdout({ id: null, ready: true });
+      await flush();
+      expect(service.getStatus().state).toBe('ready');
+
+      // Switch back to real timers so the next ocr() can use the 60s timeout
+      // path without us having to fake-tick it.
+      jest.useRealTimers();
+
+      const secondOcr = service.ocr('/x.jpg', []);
+      await flush();
+      const sent = child.lastWritten();
+      expect(sent?.op).toBe('ocr');
+      child.emitStdout({ id: sent!.id, results: [] });
+      await expect(secondOcr).resolves.toEqual([]);
+
+      // Tear down so the still-alive child doesn't keep the test runner open.
+      const shutdown = service.shutdown();
+      await flush();
+      child.emitExit(0);
+      await shutdown;
+    });
+
+    it('does not double-spawn when multiple ocr() calls await first download', async () => {
+      // Two parallel ocr() calls during the very first ensureReady() must
+      // share a single download + a single spawn. Without the cached
+      // readyPromise this would race-spawn two children and (worse)
+      // double-fetch the 450MB tarball.
+      const downloader = {
+        isAvailable: jest.fn().mockResolvedValue(false),
+        download: jest.fn(),
+        binaryPath: jest.fn().mockReturnValue('/fake/kirei-ocr'),
+      } as unknown as jest.Mocked<OcrSidecarDownloader>;
+
+      // Hold the download open until we choose to release it.
+      let releaseDownload!: (path: string) => void;
+      downloader.download.mockReturnValue(
+        new Promise<string>(resolve => {
+          releaseDownload = resolve;
+        })
+      );
+
+      const spawned: FakeChild[] = [];
+      const spawnFn = jest.fn(() => {
+        const child = new FakeChild();
+        spawned.push(child);
+        return child as unknown as ChildProcess;
+      });
+
+      const service = new OcrSidecarService(
+        downloader,
+        spawnFn as unknown as typeof import('child_process').spawn
+      );
+
+      const ocr1 = service.ocr('/a.jpg', []);
+      const ocr2 = service.ocr('/b.jpg', []);
+      // Both calls are now blocked inside ensureReady() → downloader.download.
+      await flush();
+      expect(downloader.download).toHaveBeenCalledTimes(1);
+      expect(spawnFn).not.toHaveBeenCalled();
+
+      // Release the download → service spawns exactly once.
+      releaseDownload('/fake/kirei-ocr');
+      await flush();
+      expect(spawnFn).toHaveBeenCalledTimes(1);
+
+      const child = spawned[0];
+      child.emitStdout({ id: null, ready: true });
+      await flush();
+
+      // First request goes out; second waits in the in-flight queue.
+      const sent1 = child.writtenLines().filter(l => l.op === 'ocr');
+      expect(sent1).toHaveLength(1);
+      child.emitStdout({ id: sent1[0].id, results: [] });
+      await ocr1;
+      await flush();
+
+      // Second request is now in flight.
+      const sent2 = child.writtenLines().filter(l => l.op === 'ocr');
+      expect(sent2).toHaveLength(2);
+      child.emitStdout({ id: sent2[1].id, results: [] });
+      await expect(ocr2).resolves.toEqual([]);
+
+      // Critical assertions: still exactly one download, one spawn.
+      expect(downloader.download).toHaveBeenCalledTimes(1);
+      expect(spawnFn).toHaveBeenCalledTimes(1);
+
+      // Tear down so the still-alive child doesn't keep the test runner open.
+      const shutdown = service.shutdown();
+      await flush();
+      child.emitExit(0);
+      await shutdown;
+    });
+  });
 });
