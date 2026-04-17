@@ -9,6 +9,7 @@ import { CORS_CONFIG } from '../shared/cors.config';
 import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
 import { handleGatewayRequest } from '../shared/gateway-handler';
 import { BubbleDetectorService } from './bubble-detector.service';
+import { TranslationProviderRegistry } from './providers';
 import { OcrSidecarService } from './sidecar';
 
 const logger = createLogger('TranslationGateway');
@@ -28,8 +29,9 @@ const DEFAULT_PIPELINE: TranslationProviderStatusResponse['pipeline'] = {
 export class TranslationGateway {
   constructor(
     private readonly bubbleDetector: BubbleDetectorService,
-    private readonly ocrSidecar: OcrSidecarService
-    // Future: deepl: DeepLProvider, google: GoogleProvider, ollama: OllamaProvider (Slices E / I / J / K).
+    private readonly ocrSidecar: OcrSidecarService,
+    private readonly registry: TranslationProviderRegistry
+    // Future: google / ollama land in the registry directly (Slices I / J / K).
   ) {
     logger.info('TranslationGateway initialized');
   }
@@ -45,11 +47,13 @@ export class TranslationGateway {
         pipeline: DEFAULT_PIPELINE,
       } satisfies Pick<TranslationProviderStatusResponse, 'providers' | 'pipeline'>,
       handler: async (): Promise<TranslationProviderStatusResponse> => {
-        const bd = this.bubbleDetector.getStatus();
-        const oc = this.ocrSidecar.getStatus();
+        const [providers, bd, oc] = await Promise.all([
+          this.registry.getAllStatuses(),
+          Promise.resolve(this.bubbleDetector.getStatus()),
+          Promise.resolve(this.ocrSidecar.getStatus()),
+        ]);
         return {
-          // Providers come online in Slices E / I / J / K; empty for now.
-          providers: [],
+          providers,
           pipeline: {
             bubbleDetector: { healthy: bd.healthy, reason: bd.reason },
             ocrSidecar: {
