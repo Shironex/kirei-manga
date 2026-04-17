@@ -1,5 +1,6 @@
 import type { ReaderMode, ReaderDirection, FitMode } from './reader';
 import type { LocalArchiveFormat } from './local';
+import type { TranslationProviderId } from './translation';
 
 /**
  * Reading status for a series in the local library.
@@ -148,7 +149,7 @@ export interface TranslationCache {
   originalText: string;
   translatedText: string;
   targetLanguage: string;
-  provider: string;
+  provider: TranslationProviderId;
   createdAt: Date;
 }
 
