@@ -1,11 +1,12 @@
-// KireiManga — speech-bubble detector (v0.3 Slice B.2 — synchronous core).
+// KireiManga — speech-bubble detector (v0.3 Slice B.3 — async worker).
 //
 // Pipeline: imread → adaptiveThreshold → findContours → 4-axis geometric
 // filter (area / aspect / convexity / solidity) → stable reading-order sort
 // → Napi marshal. Tuning constants below are starter values per the v0.3
 // roadmap §B.2; Slice C revisits them with a fixture benchmark.
 //
-// Synchronous for now; AsyncWorker wrapping lands in Slice B.3.
+// Detection runs on the libuv worker pool via Napi::AsyncWorker so the
+// renderer's event loop never blocks. detectBubbles() returns a Promise.
 
 #include <napi.h>
 
@@ -16,6 +17,7 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -168,11 +170,73 @@ std::vector<DetectedBubble> RunDetection(const cv::Mat& gray) {
   return result;
 }
 
+class BubbleDetectorWorker : public Napi::AsyncWorker {
+ public:
+  BubbleDetectorWorker(Napi::Env env, std::string path)
+      : Napi::AsyncWorker(env),
+        imagePath_(std::move(path)),
+        deferred_(Napi::Promise::Deferred::New(env)) {}
+
+  ~BubbleDetectorWorker() override = default;
+
+  Napi::Promise GetPromise() { return deferred_.Promise(); }
+
+  void Execute() override {
+    // Worker-pool thread: NO Napi calls allowed here.
+    // The catch-all is required: NAPI_DISABLE_CPP_EXCEPTIONS means the
+    // runtime will not catch a stray C++ throw at the JS boundary, so
+    // letting one escape Execute() would terminate the worker thread.
+    try {
+      cv::Mat gray = cv::imread(imagePath_, cv::IMREAD_GRAYSCALE);
+      if (gray.empty()) {
+        SetError("Failed to load image: " + imagePath_);
+        return;
+      }
+      result_ = RunDetection(gray);
+    } catch (const cv::Exception& e) {
+      SetError(std::string("OpenCV error: ") + e.what());
+    } catch (const std::exception& e) {
+      SetError(std::string("Detector error: ") + e.what());
+    } catch (...) {
+      SetError("Detector error: unknown exception");
+    }
+  }
+
+  void OnOK() override {
+    Napi::Env env = Env();
+    Napi::HandleScope scope(env);
+    Napi::Array arr = Napi::Array::New(env, result_.size());
+    for (size_t i = 0; i < result_.size(); ++i) {
+      const DetectedBubble& b = result_[i];
+      Napi::Object obj = Napi::Object::New(env);
+      obj.Set("x", Napi::Number::New(env, b.x));
+      obj.Set("y", Napi::Number::New(env, b.y));
+      obj.Set("w", Napi::Number::New(env, b.w));
+      obj.Set("h", Napi::Number::New(env, b.h));
+      obj.Set("confidence", Napi::Number::New(env, b.confidence));
+      arr.Set(static_cast<uint32_t>(i), obj);
+    }
+    deferred_.Resolve(arr);
+  }
+
+  void OnError(const Napi::Error& e) override {
+    Napi::HandleScope scope(Env());
+    deferred_.Reject(e.Value());
+  }
+
+ private:
+  std::string imagePath_;
+  std::vector<DetectedBubble> result_;
+  Napi::Promise::Deferred deferred_;
+};
+
 }  // namespace
 
 Napi::Value DetectBubbles(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
 
+  // Argument validation is synchronous: programmer errors throw immediately,
+  // IO/OpenCV failures reject the Promise from inside the worker.
   if (info.Length() < 1 || !info[0].IsString()) {
     Napi::TypeError::New(
         env, "detectBubbles(imagePath: string): expected 1 argument")
@@ -180,44 +244,18 @@ Napi::Value DetectBubbles(const Napi::CallbackInfo& info) {
     return env.Null();
   }
 
-  const std::string path = info[0].As<Napi::String>().Utf8Value();
+  std::string path = info[0].As<Napi::String>().Utf8Value();
   if (path.empty()) {
     Napi::Error::New(env, "detectBubbles: imagePath must be non-empty")
         .ThrowAsJavaScriptException();
     return env.Null();
   }
 
-  try {
-    const cv::Mat gray = cv::imread(path, cv::IMREAD_GRAYSCALE);
-    if (gray.empty()) {
-      Napi::Error::New(env, "Failed to load image: " + path)
-          .ThrowAsJavaScriptException();
-      return env.Null();
-    }
-
-    const std::vector<DetectedBubble> bubbles = RunDetection(gray);
-
-    Napi::Array out = Napi::Array::New(env, bubbles.size());
-    for (size_t i = 0; i < bubbles.size(); ++i) {
-      const DetectedBubble& b = bubbles[i];
-      Napi::Object obj = Napi::Object::New(env);
-      obj.Set("x", Napi::Number::New(env, b.x));
-      obj.Set("y", Napi::Number::New(env, b.y));
-      obj.Set("w", Napi::Number::New(env, b.w));
-      obj.Set("h", Napi::Number::New(env, b.h));
-      obj.Set("confidence", Napi::Number::New(env, b.confidence));
-      out.Set(static_cast<uint32_t>(i), obj);
-    }
-    return out;
-  } catch (const cv::Exception& e) {
-    Napi::Error::New(env, std::string("OpenCV error: ") + e.what())
-        .ThrowAsJavaScriptException();
-    return env.Null();
-  } catch (const std::exception& e) {
-    Napi::Error::New(env, std::string("Detector error: ") + e.what())
-        .ThrowAsJavaScriptException();
-    return env.Null();
-  }
+  // Queue() takes ownership; the base class deletes the worker after
+  // OnOK/OnError returns. Do not delete explicitly.
+  auto* worker = new BubbleDetectorWorker(env, std::move(path));
+  worker->Queue();
+  return worker->GetPromise();
 }
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
