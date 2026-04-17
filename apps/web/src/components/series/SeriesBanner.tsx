@@ -4,6 +4,7 @@ import type { MangaDexSeriesDetail } from '@kireimanga/shared';
 import { useFollow } from '@/hooks/useFollow';
 import { useLibraryStore } from '@/stores/library-store';
 import { useT } from '@/hooks/useT';
+import { translateMangaDexTag } from '@/i18n/mangadexTags';
 
 interface Props {
   series: MangaDexSeriesDetail;
@@ -95,7 +96,7 @@ export function SeriesBanner({ series }: Props) {
                 key={tag}
                 className="rounded-[2px] border border-border px-2 py-0.5 text-[12px] text-[var(--color-bone-muted)]"
               >
-                {tag}
+                {translateMangaDexTag(tag, t)}
               </span>
             ))}
           </div>

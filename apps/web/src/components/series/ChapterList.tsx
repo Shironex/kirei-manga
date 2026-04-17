@@ -1,11 +1,13 @@
 import type * as React from 'react';
-import { Check, ChevronDown, Download, Loader2 } from 'lucide-react';
+import { useMemo } from 'react';
+import { Check, Download, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { ChapterListItem, LibraryChapterStatePatch } from '@kireimanga/shared';
 import { relativeFromIso } from '@/lib/relativeTime';
 import { useDownloadChapter } from '@/hooks/useDownloadChapter';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useT } from '@/hooks/useT';
+import { Select, type SelectOption } from '@/components/ui/Select';
 
 type ChapterStateMap = Record<string, LibraryChapterStatePatch> | null;
 
@@ -253,33 +255,18 @@ function LanguageFilter({
   value: string | undefined;
   onChange: (lang: string) => void;
 }) {
-  if (languages.length === 0) return null;
-  return (
-    <div className="relative">
-      <select
-        value={value ?? ''}
-        onChange={e => onChange(e.target.value)}
-        className="h-8 appearance-none rounded-sm border border-border bg-[var(--color-ink-sunken)] px-2.5 pr-7 text-[12px] text-foreground"
-      >
-        {languages.map(code => (
-          <option key={code} value={code}>
-            {labelForLang(code)}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-bone-faint)]"
-        aria-hidden
-      />
-    </div>
+  const uiLang = useSettingsStore(s => s.settings?.language ?? 'en');
+  const options = useMemo<SelectOption<string>[]>(
+    () => languages.map(code => ({ value: code, label: labelForLang(code, uiLang) })),
+    [languages, uiLang]
   );
+  if (languages.length === 0) return null;
+  return <Select value={value} options={options} onChange={onChange} />;
 }
 
-function labelForLang(code: string): string {
+function labelForLang(code: string, uiLang: string): string {
   try {
-    const locales =
-      typeof navigator !== 'undefined' && navigator.language ? [navigator.language, 'en'] : ['en'];
-    const dn = new Intl.DisplayNames(locales, { type: 'language' });
+    const dn = new Intl.DisplayNames([uiLang, 'en'], { type: 'language' });
     return dn.of(code) ?? code;
   } catch {
     return code;
