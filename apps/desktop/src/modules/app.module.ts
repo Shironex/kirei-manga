@@ -5,6 +5,7 @@ import { MangaDexModule } from './mangadex';
 import { LibraryModule } from './library';
 import { LocalModule } from './local';
 import { SettingsModule } from './settings';
+import { TranslationModule } from './translation';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { SettingsModule } from './settings';
     SettingsModule,
     LibraryModule,
     LocalModule,
+    TranslationModule,
   ],
   controllers: [],
   providers: [],

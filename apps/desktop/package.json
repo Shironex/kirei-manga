@@ -26,6 +26,7 @@
     "rebuild": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "@kireimanga/bubble-detector": "workspace:*",
     "@kireimanga/shared": "workspace:*",
     "@nestjs/common": "^11.1.16",
     "@nestjs/core": "^11.1.18",

@@ -42,6 +42,9 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@kireimanga/bubble-detector':
+        specifier: workspace:*
+        version: link:../../native/bubble-detector
       '@kireimanga/shared':
         specifier: workspace:*
         version: link:../../packages/shared
