@@ -54,7 +54,32 @@ Editorial ink-and-paper aesthetic. OKLCH sumi / kinari / bengara palette. Fraunc
   <em>Kirei reads quietly while the app wakes up</em>
 </p>
 
-> More screenshots arrive once the v0.2 **Local Library** milestone is cut — import flow, series detail, reader in action.
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="assets/preview_library.png" alt="Library" />
+      <br />
+      <em>Library — your shelf, quiet and kept</em>
+    </td>
+    <td align="center" width="50%">
+      <img src="assets/preview_series_detail.png" alt="Series detail" />
+      <br />
+      <em>Series detail — synopsis, chapters, follow status</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="assets/preview_import.png" alt="Local import" />
+      <br />
+      <em>Import — point at a folder, scan, review</em>
+    </td>
+    <td align="center" width="50%">
+      <img src="assets/preview_reader.png" alt="Reader" />
+      <br />
+      <em>Reader — full-screen, fit-aware, distraction-free</em>
+    </td>
+  </tr>
+</table>
 
 ### What's inside
 
@@ -205,7 +230,32 @@ Redakcyjna estetyka tuszu i papieru. Paleta OKLCH sumi / kinari / bengara. Fraun
   <em>Kirei czyta cichutko, gdy aplikacja się budzi</em>
 </p>
 
-> Więcej zrzutów po wydaniu wersji v0.2 — flow importu, strona serii, czytnik w akcji.
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="assets/preview_library.png" alt="Biblioteka" />
+      <br />
+      <em>Biblioteka — twoja półka, cicha i uporządkowana</em>
+    </td>
+    <td align="center" width="50%">
+      <img src="assets/preview_series_detail.png" alt="Strona serii" />
+      <br />
+      <em>Strona serii — opis, rozdziały, status obserwowania</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="assets/preview_import.png" alt="Import lokalny" />
+      <br />
+      <em>Import — wskaż folder, przeskanuj, sprawdź</em>
+    </td>
+    <td align="center" width="50%">
+      <img src="assets/preview_reader.png" alt="Czytnik" />
+      <br />
+      <em>Czytnik — pełny ekran, dopasowanie, bez rozproszeń</em>
+    </td>
+  </tr>
+</table>
 
 ### Co znajdziesz w środku
 
