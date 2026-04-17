@@ -100,13 +100,25 @@ interactively. Use Ctrl+D (POSIX) or Ctrl+Z then Enter (Windows) — or send
 
 ## Building the bundle
 
-PyInstaller bundle script — lands in Slice D.2. The bundled binary will be
-copied to `resources/sidecar/{platform}/kirei-ocr(.exe)?` and shipped inside
-the desktop installer.
+Requires Python 3.10+ and a venv:
 
-## Bundle size
+    python -m venv .venv
+    source .venv/bin/activate           # POSIX
+    .venv\Scripts\activate              # Windows
 
-The PyInstaller output is ~450MB (torch + transformers + the manga-ocr
-weights dominate). Per the v0.3 roadmap open question, the current plan is
-to download the bundle on first use rather than baking it into the main
-installer — keeps the initial download under 200MB.
+    pip install -r requirements.txt -r requirements-build.txt
+    python build.py
+
+Output: `dist/kirei-ocr(.exe)?` (PyInstaller default) and a copy at
+`release/{platform}-{arch}/kirei-ocr(.exe)?` (CI upload target).
+
+Bundle size is ~450MB (manga-ocr's PyTorch deps). The desktop installer
+does not ship this binary — it downloads on first translation request
+from a GitHub Release asset (see Slice D.4).
+
+Pass `--clean` to wipe build/dist/release before rebuilding.
+Pass `--no-strip` for an unstripped binary (POSIX only; Windows ignores).
+
+From the repo root, `pnpm build:sidecar` wraps the venv invocation —
+useful for CI and matches the `pnpm native:build` / `pnpm fetch-prebuilds`
+ergonomics.
