@@ -69,6 +69,8 @@ export const en = {
   'library.list.col.lastChapter': 'Last chapter',
   'library.list.col.progress': 'Progress',
   'library.list.col.lastRead': 'Last read',
+  'library.list.cell.chapterNumber': 'ch. {n}',
+  'library.list.cell.progress': '{read} / {total}',
   'library.list.continue': 'Continue',
   'library.card.localBadge': 'Local',
 

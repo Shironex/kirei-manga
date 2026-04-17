@@ -40,6 +40,17 @@ export interface Series {
   /** Number of new chapters found since the last time the user opened this series. */
   newChapterCount?: number;
   /**
+   * Highest `chapter_number` present in the local `chapters` table for this
+   * series. For local-source this is the latest chapter on disk; for mangadex
+   * it's the highest number the user has interacted with locally
+   * (downloaded, read, or bookmarked), not the upstream catalogue.
+   */
+  lastChapterNumber?: number;
+  /** Count of rows in the local `chapters` table for this series. */
+  totalChapterCount?: number;
+  /** Count of rows with `is_read = 1` for this series. */
+  readChapterCount?: number;
+  /**
    * Absolute path to the series' root folder (local-source only). Rescans
    * (Slice L) walk from this path. Undefined for MangaDex-source rows.
    */

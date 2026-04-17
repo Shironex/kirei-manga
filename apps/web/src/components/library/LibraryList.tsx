@@ -15,6 +15,12 @@ function toIso(value: Date | string | undefined): string | null {
   return Number.isFinite(t) ? d.toISOString() : null;
 }
 
+// Whole chapters render as "42"; split chapters as "42.5". SQLite stores the
+// column as REAL so floats are possible even when the UI usually sees ints.
+function formatChapterNumber(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(Number(n.toFixed(2)));
+}
+
 export function LibraryList({ series }: Props) {
   const navigate = useNavigate();
   const t = useT();
@@ -78,13 +84,20 @@ export function LibraryList({ series }: Props) {
                 </div>
               )}
             </div>
-            {/* TODO(slice-e): last chapter */}
             <span className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-bone-muted)]">
-              —
+              {entry.lastChapterNumber != null && entry.lastChapterNumber > 0
+                ? t('library.list.cell.chapterNumber', {
+                    n: formatChapterNumber(entry.lastChapterNumber),
+                  })
+                : '—'}
             </span>
-            {/* TODO(slice-e): progress */}
             <span className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-bone-muted)]">
-              —
+              {entry.totalChapterCount && entry.totalChapterCount > 0
+                ? t('library.list.cell.progress', {
+                    read: entry.readChapterCount ?? 0,
+                    total: entry.totalChapterCount,
+                  })
+                : '—'}
             </span>
             <span className="font-mono text-[11px] tracking-[0.14em] text-[var(--color-bone-muted)]">
               {lastReadIso ? relativeFromIso(lastReadIso, lang) : '—'}

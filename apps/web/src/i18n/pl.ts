@@ -70,6 +70,8 @@ export const pl = {
   'library.list.col.lastChapter': 'Ostatni rozdział',
   'library.list.col.progress': 'Postęp',
   'library.list.col.lastRead': 'Ostatnio czytane',
+  'library.list.cell.chapterNumber': 'r. {n}',
+  'library.list.cell.progress': '{read} / {total}',
   'library.list.continue': 'Czytaj dalej',
   'library.card.localBadge': 'Z dysku',
 

@@ -43,6 +43,11 @@ interface SeriesRow {
   new_chapter_count: number | null;
   local_root_path: string | null;
   local_content_hash: string | null;
+  // Aggregated from the chapters table by `getAll()` only — other
+  // single-row queries leave these NULL / undefined.
+  last_chapter_number: number | null;
+  total_chapter_count: number | null;
+  read_chapter_count: number | null;
 }
 
 /**
@@ -101,6 +106,9 @@ export class LibraryService {
       newChapterCount: row.new_chapter_count ?? undefined,
       localRootPath: row.local_root_path ?? undefined,
       localContentHash: row.local_content_hash ?? undefined,
+      lastChapterNumber: row.last_chapter_number ?? undefined,
+      totalChapterCount: row.total_chapter_count ?? undefined,
+      readChapterCount: row.read_chapter_count ?? undefined,
     };
   }
 
@@ -154,10 +162,33 @@ export class LibraryService {
     return row ? this.rowToSeries(row) : null;
   }
 
-  /** Return every followed series, newest first. */
+  /**
+   * Return every followed series, newest first. The LEFT JOIN hangs per-series
+   * chapter counters off the row so the library list view can render
+   * "last chapter" / "progress" columns without a second round-trip. Series
+   * with no chapters yet get NULL aggregates (mapped to `undefined`), so the
+   * frontend keeps rendering its em-dash placeholder.
+   */
   async getAll(): Promise<Series[]> {
     const rows = this.db.db
-      .prepare('SELECT * FROM series ORDER BY added_at DESC')
+      .prepare(
+        `SELECT
+           s.*,
+           agg.last_chapter_number,
+           agg.total_chapter_count,
+           agg.read_chapter_count
+         FROM series s
+         LEFT JOIN (
+           SELECT
+             series_id,
+             MAX(chapter_number) AS last_chapter_number,
+             COUNT(*)            AS total_chapter_count,
+             SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END) AS read_chapter_count
+           FROM chapters
+           GROUP BY series_id
+         ) AS agg ON agg.series_id = s.id
+         ORDER BY s.added_at DESC`
+      )
       .all() as SeriesRow[];
     return rows.map(r => this.rowToSeries(r));
   }
