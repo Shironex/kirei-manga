@@ -1,4 +1,4 @@
-// KireiManga — speech-bubble detector unit tests (v0.3 Slice B.6).
+// KireiManga — speech-bubble detector unit tests (v0.3 Slice B.6 / C.1).
 //
 // Synthetic-image tests for the pure pipeline declared in detector_core.h.
 // No fixture files: cv::Mat is built in-process so the suite is hermetic
@@ -6,9 +6,9 @@
 // (apps/desktop/.../bubble-detector.smoke.spec.ts) covers the
 // imread → addon → marshal end-to-end path against a real PNG.
 //
-// These five cases are intentionally narrow — they assert the pipeline
-// runs and yields sane shapes at the bare-defaults thresholds documented
-// in detector_core.cpp. Recall/precision quality is a Slice C goal,
+// Cases are intentionally narrow — they assert the pipeline runs and
+// yields sane shapes at the bare-defaults thresholds documented in
+// detector_core.cpp. Recall/precision quality is a Slice C goal,
 // validated via scripts/bench-bubble-detector.mjs against a labeled set.
 
 #include <gtest/gtest.h>
@@ -31,6 +31,20 @@ cv::Mat MakeBlankPage(int w = 1500, int h = 2200) {
 void DrawSpeechBubble(cv::Mat& page, int cx, int cy, int rx, int ry) {
   cv::ellipse(page, cv::Point(cx, cy), cv::Size(rx, ry), 0.0, 0.0, 360.0,
               cv::Scalar(0), cv::FILLED);
+}
+
+// Fill a rectangular region with a regular dot grid — synthetic screentone.
+// Tuned so the pixel-intensity variance inside the rect lands inside the
+// production [kScreentoneVarMin, kScreentoneVarMax] band; if the band moves,
+// nudge `spacing` / `radius` here, not the production constants.
+void DrawScreentoneBlock(cv::Mat& page, const cv::Rect& region,
+                         int spacing = 6, int radius = 2) {
+  for (int y = region.y + spacing; y < region.y + region.height; y += spacing) {
+    for (int x = region.x + spacing; x < region.x + region.width;
+         x += spacing) {
+      cv::circle(page, cv::Point(x, y), radius, cv::Scalar(0), cv::FILLED);
+    }
+  }
 }
 
 }  // namespace
@@ -87,5 +101,22 @@ TEST(Detector, ConfidenceIsBounded) {
   for (const auto& b : RunDetection(page)) {
     EXPECT_GE(b.confidence, 0.0);
     EXPECT_LE(b.confidence, 1.0);
+  }
+}
+
+TEST(Detector, ScreentoneRegionIsRejected) {
+  auto page = MakeBlankPage();
+  // Bubble-shaped white region with internal screentone — historically a
+  // false positive. Draw a screentone-filled rectangle large enough to
+  // pass the area gate.
+  DrawScreentoneBlock(page, cv::Rect(500, 800, 500, 600));
+  auto result = RunDetection(page);
+  // After threshold + screentone filter, no bubble should land at the
+  // screentone region's center.
+  for (const auto& b : result) {
+    bool centered_on_screentone =
+        b.x + b.w / 2 > 600 && b.x + b.w / 2 < 1000 &&
+        b.y + b.h / 2 > 950 && b.y + b.h / 2 < 1300;
+    EXPECT_FALSE(centered_on_screentone);
   }
 }

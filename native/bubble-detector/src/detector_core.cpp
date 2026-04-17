@@ -1,9 +1,9 @@
-// KireiManga — speech-bubble detector core (v0.3 Slice B).
+// KireiManga — speech-bubble detector core (v0.3 Slice B / C.1).
 //
-// Pure-CV pipeline: adaptiveThreshold → findContours → 4-axis geometric
-// filter (area / aspect / convexity / solidity) → stable reading-order sort.
-// Tuning constants below are starter values per the v0.3 roadmap §B.2;
-// Slice C revisits them with a fixture benchmark.
+// Pure-CV pipeline: adaptiveThreshold → findContours → 5-axis filter
+// (area / aspect / convexity / solidity / screentone variance) → stable
+// reading-order sort. Tuning constants below are starter values per the
+// v0.3 roadmap §B.2 / §C.1; Slice C.4 revisits them with a benchmark.
 //
 // Linked into both the Napi addon (src/detector.cpp) and the GoogleTest
 // harness (test/detector_test.cpp) — the header detector_core.h is the
@@ -40,12 +40,23 @@ constexpr double kConvexityMin = 0.85;
 // L-shaped / cross-shaped contours that pass the convexity test.
 constexpr double kSolidityMin = 0.80;
 
-// Equal-weight blend for the four geometric scores; documented so Slice C
-// tuning has a single place to revisit.
-constexpr double kAreaWeight = 0.25;
-constexpr double kAspectWeight = 0.25;
-constexpr double kConvexityWeight = 0.25;
-constexpr double kSolidityWeight = 0.25;
+// Screentone variance band — variance of 8-bit pixel intensities (i.e. the
+// squared standard deviation, units = intensity²) inside the contour's
+// bounding rect on the raw grayscale source. Real bubble interiors are
+// near-flat white (variance ~ 0); photographic/illustration regions sit
+// well above the upper bound. The mid-range here is the dotted-screentone
+// signature that adaptiveThreshold + RETR_EXTERNAL accidentally merges
+// into a bubble-shaped contour. Slice C.4 benchmark refines these.
+constexpr double kScreentoneVarMin = 800.0;
+constexpr double kScreentoneVarMax = 4500.0;
+
+// Equal-weight blend for the five scores; documented so Slice C tuning
+// has a single place to revisit. Five 0.20s sum to 1.0.
+constexpr double kAreaWeight = 0.20;
+constexpr double kAspectWeight = 0.20;
+constexpr double kConvexityWeight = 0.20;
+constexpr double kSolidityWeight = 0.20;
+constexpr double kVarianceWeight = 0.20;
 
 // Map a value into [0, 1] linearly between lo and hi, clamped.
 double NormalizeArea(double area, double lo, double hi) {
@@ -70,6 +81,16 @@ double Clamp01(double v) {
   if (v < 0.0) return 0.0;
   if (v > 1.0) return 1.0;
   return v;
+}
+
+// Returns the variance of pixel intensities inside the bounding rect.
+// Used to detect screentone-dense regions (mid-range variance) that
+// adaptiveThreshold + RETR_EXTERNAL accidentally merge into a single
+// bubble-shaped contour.
+double LocalVariance(const cv::Mat& gray, const cv::Rect& r) {
+  cv::Scalar mean, stddev;
+  cv::meanStdDev(gray(r), mean, stddev);
+  return stddev[0] * stddev[0];
 }
 
 }  // namespace
@@ -134,14 +155,23 @@ std::vector<DetectedBubble> RunDetection(const cv::Mat& gray) {
       continue;
     }
 
-    // Confidence = weighted blend of the four geometric scores, each in
-    // [0, 1]. Equal weights for now; Slice C tunes per fixture data.
+    // Screentone gate — last reject step before scoring; runs on raw
+    // grayscale, not the threshold image.
+    const double variance = LocalVariance(gray, r);
+    if (variance > kScreentoneVarMin && variance < kScreentoneVarMax) {
+      continue;
+    }
+
+    // Confidence = weighted blend of the five scores, each in [0, 1].
+    // Equal 0.20 weights for now; Slice C tunes per fixture data.
     const double areaScore = NormalizeArea(area, areaMin, areaMax);
     const double aspectScore = AspectScore(aspect);
+    const double varianceScore = Clamp01(1.0 - variance / kScreentoneVarMin);
     const double confidence = Clamp01(areaScore * kAreaWeight +
                                       aspectScore * kAspectWeight +
                                       convexity * kConvexityWeight +
-                                      solidity * kSolidityWeight);
+                                      solidity * kSolidityWeight +
+                                      varianceScore * kVarianceWeight);
 
     result.push_back(DetectedBubble{r.x, r.y, r.width, r.height, confidence});
   }
