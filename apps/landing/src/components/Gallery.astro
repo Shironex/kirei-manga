@@ -1,0 +1,73 @@
+---
+const plates = [
+  {
+    num: 'Pl. I',
+    key: '01',
+    title: 'Library',
+    note: 'Your shelf — quiet, kept, and search-indexed. Cover grid renders lazily so thousands of titles scroll without jank.',
+    src: '/screenshots/library.png',
+    alt: 'KireiManga library view with covers in a quiet grid',
+    span: 'plate-span-7',
+  },
+  {
+    num: 'Pl. II',
+    key: '02',
+    title: 'Series Detail',
+    note: 'Synopsis, chapters, follow status, and reading direction — all on one restrained page.',
+    src: '/screenshots/series.png',
+    alt: 'Series detail page showing synopsis and chapter list',
+    span: 'plate-span-5',
+  },
+  {
+    num: 'Pl. III',
+    key: '03',
+    title: 'Local Import',
+    note: 'Point at a folder. Scan CBZ, ZIP, or image directories. Review per-series metadata. Commit in one step.',
+    src: '/screenshots/import.png',
+    alt: 'Local import review screen',
+    span: 'plate-span-6',
+  },
+  {
+    num: 'Pl. IV',
+    key: '04',
+    title: 'Reader',
+    note: 'Full-screen, fit-aware, keyboard-first. Single, double, and webtoon modes with per-series right-to-left preference.',
+    src: '/screenshots/reader.png',
+    alt: 'KireiManga reader in full-screen mode',
+    span: 'plate-span-6',
+  },
+] as const;
+---
+
+<section class="section section-stack" id="gallery">
+  <div class="section-head reveal">
+    <div>
+      <div class="section-label">
+        <span class="num" data-i18n="gallery.num">§ II</span>
+        <span class="eyebrow" data-i18n="gallery.label">Plates</span>
+      </div>
+      <h2 data-i18n="gallery.heading">A book's worth of quiet surfaces.</h2>
+    </div>
+    <p data-i18n="gallery.body">
+      Interface frames from the current release, numbered like plates in a studio monograph.
+      Each view was drawn to carry its weight without asking the reader for attention.
+    </p>
+  </div>
+
+  <div class="plate-grid reveal-stagger">
+    {plates.map((plate) => (
+      <figure class={`plate reveal ${plate.span}`}>
+        <div class="plate-frame">
+          <img src={plate.src} alt={plate.alt} data-i18n-alt={`gallery.${plate.key}.alt`} loading="lazy" />
+        </div>
+        <figcaption class="plate-caption">
+          <div>
+            <h3 class="plate-title" data-i18n={`gallery.${plate.key}.title`}>{plate.title}</h3>
+            <p class="plate-note" data-i18n={`gallery.${plate.key}.note`}>{plate.note}</p>
+          </div>
+          <span class="plate-num">{plate.num}</span>
+        </figcaption>
+      </figure>
+    ))}
+  </div>
+</section>

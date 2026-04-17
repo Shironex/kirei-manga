@@ -1,0 +1,49 @@
+---
+import { GITHUB_REPO_URL, LANDING_VERSION } from '../lib/site';
+
+const currentPath = Astro.url.pathname;
+const isHome = currentPath === '/' || currentPath === '';
+const homeHashHref = (hash: string) => (isHome ? `#${hash}` : `/#${hash}`);
+---
+
+<header class="masthead">
+  <div class="section">
+    <div class="masthead-row">
+      <a href="/" class="brand" aria-label="KireiManga" data-i18n-aria-label="brand.iconAlt">
+        <span class="hanko" aria-hidden="true">綺</span>
+        <span>
+          <span class="brand-name">KireiManga</span>
+          <span
+            class="font-mono"
+            style="color: var(--color-faint-foreground); font-size: 0.7rem; display: block; letter-spacing: 0.16em; margin-top: 2px;"
+            data-i18n="nav.issue"
+          >ISSUE №{LANDING_VERSION}</span>
+        </span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary navigation" data-i18n-aria-label="nav.primary">
+        <a href={homeHashHref('features')} data-i18n="nav.features">Features</a>
+        <a href={homeHashHref('gallery')} data-i18n="nav.gallery">Gallery</a>
+        <a href="/changelog" class={currentPath === '/changelog' ? 'is-active' : ''} data-i18n="nav.changelog">Changelog</a>
+        <a href="/download" class={currentPath === '/download' ? 'is-active' : ''} data-i18n="nav.download">Download</a>
+        <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer" data-i18n="nav.github">GitHub</a>
+      </nav>
+
+      <div class="nav-end">
+        <button
+          class="lang-toggle"
+          data-lang-toggle
+          type="button"
+          aria-label="Switch language"
+          data-i18n-aria-label="nav.switchLanguage"
+        >PL</button>
+        <a class="btn btn-primary btn--sm" href="/download">
+          <span data-i18n="nav.download">Download</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</header>

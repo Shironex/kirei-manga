@@ -1,0 +1,370 @@
+@layer components {
+  /* ---------- Subpage shell ---------- */
+  .subpage {
+    padding: 4rem 0 5rem;
+  }
+
+  .subpage-header {
+    display: grid;
+    grid-template-columns: minmax(0, 0.55fr) minmax(0, 0.45fr);
+    gap: 3rem;
+    align-items: end;
+    margin-bottom: 3rem;
+    padding-bottom: 2.2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .subpage-header h1 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.2rem, 5vw, 3.2rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin: 0.5rem 0 0;
+    max-width: 18ch;
+    font-variation-settings: 'SOFT' 50, 'opsz' 96;
+  }
+
+  .subpage-header p {
+    margin: 0;
+    color: var(--color-muted-foreground);
+    line-height: 1.7;
+    max-width: 46ch;
+  }
+
+  .subpage-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.82rem;
+    color: var(--color-muted-foreground);
+    margin-bottom: 1rem;
+    transition: color 180ms ease;
+  }
+
+  .subpage-back:hover {
+    color: var(--color-accent);
+  }
+
+  /* ---------- Download page ---------- */
+  .download-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.2rem;
+  }
+
+  .download-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 1.4rem 1.6rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-sunken);
+    transition:
+      border-color 200ms ease,
+      background 200ms ease,
+      transform 200ms ease;
+  }
+
+  .download-card:hover {
+    border-color: var(--color-accent);
+    transform: translateY(-2px);
+  }
+
+  .download-card.is-primary {
+    border-color: var(--color-accent);
+    background:
+      radial-gradient(
+        ellipse 70% 120% at 0% 0%,
+        color-mix(in oklch, var(--color-accent) 14%, transparent),
+        transparent 70%
+      ),
+      var(--color-surface-sunken);
+  }
+
+  .download-glyph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border: 1px solid var(--color-border);
+    color: var(--color-foreground);
+    background: color-mix(in oklch, var(--color-foreground) 3%, transparent);
+  }
+
+  .download-card.is-primary .download-glyph {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background: color-mix(in oklch, var(--color-accent) 10%, transparent);
+  }
+
+  .download-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+
+  .download-platform {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+
+  .download-badge {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    border-radius: 1px;
+    text-transform: uppercase;
+  }
+
+  .download-ext {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-muted-foreground);
+    letter-spacing: 0.02em;
+  }
+
+  .download-cta {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
+    padding-left: 0.6rem;
+  }
+
+  .download-card.is-primary .download-cta {
+    color: var(--color-accent);
+  }
+
+  .download-note {
+    margin-top: 2.5rem;
+    padding: 1.6rem 1.8rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-sunken);
+    display: grid;
+    gap: 1rem;
+  }
+
+  .download-note h2 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.25rem;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  .download-note-row {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .download-note-row:last-of-type {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .download-note-label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--color-accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding-top: 0.15rem;
+  }
+
+  .download-note-body {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: var(--color-muted-foreground);
+  }
+
+  .download-note-cmd {
+    display: block;
+    margin-top: 0.6rem;
+    padding: 0.7rem 0.9rem;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--color-foreground);
+    background: var(--color-sumi);
+    border: 1px solid var(--color-border-strong);
+    overflow-x: auto;
+    user-select: all;
+  }
+
+  /* ---------- Changelog page ---------- */
+  .release-list {
+    display: grid;
+    gap: 3.5rem;
+  }
+
+  .release {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr);
+    gap: 2.5rem;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .release:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .release-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    position: sticky;
+    top: 5rem;
+    align-self: start;
+  }
+
+  .release-version {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: var(--color-foreground);
+    letter-spacing: -0.02em;
+  }
+
+  .release-seal {
+    width: 10px;
+    height: 10px;
+    border-radius: 1px;
+    background: var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  .release-date {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--color-faint-foreground);
+    text-transform: uppercase;
+  }
+
+  .release-body {
+    display: grid;
+    gap: 1.6rem;
+  }
+
+  .release-title {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.7rem;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  .release-desc {
+    margin: 0;
+    color: var(--color-muted-foreground);
+    line-height: 1.7;
+    max-width: 52ch;
+  }
+
+  .release-categories {
+    display: grid;
+    gap: 1.6rem;
+    margin-top: 0.6rem;
+  }
+
+  .release-category-label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin: 0 0 0.75rem;
+  }
+
+  .release-entries {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .release-entries li {
+    display: grid;
+    grid-template-columns: 1.3rem minmax(0, 1fr);
+    gap: 0.25rem;
+    padding: 0.4rem 0.5rem 0.4rem 0;
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: color-mix(in oklch, var(--color-foreground) 90%, var(--color-muted-foreground));
+    border-radius: 1px;
+    transition: background 180ms ease;
+  }
+
+  .release-entries li:hover {
+    background: color-mix(in oklch, var(--color-foreground) 3%, transparent);
+  }
+
+  .release-entries .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--color-accent);
+    margin-top: 0.6rem;
+    justify-self: center;
+    opacity: 0.7;
+  }
+
+  @media (max-width: 860px) {
+    .subpage-header,
+    .download-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .download-card {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .download-card .download-cta {
+      grid-column: 1 / -1;
+      padding-left: 0;
+    }
+
+    .download-note-row {
+      grid-template-columns: 1fr;
+      gap: 0.35rem;
+    }
+
+    .release {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .release-meta {
+      position: static;
+      flex-direction: row;
+      align-items: baseline;
+      gap: 0.9rem;
+    }
+  }
+}

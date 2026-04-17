@@ -1,0 +1,50 @@
+@layer components {
+  /* ---------- Reveal ---------- */
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .reveal-stagger > .reveal:nth-child(2) {
+    transition-delay: 80ms;
+  }
+  .reveal-stagger > .reveal:nth-child(3) {
+    transition-delay: 160ms;
+  }
+  .reveal-stagger > .reveal:nth-child(4) {
+    transition-delay: 240ms;
+  }
+  .reveal-stagger > .reveal:nth-child(5) {
+    transition-delay: 320ms;
+  }
+  .reveal-stagger > .reveal:nth-child(6) {
+    transition-delay: 400ms;
+  }
+  .reveal-stagger > .reveal:nth-child(7) {
+    transition-delay: 480ms;
+  }
+  .reveal-stagger > .reveal:nth-child(8) {
+    transition-delay: 560ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

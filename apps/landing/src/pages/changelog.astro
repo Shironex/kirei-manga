@@ -1,0 +1,128 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Footer from '../components/Footer.astro';
+import Navbar from '../components/Navbar.astro';
+import { changelog, getLocalizedChangelog } from '../lib/changelog';
+
+const initial = getLocalizedChangelog('en');
+---
+
+<BaseLayout
+  title="Changelog · KireiManga"
+  description="Release notes for KireiManga — the MangaDex Reader and Local Library milestones."
+>
+  <Navbar />
+  <main id="main" class="section subpage">
+    <a href="/" class="subpage-back" data-i18n="changelog.backHome">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+      <span>Back to home</span>
+    </a>
+
+    <div class="subpage-header reveal">
+      <div>
+        <div class="section-label">
+          <span class="num">§</span>
+          <span class="eyebrow eyebrow--accent" data-i18n="changelog.label">Changelog</span>
+        </div>
+        <h1 data-i18n="changelog.heading">What's new?</h1>
+      </div>
+      <p data-i18n="changelog.subtitle">
+        Release notes, by milestone. KireiManga ships slowly — each entry here
+        is a chapter that shipped, not a sprint that ended.
+      </p>
+    </div>
+
+    <div class="release-list">
+      {initial.map((release, releaseIndex) => (
+        <article class="release reveal" data-release-index={releaseIndex}>
+          <div class="release-meta">
+            <span class="release-version">
+              <span class="release-seal" aria-hidden="true"></span>
+              v{release.version}
+            </span>
+            <span class="release-date" data-release-date>{release.date}</span>
+          </div>
+
+          <div class="release-body">
+            <h2 class="release-title" data-release-title>{release.title}</h2>
+            <p class="release-desc" data-release-description>{release.description}</p>
+
+            <div class="release-categories">
+              {release.categories.map((category, categoryIndex) => (
+                <div class="release-category" data-category-index={categoryIndex}>
+                  <h3 class="release-category-label" data-category-label>{category.label}</h3>
+                  <ul class="release-entries">
+                    {category.entries.map((entry, entryIndex) => (
+                      <li data-entry-index={entryIndex}>
+                        <span class="dot" aria-hidden="true"></span>
+                        <span data-entry-text>{entry}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  </main>
+  <Footer />
+
+  <script is:inline define:vars={{ changelogData: changelog }}>
+    function formatLocalizedDate(value, lang) {
+      return new Intl.DateTimeFormat(lang === 'pl' ? 'pl-PL' : 'en-US', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).format(new Date(value + 'T00:00:00Z'));
+    }
+
+    function applyChangelogLanguage() {
+      var lang = document.documentElement.lang === 'pl' ? 'pl' : 'en';
+
+      document.querySelectorAll('[data-release-index]').forEach(function (article) {
+        var releaseIndex = Number(article.getAttribute('data-release-index'));
+        var release = changelogData[releaseIndex];
+        if (!release) return;
+
+        var dateEl = article.querySelector('[data-release-date]');
+        var titleEl = article.querySelector('[data-release-title]');
+        var descEl = article.querySelector('[data-release-description]');
+
+        if (dateEl) dateEl.textContent = formatLocalizedDate(release.date, lang);
+        if (titleEl) titleEl.textContent = release.title[lang];
+        if (descEl) descEl.textContent = release.description[lang];
+
+        article.querySelectorAll('[data-category-index]').forEach(function (section) {
+          var categoryIndex = Number(section.getAttribute('data-category-index'));
+          var category = release.categories[categoryIndex];
+          if (!category) return;
+
+          var labelEl = section.querySelector('[data-category-label]');
+          if (labelEl) labelEl.textContent = category.label[lang];
+
+          section.querySelectorAll('[data-entry-index]').forEach(function (item) {
+            var entryIndex = Number(item.getAttribute('data-entry-index'));
+            var entry = category.entries[entryIndex];
+            var entryEl = item.querySelector('[data-entry-text]');
+            if (entry && entryEl) entryEl.textContent = entry[lang];
+          });
+        });
+      });
+    }
+
+    // Run now, and every time the lang-toggle fires an i18n change
+    // (we re-run on click because applyTranslations updates <html lang>)
+    applyChangelogLanguage();
+    document.addEventListener('click', function (ev) {
+      var target = ev.target;
+      if (target && target.closest && target.closest('[data-lang-toggle]')) {
+        // Wait a tick for applyTranslations to run first
+        setTimeout(applyChangelogLanguage, 0);
+      }
+    });
+  </script>
+</BaseLayout>

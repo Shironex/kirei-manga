@@ -1,0 +1,62 @@
+---
+import { SISTER_APPS } from '../lib/site';
+
+const cards = [
+  {
+    kanji: '綺麗漫画',
+    name: 'KireiManga',
+    description: 'Manga reader · you are here',
+    roleKey: 'suite.self',
+    href: '#top',
+    self: true,
+  },
+  {
+    kanji: SISTER_APPS[0].kanji,
+    name: SISTER_APPS[0].name,
+    description: SISTER_APPS[0].description,
+    roleKey: 'suite.shiroani',
+    href: SISTER_APPS[0].href,
+    self: false,
+  },
+  {
+    kanji: SISTER_APPS[1].kanji,
+    name: SISTER_APPS[1].name,
+    description: SISTER_APPS[1].description,
+    roleKey: 'suite.shiranami',
+    href: SISTER_APPS[1].href,
+    self: false,
+  },
+];
+---
+
+<section class="section section-stack" id="suite">
+  <div class="section-head reveal">
+    <div>
+      <div class="section-label">
+        <span class="num" data-i18n="suite.num">§ V</span>
+        <span class="eyebrow" data-i18n="suite.label">Shiro Suite</span>
+      </div>
+      <h2 data-i18n="suite.heading">One quiet shelf for manga, anime, and music.</h2>
+    </div>
+    <p data-i18n="suite.body">
+      KireiManga shares monorepo patterns and design language with two sister
+      apps. Each one is built around the same idea — local-first, calm, and out
+      of the way when you just want to read, watch, or listen.
+    </p>
+  </div>
+
+  <div class="suite reveal">
+    {cards.map((card) => (
+      <a
+        class={`suite-card ${card.self ? 'suite-card--self' : ''}`}
+        href={card.href}
+        target={card.self ? '_self' : '_blank'}
+        rel={card.self ? undefined : 'noopener noreferrer'}
+      >
+        <div class="kanji" aria-hidden="true">{card.kanji}</div>
+        <div class="name">{card.name}</div>
+        <div class="role" data-i18n={card.roleKey}>{card.description}</div>
+      </a>
+    ))}
+  </div>
+</section>

@@ -1,0 +1,67 @@
+@layer components {
+  /* ---------- Sister apps (Shiro suite) ---------- */
+  .suite {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    border: 1px solid var(--color-border);
+  }
+
+  .suite-card {
+    padding: 1.6rem 1.5rem;
+    border-right: 1px solid var(--color-border);
+    transition: background 260ms ease;
+  }
+
+  .suite-card:last-child {
+    border-right: 0;
+  }
+
+  .suite-card:hover {
+    background: color-mix(in oklch, var(--color-foreground) 2%, transparent);
+  }
+
+  .suite-card .kanji {
+    font-family: var(--font-kanji);
+    font-size: 1.6rem;
+    color: var(--color-accent);
+    letter-spacing: 0.04em;
+  }
+
+  .suite-card .name {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 0.3rem 0 0.25rem;
+  }
+
+  .suite-card .role {
+    font-size: 0.82rem;
+    color: var(--color-muted-foreground);
+  }
+
+  .suite-card--self {
+    background: color-mix(in oklch, var(--color-accent) 6%, transparent);
+  }
+
+  .suite-card--self .role {
+    color: var(--color-accent);
+    font-weight: 500;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 960px) {
+    .suite {
+      grid-template-columns: 1fr;
+    }
+
+    .suite-card {
+      border-right: 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .suite-card:last-child {
+      border-bottom: 0;
+    }
+  }
+}

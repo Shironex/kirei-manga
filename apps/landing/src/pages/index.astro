@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Cta from '../components/Cta.astro';
+import Features from '../components/Features.astro';
+import Footer from '../components/Footer.astro';
+import Gallery from '../components/Gallery.astro';
+import Hero from '../components/Hero.astro';
+import Navbar from '../components/Navbar.astro';
+import Roadmap from '../components/Roadmap.astro';
+import Suite from '../components/Suite.astro';
+---
+
+<BaseLayout
+  title="KireiManga · A quiet desktop manga reader"
+  description="KireiManga is a local-first desktop manga reader. Browse MangaDex, import CBZ and folders, and read in a distraction-free editorial interface. Part of the Shiro suite."
+>
+  <Navbar />
+  <main id="main">
+    <Hero />
+    <Features />
+    <Gallery />
+    <Roadmap />
+    <Cta />
+    <Suite />
+  </main>
+  <Footer />
+</BaseLayout>

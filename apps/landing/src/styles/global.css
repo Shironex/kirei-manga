@@ -1,0 +1,24 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   綺麗漫画 · KireiManga landing — editorial ink-and-paper.
+   Sumi (ink) background · Kinari (unbleached ivory) text ·
+   Bengara (iron-oxide red) used sparingly, like a hanko seal.
+   Fraunces serif for display, Geist for body, Shippori Mincho for kanji.
+------------------------------------------------------------------ */
+
+@import './partials/tokens.css';
+@import './partials/base.css';
+@import './partials/layout.css';
+@import './partials/typography.css';
+@import './partials/masthead.css';
+@import './partials/buttons.css';
+@import './partials/hero.css';
+@import './partials/sections.css';
+@import './partials/gallery.css';
+@import './partials/ledger.css';
+@import './partials/cta.css';
+@import './partials/suite.css';
+@import './partials/subpage.css';
+@import './partials/footer.css';
+@import './partials/motion.css';

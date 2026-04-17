@@ -1,0 +1,74 @@
+---
+const milestones = [
+  {
+    version: 'v0.1',
+    key: 'v01',
+    title: 'MangaDex Reader',
+    desc: 'MangaDex API, chapter streaming, internal library, reader shell, progress tracking.',
+    status: 'shipped',
+    statusLabel: 'Shipped',
+  },
+  {
+    version: 'v0.2',
+    key: 'v02',
+    title: 'Local Library',
+    desc: 'CBZ & folder import, unified library, local reader, metadata editor, MangaDex match, folder update polling.',
+    status: 'shipped',
+    statusLabel: 'Shipped · now',
+  },
+  {
+    version: 'v0.3',
+    key: 'v03',
+    title: 'Translation',
+    desc: 'C++ OpenCV bubble detection, manga-ocr sidecar, DeepL / Google / Ollama overlay rendered on page.',
+    status: 'planned',
+    statusLabel: 'Planned',
+  },
+  {
+    version: 'v0.4',
+    key: 'v04',
+    title: 'AniList Sync',
+    desc: 'OAuth login, two-way read-progress sync, full manga-list import.',
+    status: 'planned',
+    statusLabel: 'Planned',
+  },
+  {
+    version: 'v0.5+',
+    key: 'v05',
+    title: 'Polish',
+    desc: 'Kanji hover dictionary, Anki export, translation corrections, community features.',
+    status: 'planned',
+    statusLabel: 'Backlog',
+  },
+] as const;
+---
+
+<section class="section section-stack" id="roadmap">
+  <div class="section-head reveal">
+    <div>
+      <div class="section-label">
+        <span class="num" data-i18n="roadmap.num">§ III</span>
+        <span class="eyebrow" data-i18n="roadmap.label">Milestones</span>
+      </div>
+      <h2 data-i18n="roadmap.heading">A long project, read in chapters.</h2>
+    </div>
+    <p data-i18n="roadmap.body">
+      KireiManga is released slowly and deliberately. Each milestone ships one
+      well-chosen capability and ends when it's solid — not when the calendar says.
+    </p>
+  </div>
+
+  <div class="ledger reveal">
+    {milestones.map((ms) => (
+      <div class="ledger-row">
+        <div class="ledger-version">{ms.version}</div>
+        <div class="ledger-title" data-i18n={`roadmap.${ms.key}.title`}>{ms.title}</div>
+        <div class="ledger-desc" data-i18n={`roadmap.${ms.key}.desc`}>{ms.desc}</div>
+        <div class={`ledger-status ledger-status--${ms.status}`}>
+          <span class="tick" aria-hidden="true"></span>
+          <span data-i18n={`roadmap.${ms.key}.status`}>{ms.statusLabel}</span>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>

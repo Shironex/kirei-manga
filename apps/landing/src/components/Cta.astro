@@ -1,0 +1,32 @@
+---
+import { GITHUB_REPO_URL, LANDING_VERSION } from '../lib/site';
+---
+
+<section class="section section-stack" id="download">
+  <div class="cta reveal">
+    <div class="cta-kanji" aria-hidden="true">読</div>
+    <div>
+      <div class="section-label">
+        <span class="num" data-i18n="cta.num">§ IV</span>
+        <span class="eyebrow eyebrow--accent" data-i18n="cta.label">Download</span>
+      </div>
+      <h2 data-i18n="cta.heading">Bring Kirei home.</h2>
+      <p data-i18n="cta.body">
+        Grab the latest build for Windows or macOS. It's unsigned — the Releases page has the
+        two Terminal commands you'll need on macOS, and a quick SmartScreen note for Windows.
+      </p>
+    </div>
+    <div class="cta-actions">
+      <a class="btn btn-primary" href="/download">
+        <span data-i18n="cta.download">Download v{LANDING_VERSION}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+        </svg>
+      </a>
+      <a class="btn btn-ghost" href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer" data-i18n="cta.source">
+        Source & issues
+      </a>
+      <p class="cta-note" data-i18n="cta.platforms">Windows · macOS</p>
+    </div>
+  </div>
+</section>

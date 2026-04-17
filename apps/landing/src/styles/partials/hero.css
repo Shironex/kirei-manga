@@ -1,0 +1,202 @@
+@layer components {
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative;
+    padding: 5rem 0 4rem;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 3rem;
+    align-items: end;
+  }
+
+  .hero-ornament {
+    position: absolute;
+    inset: auto 0 -2rem 0;
+    pointer-events: none;
+    font-family: var(--font-kanji);
+    font-size: clamp(14rem, 32vw, 28rem);
+    line-height: 0.85;
+    color: color-mix(in oklch, var(--color-foreground) 4%, transparent);
+    text-align: center;
+    white-space: nowrap;
+    font-weight: 400;
+    z-index: 0;
+    user-select: none;
+  }
+
+  .hero-body {
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-bottom: 1.7rem;
+  }
+
+  .hero-eyebrow .rule {
+    flex: 1;
+    max-width: 4rem;
+  }
+
+  .hero-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2.6rem, 6vw, 4.4rem);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    margin: 0;
+    max-width: 16ch;
+    font-variation-settings: 'SOFT' 50, 'opsz' 96;
+  }
+
+  .hero-title em {
+    font-style: italic;
+    color: var(--color-accent);
+    font-variation-settings: 'SOFT' 100, 'opsz' 96;
+  }
+
+  .hero-subhead {
+    margin: 1.6rem 0 0;
+    max-width: 42ch;
+    font-size: 1.02rem;
+    line-height: 1.7;
+    color: var(--color-muted-foreground);
+  }
+
+  .hero-cta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 2.2rem;
+  }
+
+  .hero-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    color: var(--color-faint-foreground);
+    text-transform: uppercase;
+  }
+
+  .hero-meta .dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--color-faint-foreground);
+  }
+
+  /* Vertical tate-gaki column + portrait frame */
+  .hero-frame {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    gap: 1.2rem;
+    width: 100%;
+  }
+
+  .tate-inner {
+    writing-mode: vertical-rl;
+    font-family: var(--font-kanji);
+    font-size: 0.82rem;
+    letter-spacing: 0.45em;
+    color: var(--color-faint-foreground);
+    padding: 0.5rem 0 0.5rem 0.7rem;
+    border-left: 1px solid var(--color-border);
+    flex-shrink: 0;
+    align-self: center;
+  }
+
+  .hero-portrait {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 22rem;
+    aspect-ratio: 4 / 5;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface-sunken);
+    overflow: hidden;
+  }
+
+  .hero-portrait::before {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border: 1px dashed var(--color-border);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .hero-portrait img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 2rem;
+  }
+
+  .hero-portrait-caption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted-foreground);
+    background: linear-gradient(to top, var(--color-sumi) 40%, transparent);
+    display: flex;
+    justify-content: space-between;
+    z-index: 3;
+  }
+
+  .hero-portrait-caption .kanji {
+    font-family: var(--font-kanji);
+    letter-spacing: 0.08em;
+    color: var(--color-accent);
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 960px) {
+    .hero-grid {
+      grid-template-columns: 1fr;
+      gap: 1.8rem;
+    }
+
+    .hero-frame {
+      justify-content: flex-start;
+    }
+
+    .hero-frame .tate-inner {
+      display: none;
+    }
+
+    .hero-portrait {
+      max-width: 20rem;
+      aspect-ratio: 4 / 5;
+    }
+
+    .hero {
+      padding-top: 3rem;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .hero-title {
+      font-size: 2.2rem;
+    }
+  }
+}

@@ -1,0 +1,105 @@
+---
+interface FeatureItem {
+  num: string;
+  kanji: string;
+  key: string;
+  title: string;
+  body: string;
+  tag?: string;
+}
+
+const features: FeatureItem[] = [
+  {
+    num: '01',
+    kanji: '漫画庫',
+    key: '01',
+    title: 'MangaDex Browse',
+    body: "Discovery tabs (Popular, Latest, Top rated) plus keyword search across title, author, tag, demographic, and rating — straight through MangaDex's official API.",
+  },
+  {
+    num: '02',
+    kanji: '書棚',
+    key: '02',
+    title: 'Internal Library',
+    body: 'Follow and unfollow titles, keep reading status (reading, completed, plan to read, on hold, dropped), track resume points per chapter — MangaDex and local alike.',
+  },
+  {
+    num: '03',
+    kanji: '取込',
+    key: '03',
+    tag: 'v0.2',
+    title: 'Local Import',
+    body: 'Point it at a folder. Scan CBZ, ZIP, and image-directory series, review matches, commit with a single click. Works alongside MangaDex under the same shelf.',
+  },
+  {
+    num: '04',
+    kanji: '読書',
+    key: '04',
+    title: 'Distraction-free Reader',
+    body: 'Full-screen reader with single, double, and webtoon modes, fit variations, keyboard navigation, per-series RTL preference, and cached pages served from disk.',
+  },
+  {
+    num: '05',
+    kanji: '栞',
+    key: '05',
+    title: 'Bookmarks & Progress',
+    body: 'Per-page bookmarks with notes. Resume exactly where you stopped on every chapter, local or remote. Downloaded chapters work offline — no network needed.',
+  },
+  {
+    num: '06',
+    kanji: '翻訳',
+    key: '06',
+    tag: 'v0.3',
+    title: 'Translation Overlay',
+    body: 'C++ OpenCV bubble detection, manga-ocr Python sidecar, and DeepL / Google / Ollama translations rendered directly on the page. For raw Japanese releases.',
+  },
+  {
+    num: '07',
+    kanji: '同期',
+    key: '07',
+    tag: 'v0.4',
+    title: 'AniList Sync',
+    body: 'OAuth login, list import, two-way progress sync. Your reading follows you between the app and AniList without manual reconciliation.',
+  },
+  {
+    num: '08',
+    kanji: '言葉',
+    key: '08',
+    title: 'English & Polski',
+    body: 'Full i18n out of the box. The interface reads in English or Polish with a single toggle. Translation corrections welcome via pull request.',
+  },
+];
+---
+
+<section class="section section-stack" id="features">
+  <div class="section-head reveal">
+    <div>
+      <div class="section-label">
+        <span class="num" data-i18n="features.num">§ I</span>
+        <span class="eyebrow" data-i18n="features.label">Contents</span>
+      </div>
+      <h2 data-i18n="features.heading">Everything a reader needs, nothing that shouts.</h2>
+    </div>
+    <p data-i18n="features.body">
+      KireiManga was built around the way people actually read — one folder at a time,
+      one chapter at a time. Features are restrained by design: present when you need
+      them, invisible when you don't. What follows is the table of contents.
+    </p>
+  </div>
+
+  <div class="toc reveal-stagger">
+    {features.map((feature) => (
+      <article class="toc-item reveal">
+        <div class="toc-num">{feature.num}</div>
+        <div class="toc-title">
+          <span class="kanji" aria-hidden="true">{feature.kanji}</span>
+          <h3>
+            <span data-i18n={`features.${feature.key}.title`}>{feature.title}</span>
+            {feature.tag && <span class="toc-tag">{feature.tag}</span>}
+          </h3>
+        </div>
+        <p class="toc-body" data-i18n={`features.${feature.key}.body`}>{feature.body}</p>
+      </article>
+    ))}
+  </div>
+</section>

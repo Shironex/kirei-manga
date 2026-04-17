@@ -21,7 +21,9 @@
   "scripts": {
     "dev": "pnpm build:packages && concurrently -k -n web,desktop -c magenta,yellow \"pnpm dev:web\" \"wait-on -t 30000 -i 1000 http-get://localhost:15175 && pnpm --filter @kireimanga/desktop dev\"",
     "dev:web": "pnpm build:packages && pnpm --filter @kireimanga/web dev",
+    "dev:landing": "pnpm --filter @kireimanga/landing dev",
     "build": "pnpm build:packages && pnpm --filter @kireimanga/web build && pnpm --filter @kireimanga/desktop build",
+    "build:landing": "pnpm --filter @kireimanga/landing build",
     "build:packages": "pnpm --filter @kireimanga/shared build",
     "package": "pnpm build && pnpm --filter @kireimanga/desktop package",
     "package:win": "pnpm build && pnpm --filter @kireimanga/desktop package:win",

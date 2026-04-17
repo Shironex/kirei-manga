@@ -1,0 +1,94 @@
+@layer components {
+  /* ---------- CTA ---------- */
+  .cta {
+    position: relative;
+    overflow: hidden;
+    padding: 3.5rem 3rem;
+    border: 1px solid var(--color-border-strong);
+    background:
+      radial-gradient(
+        ellipse 60% 100% at 15% 50%,
+        color-mix(in oklch, var(--color-accent) 10%, transparent),
+        transparent 70%
+      ),
+      var(--color-surface-sunken);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem);
+    gap: 2.5rem;
+    align-items: center;
+  }
+
+  .cta-kanji {
+    position: absolute;
+    left: -1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-kanji);
+    font-size: clamp(7rem, 14vw, 11rem);
+    line-height: 0.9;
+    color: color-mix(in oklch, var(--color-accent) 9%, transparent);
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+  }
+
+  .cta > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .cta h2 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(1.8rem, 3.6vw, 2.4rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0.4rem 0 0.5rem;
+    max-width: 22ch;
+  }
+
+  .cta p {
+    margin: 0;
+    color: var(--color-muted-foreground);
+    line-height: 1.65;
+    max-width: 44ch;
+  }
+
+  .cta-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-width: 11rem;
+  }
+
+  .cta-note {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--color-faint-foreground);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+    margin: 0.35rem 0 0;
+    padding-left: 0.2rem;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 960px) {
+    .cta {
+      grid-template-columns: 1fr;
+      gap: 1.8rem;
+      padding: 2rem 1.5rem;
+    }
+
+    .cta-actions {
+      flex-direction: row;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .cta-kanji {
+      font-size: 6rem;
+      right: 1rem;
+    }
+  }
+}
