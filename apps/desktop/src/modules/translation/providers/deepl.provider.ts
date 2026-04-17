@@ -101,8 +101,13 @@ export class DeepLProvider implements TranslationProvider {
   private readonly gate = new MinIntervalGate(MIN_INTERVAL_MS);
   private readonly fetch: FetchLike;
 
-  constructor(private readonly settings: SettingsService) {
-    this.fetch = getFetch();
+  constructor(
+    private readonly settings: SettingsService,
+    fetchFn?: FetchLike,
+  ) {
+    // Optional `fetchFn` mirrors the `OcrSidecarService.spawnFn` seam: prod
+    // uses the auto-resolved Electron / global fetch; specs inject a jest mock.
+    this.fetch = fetchFn ?? getFetch();
   }
 
   /** Translate a batch of source strings. Chunks the input into ≤50-text requests. */
