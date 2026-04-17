@@ -125,11 +125,36 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Built shared package is required by the desktop smoke spec's
+      # service.ts → `@kireimanga/shared` import (jest.config maps it to dist/).
+      - name: Build shared package
+        run: pnpm build:packages
+
       - name: Build prebuild
         run: pnpm --filter @kireimanga/bubble-detector run prebuild
 
       - name: Verify prebuild loads
         run: node -e "console.log(require('./native/bubble-detector'))"
+
+      # Slice B.6: tagged releases get the same C++/Node test guarantees CI
+      # runs per-PR — keeps a release from shipping a regression that slipped
+      # in between the last green CI and the tag.
+      - name: Build C++ tests
+        shell: bash
+        run: |
+          cmake -S native/bubble-detector/test \
+                -B native/bubble-detector/test/build \
+                -DCMAKE_BUILD_TYPE=Release
+          cmake --build native/bubble-detector/test/build --config Release --parallel
+
+      - name: Run C++ tests
+        shell: bash
+        run: ctest --test-dir native/bubble-detector/test/build --output-on-failure -C Release
+
+      - name: Run Node smoke test (real addon)
+        shell: bash
+        working-directory: apps/desktop
+        run: npx jest --testPathPatterns=bubble-detector.smoke
 
       - name: Upload prebuild artifact
         uses: actions/upload-artifact@v4

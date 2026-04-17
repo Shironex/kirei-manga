@@ -7,7 +7,7 @@
   "targets": [
     {
       "target_name": "bubble_detector",
-      "sources": ["src/detector.cpp"],
+      "sources": ["src/detector.cpp", "src/detector_core.cpp"],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",
         "<(OPENCV_INCLUDE_DIR)"

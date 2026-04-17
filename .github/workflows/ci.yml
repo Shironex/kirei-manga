@@ -188,11 +188,41 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Built shared package is required by the desktop smoke spec's
+      # service.ts → `@kireimanga/shared` import (jest.config maps it to dist/).
+      - name: Build shared package
+        run: pnpm build:packages
+
       - name: Build prebuild
         run: pnpm --filter @kireimanga/bubble-detector run prebuild
 
       - name: Verify prebuild loads
         run: node -e "console.log(require('./native/bubble-detector'))"
+
+      # Slice B.6: standalone CMake harness builds the GoogleTest binary
+      # against the same vendored OpenCV install (env vars carried over from
+      # the "Export OpenCV env" step). bash works on windows-latest via Git
+      # Bash, so a single shell keeps the matrix identical across OSes.
+      - name: Build C++ tests
+        shell: bash
+        run: |
+          cmake -S native/bubble-detector/test \
+                -B native/bubble-detector/test/build \
+                -DCMAKE_BUILD_TYPE=Release
+          cmake --build native/bubble-detector/test/build --config Release --parallel
+
+      - name: Run C++ tests
+        shell: bash
+        run: ctest --test-dir native/bubble-detector/test/build --output-on-failure -C Release
+
+      # Slice B.6: end-to-end smoke test — the real addon was just built and
+      # node-gyp-build resolves it from native/bubble-detector/prebuilds/.
+      # The mocked unit spec runs in `test-desktop` (Linux, no prebuild);
+      # this is the actual integration check.
+      - name: Run Node smoke test (real addon)
+        shell: bash
+        working-directory: apps/desktop
+        run: npx jest --testPathPatterns=bubble-detector.smoke
 
       - name: Upload prebuild artifact
         uses: actions/upload-artifact@v4
