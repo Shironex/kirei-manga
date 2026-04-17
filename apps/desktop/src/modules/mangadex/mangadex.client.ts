@@ -9,6 +9,8 @@ import type {
   MangaDexCoverSize,
   SearchFilters,
 } from '@kireimanga/shared';
+import { getFetch } from '../shared/net-fetch';
+import { MinIntervalGate, sleep } from '../shared/rate-limit';
 
 const logger = createLogger('MangaDexClient');
 
@@ -47,62 +49,9 @@ const AT_HOME_TTL_MS = 15 * 60_000;
 // memory when the user rapidly traverses many series.
 const MAX_CACHE_ENTRIES = 500;
 
-/** Minimum interval gate serialized via a promise chain. */
-class MinIntervalGate {
-  private next = Promise.resolve();
-
-  constructor(private readonly intervalMs: number) {}
-
-  schedule<T>(fn: () => Promise<T>): Promise<T> {
-    const run = this.next.then(async () => {
-      const started = Date.now();
-      try {
-        return await fn();
-      } finally {
-        const elapsed = Date.now() - started;
-        const wait = this.intervalMs - elapsed;
-        if (wait > 0) {
-          await sleep(wait);
-        }
-      }
-    });
-    // Keep the chain free of rejections so one failure doesn't break the gate.
-    this.next = run.then(
-      () => undefined,
-      () => undefined
-    );
-    return run;
-  }
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
-
 interface CacheEntry<T> {
   data: T;
   expiresAt: number;
-}
-
-function getFetch(): FetchLike {
-  // electron.net.fetch is only available inside an Electron main process.
-  // In Jest we fall back to the global fetch (node 18+ / jsdom / test mock).
-  try {
-    // Dynamic require so tests without electron installed still work.
-
-    const mod = require('electron') as { net?: { fetch?: FetchLike } };
-    if (mod?.net?.fetch) {
-      return mod.net.fetch.bind(mod.net);
-    }
-  } catch {
-    // not in Electron runtime
-  }
-  if (typeof globalThis.fetch !== 'function') {
-    throw new Error('No fetch implementation available');
-  }
-  return globalThis.fetch.bind(globalThis);
 }
 
 /**
