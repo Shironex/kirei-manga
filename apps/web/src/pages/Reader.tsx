@@ -262,7 +262,7 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
   const safeIndex = Math.min(pageIndex, pages.length - 1);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-[var(--color-ink-sunken)]">
+    <div className="relative h-full w-full overflow-hidden bg-[var(--color-ink-sunken)]">
       {mode === 'single' && (
         <SinglePageView
           pageUrl={pages[safeIndex]}
@@ -307,7 +307,7 @@ function ReaderShell({
 }) {
   const t = useT();
   return (
-    <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-[var(--color-ink-sunken)]">
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-[var(--color-ink-sunken)]">
       <header className="app-drag flex h-11 shrink-0 items-center justify-between border-b border-border bg-[var(--color-ink)]/70 px-5 backdrop-blur">
         <button
           type="button"

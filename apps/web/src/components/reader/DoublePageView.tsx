@@ -16,12 +16,12 @@ function fitClass(fit: FitMode): string {
   switch (fit) {
     case 'width':
       // Each image takes up to half of the row.
-      return 'max-w-[50vw] h-auto';
+      return 'max-w-[50%] h-auto';
     case 'original':
       return 'max-w-none max-h-none';
     case 'height':
     default:
-      return 'h-screen w-auto';
+      return 'h-full w-auto';
   }
 }
 
@@ -46,7 +46,7 @@ export function DoublePageView({ pages, primaryIndex, fit, direction, isBookmark
   const showBookmarkDot = isBookmarked?.(primaryIndex) ?? false;
 
   return (
-    <div className="relative flex h-screen w-screen items-center justify-center overflow-auto bg-[var(--color-ink-sunken)]">
+    <div className="relative flex h-full w-full items-center justify-center overflow-auto bg-[var(--color-ink-sunken)]">
       <div className={`flex ${dirClass} items-center gap-0`}>
         {current.map(i => (
           <img

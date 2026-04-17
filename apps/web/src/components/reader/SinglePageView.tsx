@@ -49,7 +49,7 @@ export function SinglePageView({ pageUrl, pageNumber, totalPages, fit, isBookmar
   return (
     <div
       onWheel={onWheel}
-      className="relative flex h-screen w-screen items-center justify-center overflow-auto bg-[var(--color-ink-sunken)]"
+      className="relative flex h-full w-full items-center justify-center overflow-auto bg-[var(--color-ink-sunken)]"
     >
       <img
         src={pageUrl}

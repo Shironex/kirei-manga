@@ -46,7 +46,7 @@ export function WebtoonView({ pages, isBookmarked }: Props) {
   return (
     <div
       ref={containerRef}
-      className="h-screen w-screen overflow-y-auto overflow-x-hidden bg-[var(--color-ink-sunken)]"
+      className="h-full w-full overflow-y-auto overflow-x-hidden bg-[var(--color-ink-sunken)]"
     >
       <div className="mx-auto flex max-w-[900px] flex-col gap-0">
         {pages.map((url, i) => (
