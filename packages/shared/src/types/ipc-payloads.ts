@@ -14,6 +14,11 @@ import type {
   SearchResult,
   OcrResult,
 } from './mangadex';
+import type {
+  PageTranslation,
+  TranslationProviderId,
+  TranslationProviderStatus,
+} from './translation';
 import type { AppSettings, DeepPartial } from './settings';
 import type {
   LocalSeriesMetaPatch,
@@ -519,5 +524,60 @@ export interface TranslationTranslatePayload {
 
 export interface TranslationTranslateResponse {
   translations: string[];
+  error?: string;
+}
+
+/**
+ * Cache lookup keyed by page hash + target language + provider — exactly the
+ * uniqueness tuple of a `translation_cache` row (Slice A.4 migration 007).
+ */
+export interface TranslationGetPagePayload {
+  pageHash: string;
+  targetLang: string;
+  provider: TranslationProviderId;
+}
+
+export interface TranslationGetPageResponse {
+  page: PageTranslation | null;
+  error?: string;
+}
+
+/**
+ * Primary entry point for the translation pipeline. `providerHint` is optional
+ * — the registry resolves to `hint > default > any-healthy` (Slice E phase 3).
+ */
+export interface TranslationRunPipelinePayload {
+  pageImagePath: string;
+  targetLang: string;
+  providerHint?: TranslationProviderId;
+}
+
+/**
+ * The orchestrator always returns a page result on success; pipeline failures
+ * surface via the gateway-handler's `error` field rather than a null page.
+ */
+export interface TranslationRunPipelineResponse {
+  page: PageTranslation;
+  error?: string;
+}
+
+export interface TranslationProviderStatusResponse {
+  providers: TranslationProviderStatus[];
+  error?: string;
+}
+
+/**
+ * Forward-compatible payload for Slice L. The `translation_flags` row schema
+ * (migration 008) will mirror these fields.
+ */
+export interface TranslationReportBadPayload {
+  pageHash: string;
+  bubbleIndex: number;
+  reason: string;
+  userNote?: string;
+}
+
+export interface TranslationReportBadResponse {
+  success: boolean;
   error?: string;
 }

@@ -54,7 +54,10 @@ export const TranslationEvents = {
   DETECT_BUBBLES: 'translation:detect-bubbles',
   OCR_PAGE: 'translation:ocr-page',
   TRANSLATE: 'translation:translate',
-  GET_CACHE: 'translation:get-cache',
+  GET_PAGE: 'translation:get-page',
+  RUN_PIPELINE: 'translation:run-pipeline',
+  PROVIDER_STATUS: 'translation:provider-status',
+  REPORT_BAD: 'translation:report-bad',
 } as const;
 
 // ============================================
