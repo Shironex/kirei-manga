@@ -2,7 +2,11 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Footer from '../components/Footer.astro';
 import Navbar from '../components/Navbar.astro';
-import { GITHUB_RELEASES_LATEST_URL, LANDING_VERSION } from '../lib/site';
+import {
+  GITHUB_RELEASES_API_URL,
+  GITHUB_RELEASES_LATEST_URL,
+  LANDING_VERSION,
+} from '../lib/site';
 ---
 
 <BaseLayout
@@ -126,24 +130,73 @@ import { GITHUB_RELEASES_LATEST_URL, LANDING_VERSION } from '../lib/site';
   </main>
   <Footer />
 
-  <script is:inline>
+  <script is:inline define:vars={{ apiUrl: GITHUB_RELEASES_API_URL, fallbackUrl: GITHUB_RELEASES_LATEST_URL }}>
     (function () {
+      // Platform detection — reorder + badge the matching card.
       var ua = navigator.userAgent.toLowerCase();
       var platform = 'win';
       if (ua.indexOf('mac') !== -1) platform = 'mac';
       if (ua.indexOf('linux') !== -1) platform = null;
 
       var grid = document.getElementById('download-grid');
-      if (!grid || !platform) return;
+      if (!grid) return;
 
-      var primary = grid.querySelector('[data-platform="' + platform + '"]');
-      if (!primary) return;
+      if (platform) {
+        var primary = grid.querySelector('[data-platform="' + platform + '"]');
+        if (primary) {
+          primary.classList.add('is-primary');
+          primary.parentNode.insertBefore(primary, grid.firstChild);
+          var badge = primary.querySelector('[data-platform-badge]');
+          if (badge) badge.style.display = 'inline-block';
+        }
+      }
 
-      primary.classList.add('is-primary');
-      primary.parentNode.insertBefore(primary, grid.firstChild);
+      // Pull the latest release and rewrite each card's href to the direct asset
+      // URL so clicking starts the download instead of redirecting to the
+      // Releases page. GitHub serves asset URLs with Content-Disposition:
+      // attachment, which triggers the native download prompt.
+      var patterns = { win: /\.exe$/i, mac: /\.dmg$/i };
 
-      var badge = primary.querySelector('[data-platform-badge]');
-      if (badge) badge.style.display = 'inline-block';
+      function formatSize(bytes) {
+        if (!bytes || bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1).replace(/\.0$/, '') + ' MB';
+      }
+
+      fetch(apiUrl, { headers: { Accept: 'application/vnd.github+json' } })
+        .then(function (res) {
+          if (!res.ok) throw new Error('release fetch ' + res.status);
+          return res.json();
+        })
+        .then(function (release) {
+          if (!release || !Array.isArray(release.assets)) return;
+          var tag = (release.tag_name || '').replace(/^v/i, '');
+
+          Object.keys(patterns).forEach(function (key) {
+            var card = grid.querySelector('[data-platform="' + key + '"]');
+            if (!card) return;
+            var asset = null;
+            for (var i = 0; i < release.assets.length; i++) {
+              if (patterns[key].test(release.assets[i].name)) {
+                asset = release.assets[i];
+                break;
+              }
+            }
+            if (!asset) return;
+
+            card.setAttribute('href', asset.browser_download_url);
+            card.removeAttribute('target');
+            card.removeAttribute('rel');
+            card.setAttribute('download', asset.name);
+
+            var cta = card.querySelector('.download-cta');
+            if (cta && tag) cta.textContent = 'v' + tag + ' · ' + formatSize(asset.size);
+          });
+        })
+        .catch(function () {
+          // Fall through — cards already link to the Releases page as a safe
+          // fallback when the GitHub API is unreachable or rate-limited.
+        });
     })();
   </script>
 </BaseLayout>
