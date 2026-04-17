@@ -22,9 +22,11 @@ namespace {
 
 class BubbleDetectorWorker : public Napi::AsyncWorker {
  public:
-  BubbleDetectorWorker(Napi::Env env, std::string path)
+  BubbleDetectorWorker(Napi::Env env, std::string path,
+                       ReadingDirection direction)
       : Napi::AsyncWorker(env),
         imagePath_(std::move(path)),
+        direction_(direction),
         deferred_(Napi::Promise::Deferred::New(env)) {}
 
   ~BubbleDetectorWorker() override = default;
@@ -42,7 +44,7 @@ class BubbleDetectorWorker : public Napi::AsyncWorker {
         SetError("Failed to load image: " + imagePath_);
         return;
       }
-      result_ = RunDetection(gray);
+      result_ = RunDetection(gray, direction_);
     } catch (const cv::Exception& e) {
       SetError(std::string("OpenCV error: ") + e.what());
     } catch (const std::exception& e) {
@@ -76,6 +78,7 @@ class BubbleDetectorWorker : public Napi::AsyncWorker {
 
  private:
   std::string imagePath_;
+  ReadingDirection direction_;
   std::vector<DetectedBubble> result_;
   Napi::Promise::Deferred deferred_;
 };
@@ -89,7 +92,9 @@ Napi::Value DetectBubbles(const Napi::CallbackInfo& info) {
   // IO/OpenCV failures reject the Promise from inside the worker.
   if (info.Length() < 1 || !info[0].IsString()) {
     Napi::TypeError::New(
-        env, "detectBubbles(imagePath: string): expected 1 argument")
+        env,
+        "detectBubbles(imagePath: string, options?: { direction?: 'rtl' | 'ltr' }): "
+        "expected at least 1 argument")
         .ThrowAsJavaScriptException();
     return env.Null();
   }
@@ -101,9 +106,40 @@ Napi::Value DetectBubbles(const Napi::CallbackInfo& info) {
     return env.Null();
   }
 
+  ReadingDirection direction = ReadingDirection::Rtl;  // manga default
+  if (info.Length() >= 2 && !info[1].IsUndefined() && !info[1].IsNull()) {
+    if (!info[1].IsObject()) {
+      Napi::TypeError::New(env,
+                           "detectBubbles: options must be an object")
+          .ThrowAsJavaScriptException();
+      return env.Null();
+    }
+    Napi::Object options = info[1].As<Napi::Object>();
+    if (options.Has("direction")) {
+      Napi::Value dirVal = options.Get("direction");
+      if (!dirVal.IsString()) {
+        Napi::TypeError::New(
+            env, "detectBubbles: options.direction must be 'rtl' or 'ltr'")
+            .ThrowAsJavaScriptException();
+        return env.Null();
+      }
+      const std::string dirStr = dirVal.As<Napi::String>().Utf8Value();
+      if (dirStr == "rtl") {
+        direction = ReadingDirection::Rtl;
+      } else if (dirStr == "ltr") {
+        direction = ReadingDirection::Ltr;
+      } else {
+        Napi::TypeError::New(
+            env, "detectBubbles: options.direction must be 'rtl' or 'ltr'")
+            .ThrowAsJavaScriptException();
+        return env.Null();
+      }
+    }
+  }
+
   // Queue() takes ownership; the base class deletes the worker after
   // OnOK/OnError returns. Do not delete explicitly.
-  auto* worker = new BubbleDetectorWorker(env, std::move(path));
+  auto* worker = new BubbleDetectorWorker(env, std::move(path), direction);
   worker->Queue();
   return worker->GetPromise();
 }

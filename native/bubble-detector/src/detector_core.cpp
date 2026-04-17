@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 namespace {
 
@@ -99,9 +100,27 @@ double LocalVariance(const cv::Mat& gray, const cv::Rect& r) {
   return stddev[0] * stddev[0];
 }
 
+// Row-band tolerance for the reading-order sort: any pair of bubbles whose
+// vertical midpoints fall within this many pixels are treated as one row.
+// Sized to ~30% of the median bubble height so neighbouring panel rows do
+// not merge; floored at 20px so pages with very small bubbles still keep a
+// usable row band. nth_element gives the median in O(n) average without a
+// full sort.
+int ComputeRowBand(const std::vector<DetectedBubble>& bubbles) {
+  if (bubbles.empty()) return 0;
+  std::vector<int> heights;
+  heights.reserve(bubbles.size());
+  for (const auto& b : bubbles) heights.push_back(b.h);
+  const size_t mid = heights.size() / 2;
+  std::nth_element(heights.begin(), heights.begin() + mid, heights.end());
+  const int median = heights[mid];
+  return std::max(20, static_cast<int>(median * 0.3));
+}
+
 }  // namespace
 
-std::vector<DetectedBubble> RunDetection(const cv::Mat& gray) {
+std::vector<DetectedBubble> RunDetection(const cv::Mat& gray,
+                                        ReadingDirection direction) {
   std::vector<DetectedBubble> result;
   if (gray.empty()) {
     return result;
@@ -193,14 +212,24 @@ std::vector<DetectedBubble> RunDetection(const cv::Mat& gray) {
     result.push_back(DetectedBubble{r.x, r.y, r.width, r.height, confidence});
   }
 
-  // Reading-order sort: top-to-bottom, then left-to-right. Stable so equal
-  // y-coordinates preserve insertion order. Slice C adds RTL handling.
-  std::stable_sort(result.begin(),
-                   result.end(),
-                   [](const DetectedBubble& a, const DetectedBubble& b) {
-                     if (a.y != b.y) return a.y < b.y;
-                     return a.x < b.x;
-                   });
+  // Reading-order sort: group bubbles into rows by vertical-midpoint
+  // proximity (rowBand), then within a row apply the configured reading
+  // direction. Stable so equal keys preserve detection order.
+  const int rowBand = ComputeRowBand(result);
+  std::stable_sort(
+      result.begin(), result.end(),
+      [rowBand, direction](const DetectedBubble& a, const DetectedBubble& b) {
+        const int aMid = a.y + a.h / 2;
+        const int bMid = b.y + b.h / 2;
+        if (std::abs(aMid - bMid) > rowBand) {
+          return aMid < bMid;
+        }
+        // Same row: rightmost-first for RTL, leftmost-first for LTR.
+        if (direction == ReadingDirection::Rtl) {
+          return (a.x + a.w / 2) > (b.x + b.w / 2);
+        }
+        return (a.x + a.w / 2) < (b.x + b.w / 2);
+      });
 
   return result;
 }

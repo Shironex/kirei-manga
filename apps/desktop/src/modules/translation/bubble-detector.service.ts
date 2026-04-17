@@ -21,7 +21,10 @@ const HEADER_BYTES = 64 * 1024;
  * are built (see `native/bubble-detector/src/main.cpp`).
  */
 interface BubbleDetectorAddon {
-  detectBubbles(imagePath: string): Promise<BoundingBox[]>;
+  detectBubbles(
+    imagePath: string,
+    options?: { direction?: 'rtl' | 'ltr' },
+  ): Promise<BoundingBox[]>;
 }
 
 /**
@@ -93,9 +96,14 @@ export class BubbleDetectorService {
   /**
    * Detect speech-bubble bounding boxes on a single page image. Reads the file
    * header to attach `imageWidth`/`imageHeight` (the native addon doesn't
-   * return them) and times the addon call.
+   * return them) and times the addon call. `options.direction` controls the
+   * within-row reading-order sort (default `'rtl'` for manga); Slice F's
+   * orchestrator pulls the per-series override from `Series.translationOverride`.
    */
-  async detect(imagePath: string): Promise<BubbleDetectionResult> {
+  async detect(
+    imagePath: string,
+    options: { direction?: 'rtl' | 'ltr' } = {},
+  ): Promise<BubbleDetectionResult> {
     if (!this.healthy || !this.addon) {
       const reason = this.failureReason ?? 'unknown failure';
       throw new Error(
@@ -107,6 +115,8 @@ export class BubbleDetectorService {
     if (typeof imagePath !== 'string' || imagePath.length === 0) {
       throw new Error('detect(): imagePath must be a non-empty string.');
     }
+
+    const direction = options.direction ?? 'rtl';
 
     const t0 = performance.now();
 
@@ -131,7 +141,7 @@ export class BubbleDetectorService {
       throw new Error(`detect(): could not determine image dimensions for ${imagePath}.`);
     }
 
-    const boxes = await this.addon.detectBubbles(imagePath);
+    const boxes = await this.addon.detectBubbles(imagePath, { direction });
     const durationMs = performance.now() - t0;
 
     return {

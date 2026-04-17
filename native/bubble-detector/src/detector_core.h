@@ -24,9 +24,16 @@ struct DetectedBubble {
   double confidence;
 };
 
+// Reading-order direction for the within-row sort. Manga pages read
+// right-to-left so `Rtl` is the default; `Ltr` covers western-style pages.
+enum class ReadingDirection { Ltr, Rtl };
+
 // Detect bubble candidates from a grayscale page image. Pure function: no
 // global state, no caches, safe to call concurrently from worker threads.
-// An empty `gray` returns an empty vector (no error).
-std::vector<DetectedBubble> RunDetection(const cv::Mat& gray);
+// An empty `gray` returns an empty vector (no error). `direction` controls
+// only the within-row sort; row grouping itself is direction-agnostic.
+std::vector<DetectedBubble> RunDetection(
+    const cv::Mat& gray,
+    ReadingDirection direction = ReadingDirection::Rtl);
 
 #endif  // KIREIMANGA_BUBBLE_DETECTOR_DETECTOR_CORE_H_

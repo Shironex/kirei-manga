@@ -71,13 +71,22 @@ TEST(Detector, SingleSpeechBubbleIsDetected) {
 
 TEST(Detector, MultipleBubblesReturnedInReadingOrder) {
   auto page = MakeBlankPage();
-  DrawSpeechBubble(page, 750, 500, 120, 80);   // top
-  DrawSpeechBubble(page, 750, 1500, 120, 80);  // bottom
-  const auto result = RunDetection(page);
+  // Two bubbles roughly on the same row, then one below.
+  DrawSpeechBubble(page, 500, 500, 100, 80);   // top-left
+  DrawSpeechBubble(page, 1000, 500, 100, 80);  // top-right
+  DrawSpeechBubble(page, 750, 1500, 100, 80);  // below
 
-  ASSERT_GE(result.size(), 2u);
-  // Reading-order sort is top-to-bottom, then left-to-right.
-  EXPECT_LT(result[0].y, result[1].y);
+  // RTL (manga default): row 1 = right-then-left, then row 2 below.
+  auto rtl = RunDetection(page, ReadingDirection::Rtl);
+  ASSERT_GE(rtl.size(), 3u);
+  EXPECT_GT(rtl[0].x, rtl[1].x);  // rightmost first within the top row
+  EXPECT_LT(rtl[1].y, rtl[2].y);  // top row before the row below
+
+  // LTR: row 1 = left-then-right, then row 2 below.
+  auto ltr = RunDetection(page, ReadingDirection::Ltr);
+  ASSERT_GE(ltr.size(), 3u);
+  EXPECT_LT(ltr[0].x, ltr[1].x);  // leftmost first within the top row
+  EXPECT_LT(ltr[1].y, ltr[2].y);
 }
 
 TEST(Detector, PanelBorderIsRejected) {

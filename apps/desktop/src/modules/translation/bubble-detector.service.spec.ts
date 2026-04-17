@@ -61,7 +61,23 @@ describe('BubbleDetectorService', () => {
       expect(result.imageWidth).toBe(1500);
       expect(result.imageHeight).toBe(2200);
       expect(result.durationMs).toBeGreaterThanOrEqual(0);
-      expect(mockDetectBubbles).toHaveBeenCalledWith('/tmp/page-001.jpg');
+      // Manga is the default use case → RTL forwarded by default.
+      expect(mockDetectBubbles).toHaveBeenCalledWith('/tmp/page-001.jpg', {
+        direction: 'rtl',
+      });
+    });
+
+    it('detect() forwards an explicit { direction: "ltr" } to the addon', async () => {
+      mockOpen.mockResolvedValue(makeFileHandle());
+      mockImageSize.mockReturnValue({ width: 1500, height: 2200 });
+      mockDetectBubbles.mockResolvedValue([]);
+
+      const service = new BubbleDetectorService();
+      await service.detect('/tmp/page-001.jpg', { direction: 'ltr' });
+
+      expect(mockDetectBubbles).toHaveBeenCalledWith('/tmp/page-001.jpg', {
+        direction: 'ltr',
+      });
     });
 
     it('detect() rejects on an empty path before touching the addon', async () => {
