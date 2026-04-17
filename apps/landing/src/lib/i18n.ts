@@ -133,7 +133,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'suite.label': 'Shiro Suite',
     'suite.heading': 'One quiet shelf for manga, anime, and music.',
     'suite.body':
-      'KireiManga shares its monorepo and design language with two sister apps. All three are built around the same idea: local first, calm, and easy to live with every day.',
+      'KireiManga is one of three sibling apps built around the same idea — local-first, calm, and easy to live with. Different repos, shared architecture and design language.',
     'suite.self': 'Manga reader · you are here',
     'suite.shiroani': 'Anime tracker',
     'suite.shiranami': 'Music sanctuary',
@@ -313,7 +313,7 @@ export const translations: Record<LandingLanguage, Record<string, string>> = {
     'suite.label': 'Pakiet Shiro',
     'suite.heading': 'Jedna spokojna półka na mangę, anime i muzykę.',
     'suite.body':
-      'KireiManga dzieli monorepo i język wizualny z dwiema siostrzanymi aplikacjami. Wszystkie trzy opierają się na tym samym pomyśle: lokalnie, spokojnie i wygodnie na co dzień.',
+      'KireiManga to jedna z trzech siostrzanych aplikacji zbudowanych wokół tej samej idei — lokalnie, spokojnie, na co dzień. Różne repozytoria, wspólna architektura i język wizualny.',
     'suite.self': 'Czytnik mangi · jesteś tutaj',
     'suite.shiroani': 'Tracker anime',
     'suite.shiranami': 'Azyl dla muzyki',
