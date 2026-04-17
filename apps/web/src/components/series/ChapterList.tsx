@@ -1,15 +1,22 @@
 import type * as React from 'react';
-import { useMemo } from 'react';
-import { Check, Download, Loader2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Check, Download, DownloadCloud, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { ChapterListItem, LibraryChapterStatePatch } from '@kireimanga/shared';
 import { relativeFromIso } from '@/lib/relativeTime';
 import { useDownloadChapter } from '@/hooks/useDownloadChapter';
+import { useDownloadsStore } from '@/stores/downloads-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useT } from '@/hooks/useT';
+import { useToast } from '@/hooks/useToast';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Select, type SelectOption } from '@/components/ui/Select';
 
 type ChapterStateMap = Record<string, LibraryChapterStatePatch> | null;
+
+// Queues above this size ask the user to confirm before firing — below it
+// the click goes straight through, matching the feel of the per-row button.
+const BULK_CONFIRM_THRESHOLD = 20;
 
 interface Props {
   chapters: ChapterListItem[];
@@ -41,7 +48,16 @@ export function ChapterList({
         <span className="font-mono text-[10px] tracking-[0.26em] text-[var(--color-bone-faint)] uppercase">
           {t('series.chapters')}
         </span>
-        <LanguageFilter languages={languages} value={lang} onChange={onLangChange} />
+        <div className="flex items-center gap-4">
+          {!loading && !error && chapters.length > 0 && (
+            <DownloadAllButton
+              chapters={chapters}
+              states={states}
+              mangadexSeriesId={mangadexSeriesId}
+            />
+          )}
+          <LanguageFilter languages={languages} value={lang} onChange={onLangChange} />
+        </div>
       </header>
 
       <div className="mt-4">
@@ -243,6 +259,92 @@ function DownloadButton({
     >
       <Download className="h-3.5 w-3.5" />
     </button>
+  );
+}
+
+function DownloadAllButton({
+  chapters,
+  states,
+  mangadexSeriesId,
+}: {
+  chapters: ChapterListItem[];
+  states: ChapterStateMap;
+  mangadexSeriesId: string;
+}) {
+  const t = useT();
+  const toast = useToast();
+  const entries = useDownloadsStore(s => s.entries);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // A chapter counts as "missing" when neither the persisted flag nor the
+  // in-session download store say it's done or in-flight. `states === null`
+  // happens for series the user hasn't followed — treat everything as
+  // missing there, the backend will skip already-cached pages anyway.
+  const missingIds = useMemo(() => {
+    const out: string[] = [];
+    for (const c of chapters) {
+      if (states?.[c.id]?.isDownloaded) continue;
+      const entry = entries[c.id];
+      if (entry?.status === 'complete' || entry?.status === 'downloading') continue;
+      out.push(c.id);
+    }
+    return out;
+  }, [chapters, states, entries]);
+
+  const missingCount = missingIds.length;
+  const disabled = missingCount === 0;
+
+  const fireQueue = () => {
+    const { requestDownload } = useDownloadsStore.getState();
+    for (const id of missingIds) {
+      requestDownload(id, mangadexSeriesId);
+    }
+    toast.success(t('chapterList.downloadAll.toastBody', { count: missingCount }), {
+      title: t('chapterList.downloadAll.toastTitle'),
+    });
+  };
+
+  const onClick = () => {
+    if (disabled) return;
+    if (missingCount > BULK_CONFIRM_THRESHOLD) {
+      setConfirmOpen(true);
+    } else {
+      fireQueue();
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={
+          disabled
+            ? t('chapterList.downloadAll.disabledAria')
+            : t('chapterList.downloadAll.aria')
+        }
+        className="hidden items-center gap-1.5 font-mono text-[11px] tracking-[0.18em] text-[var(--color-bone-muted)] uppercase transition-colors enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 md:inline-flex"
+      >
+        <DownloadCloud className="h-3.5 w-3.5" aria-hidden />
+        {disabled
+          ? t('chapterList.downloadAll.label')
+          : t('chapterList.downloadAll.count', { count: missingCount })}
+      </button>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        eyebrow={t('chapterList.downloadAll.confirm.eyebrow')}
+        title={t('chapterList.downloadAll.confirm.title', { count: missingCount })}
+        description={t('chapterList.downloadAll.confirm.body')}
+        confirmLabel={t('chapterList.downloadAll.confirm.confirm')}
+        cancelLabel={t('chapterList.downloadAll.confirm.cancel')}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          fireQueue();
+        }}
+      />
+    </>
   );
 }
 
