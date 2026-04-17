@@ -297,6 +297,58 @@ describe('OcrSidecarService', () => {
     await expect(shutdownPromise).resolves.toBeUndefined();
   });
 
+  it('periodic healthcheck pings sidecar when ready and updates modelLoaded', async () => {
+    useFakeTimersForRestart();
+    const harness = makeHarness();
+    const child = await bringUpFakeTimers(harness);
+
+    // Kick off the background healthcheck loop.
+    harness.service.onModuleInit();
+    expect(harness.service.getStatus().modelLoaded).toBeUndefined();
+
+    // Advance to the first 30s tick.
+    jest.advanceTimersByTime(30_000);
+    await flush();
+
+    // The tick should have written a `ping` op to stdin.
+    const pingLine = child.writtenLines().find(l => l.op === 'ping');
+    expect(pingLine).toBeDefined();
+    expect(pingLine?.id).toBeDefined();
+
+    // Sidecar replies with `model_loaded: true` → status reflects it.
+    child.emitStdout({ id: pingLine!.id, ok: true, model_loaded: true });
+    await flush();
+
+    expect(harness.service.getStatus()).toEqual({
+      state: 'ready',
+      modelLoaded: true,
+    });
+
+    // Tear down — emit exit so the shutdown promise resolves under fake timers
+    // without us having to roll forward the 5s grace.
+    const shutdown = harness.service.shutdown();
+    await flush();
+    child.emitExit(0);
+    await shutdown;
+  });
+
+  it('healthcheck does not ping when the sidecar is not ready', async () => {
+    useFakeTimersForRestart();
+    const harness = makeHarness();
+
+    // No bring-up — service starts in `not-downloaded`.
+    harness.service.onModuleInit();
+    jest.advanceTimersByTime(30_000);
+    await flush();
+
+    // No spawn (no ensureReady), no ping.
+    expect(harness.spawnFn).not.toHaveBeenCalled();
+    expect(harness.spawned).toHaveLength(0);
+
+    // No spawned child here — shutdown short-circuits because process is null.
+    await harness.service.shutdown();
+  });
+
   it('per-box error in ocr() response surfaces as empty text in OcrResult', async () => {
     const harness = makeHarness();
     const child = await bringUp(harness);

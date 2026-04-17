@@ -561,8 +561,27 @@ export interface TranslationRunPipelineResponse {
   error?: string;
 }
 
+/**
+ * Single round-trip status pull for the renderer's pipeline-health panel.
+ * `providers` lists translation backends (DeepL / Google / Ollama / Tesseract —
+ * empty until Slices E / I / J / K register concrete providers). `pipeline`
+ * carries the desktop's pipeline-component statuses inline — kept here rather
+ * than imported from desktop because `@kireimanga/shared` cannot depend on the
+ * Electron app. Shapes are wire-compatible with the desktop's
+ * `BubbleDetectorStatus` / `OcrSidecarStatus`; the gateway maps from concrete
+ * types to this payload.
+ */
 export interface TranslationProviderStatusResponse {
   providers: TranslationProviderStatus[];
+  pipeline: {
+    bubbleDetector: { healthy: boolean; reason?: string };
+    ocrSidecar: {
+      state: 'not-downloaded' | 'downloading' | 'starting' | 'ready' | 'crashed' | 'unhealthy';
+      reason?: string;
+      modelLoaded?: boolean;
+      downloadProgress?: { bytes: number; total: number };
+    };
+  };
   error?: string;
 }
 

@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { spawn, type ChildProcess } from 'child_process';
 import { createLogger, type OcrResult } from '@kireimanga/shared';
 import { OcrSidecarDownloader } from './ocr-sidecar-downloader';
@@ -12,6 +12,15 @@ const REQUEST_TIMEOUT_MS = 60_000;
 const RESTART_BACKOFF_MS = [1_000, 2_000, 4_000] as const;
 /** Grace period for the sidecar to flush + exit after `{op:'shutdown'}`. */
 const SHUTDOWN_GRACE_MS = 5_000;
+/**
+ * Cadence for the background `ping()` that refreshes `status.modelLoaded`.
+ * 30s strikes a balance: short enough that the renderer's status panel reflects
+ * model-load completion within roughly one tick of it actually finishing,
+ * long enough that we never noticeably contend with a real OCR request (each
+ * ping serializes through the same in-flight slot as `ocr()`). Not currently
+ * configurable; revisit when the renderer surfaces status to the user (Slice G).
+ */
+const HEALTHCHECK_INTERVAL_MS = 30_000;
 
 interface PendingRequest {
   resolve: (value: SidecarResponse) => void;
@@ -55,7 +64,7 @@ type SpawnFn = typeof spawn;
  * `unhealthy` and Slice K's Tesseract fallback takes over.
  */
 @Injectable()
-export class OcrSidecarService implements OnModuleDestroy {
+export class OcrSidecarService implements OnModuleInit, OnModuleDestroy {
   private process: ChildProcess | null = null;
   private status: OcrSidecarStatus = { state: 'not-downloaded' };
   private nextId = 0;
@@ -67,6 +76,7 @@ export class OcrSidecarService implements OnModuleDestroy {
   private buffer = '';
   private shuttingDown = false;
   private restartTimer: NodeJS.Timeout | null = null;
+  private healthcheckTimer: NodeJS.Timeout | null = null;
   private readonly spawnFn: SpawnFn;
 
   constructor(
@@ -74,6 +84,24 @@ export class OcrSidecarService implements OnModuleDestroy {
     spawnFn: SpawnFn = spawn
   ) {
     this.spawnFn = spawnFn;
+  }
+
+  /**
+   * Start the background healthcheck loop. Pings the sidecar only when it's
+   * `ready` — pinging during downloads / starting / crashed wastes lifecycle
+   * and would race with the spawn promise. Failures log a warn but never
+   * disrupt the service state; the lifecycle path owns crash detection.
+   */
+  onModuleInit(): void {
+    if (this.healthcheckTimer) return;
+    this.healthcheckTimer = setInterval(() => {
+      this.runHealthcheck().catch(err => {
+        logger.warn(`healthcheck tick failed: ${(err as Error).message}`);
+      });
+    }, HEALTHCHECK_INTERVAL_MS);
+    // Don't keep Node alive just for the healthcheck (in case the host shuts
+    // down without invoking the lifecycle hook — e.g. in tests).
+    this.healthcheckTimer.unref?.();
   }
 
   /** Snapshot of the sidecar's current lifecycle state. */
@@ -185,6 +213,10 @@ export class OcrSidecarService implements OnModuleDestroy {
       clearTimeout(this.restartTimer);
       this.restartTimer = null;
     }
+    if (this.healthcheckTimer) {
+      clearInterval(this.healthcheckTimer);
+      this.healthcheckTimer = null;
+    }
     if (!this.process) return;
 
     this.shuttingDown = true;
@@ -220,6 +252,26 @@ export class OcrSidecarService implements OnModuleDestroy {
   }
 
   // -- internals ----------------------------------------------------------
+
+  /**
+   * One healthcheck tick — ping the sidecar iff it's `ready`, then patch
+   * `status.modelLoaded` so `getStatus()` reflects current model-load state.
+   * No-op in every other lifecycle state.
+   */
+  private async runHealthcheck(): Promise<void> {
+    if (this.status.state !== 'ready') return;
+    try {
+      const result = await this.ping();
+      if (this.status.state === 'ready') {
+        this.status = {
+          ...this.status,
+          modelLoaded: result.modelLoaded,
+        };
+      }
+    } catch (err) {
+      logger.warn(`healthcheck ping failed: ${(err as Error).message}`);
+    }
+  }
 
   private nextRequestId(): string {
     return String(this.nextId++);
