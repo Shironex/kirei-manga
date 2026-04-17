@@ -61,7 +61,7 @@ export function getLocalizedChangelog(lang: ChangelogLanguage): ResolvedChangelo
 export const changelog: ChangelogRelease[] = [
   {
     version: '0.2.0',
-    date: '2026-04-16',
+    date: '2026-04-17',
     title: l('Local Library', 'Biblioteka lokalna'),
     description: l(
       "The Local Library milestone adds full support for your own CBZ files, ZIP archives, and image folders alongside MangaDex. It brings one shared reader, metadata editing, folder watching, and a proper Browse feed in place of the old empty search screen.",

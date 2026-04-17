@@ -48,6 +48,9 @@ Thumbs.db
 .planning/
 .worktrees/
 
+# Release scratch — rewritten per release, not checked in
+docs/release-announcement.md
+
 # NVIDIA driver UMD log droppings
 NVIDIA Corporation/
 *.umdlog
