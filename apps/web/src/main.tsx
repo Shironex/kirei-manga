@@ -7,6 +7,7 @@ import { initializeSocket, connectSocket } from './lib/socket';
 import { useSocketStore } from './stores/socket-store';
 import { useLibraryStore } from './stores/library-store';
 import { useSettingsStore } from './stores/settings-store';
+import { useDownloadsStore } from './stores/downloads-store';
 
 setLogLevel(import.meta.env.DEV ? 'debug' : 'info');
 
@@ -21,6 +22,7 @@ async function bootstrap(): Promise<void> {
   useSocketStore.getState().initListeners();
   useLibraryStore.getState().initListeners();
   useSettingsStore.getState().initListeners();
+  useDownloadsStore.getState().initListeners();
   useSocketStore.subscribe((s, prev) => {
     if (s.status === 'connected' && prev.status !== 'connected') {
       void useLibraryStore.getState().refresh();

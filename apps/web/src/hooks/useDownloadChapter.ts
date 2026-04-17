@@ -1,95 +1,50 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  MangaDexEvents,
-  type MangaDexDownloadChapterPayload,
-  type MangaDexDownloadProgressEvent,
-} from '@kireimanga/shared';
-import { emitWithResponse, getSocket } from '@/lib/socket';
+import { useCallback } from 'react';
+import { useDownloadsStore, type DownloadStatus } from '@/stores/downloads-store';
 
-type DownloadStatus = 'idle' | 'downloading' | 'complete' | 'error';
+type UiStatus = 'idle' | DownloadStatus;
 
 interface DownloadChapterResult {
-  status: DownloadStatus;
+  status: UiStatus;
   progress: { current: number; total: number } | null;
   error: string | null;
   download: () => void;
 }
 
 /**
- * Manages the download lifecycle for a single chapter. Emits
- * `mangadex:download-chapter` on demand and streams progress from the
- * `mangadex:download-progress` broadcast, filtered by `chapterId`.
+ * Thin wrapper over `useDownloadsStore` scoped to a single chapter. The store
+ * holds download state globally so it survives component remounts — before,
+ * the hook kept status in local `useState` and a user who navigated away and
+ * back could see the Download icon on an already-queued chapter and trigger
+ * a duplicate request (the backend would dedupe, but the UI flickered).
  *
- * If `initiallyDownloaded` is true the hook starts in `'complete'` state and
- * `download()` is a no-op.
+ * `initiallyDownloaded=true` means the DB already says is_downloaded=1 for
+ * this chapter — we surface that as `'complete'` and skip the store unless
+ * a fresh progress event lands. Download is a no-op while already in flight.
  */
 export function useDownloadChapter(
   chapterId: string,
   mangadexSeriesId: string,
   initiallyDownloaded = false
 ): DownloadChapterResult {
-  const [status, setStatus] = useState<DownloadStatus>(initiallyDownloaded ? 'complete' : 'idle');
-  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const entry = useDownloadsStore(s => s.entries[chapterId]);
+  const requestDownload = useDownloadsStore(s => s.requestDownload);
 
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  // Keep `complete` status in sync when chapter states reload.
-  useEffect(() => {
-    if (initiallyDownloaded && status === 'idle') {
-      setStatus('complete');
-    }
-  }, [initiallyDownloaded]);
-
-  // Listen for progress events scoped to this chapter.
-  useEffect(() => {
-    const socket = getSocket();
-    const handler = (event: MangaDexDownloadProgressEvent) => {
-      if (event.chapterId !== chapterId) return;
-      if (!mountedRef.current) return;
-
-      if (event.status === 'downloading') {
-        setStatus('downloading');
-        setProgress({ current: event.current, total: event.total });
-      } else if (event.status === 'complete') {
-        setStatus('complete');
-        setProgress(null);
-        setError(null);
-      } else if (event.status === 'error') {
-        setStatus('error');
-        setProgress(null);
-        setError(event.error ?? 'Download failed');
-      }
-    };
-
-    socket.on(MangaDexEvents.DOWNLOAD_PROGRESS, handler);
-    return () => {
-      socket.off(MangaDexEvents.DOWNLOAD_PROGRESS, handler);
-    };
-  }, [chapterId]);
+  // Prefer live store state — if we have any entry, it's authoritative.
+  // Otherwise fall back to the DB-derived flag.
+  const status: UiStatus = entry?.status ?? (initiallyDownloaded ? 'complete' : 'idle');
+  const progress =
+    entry && entry.status === 'downloading' && entry.total > 0
+      ? { current: entry.current, total: entry.total }
+      : null;
+  const error = entry?.error ?? null;
 
   const download = useCallback(() => {
+    // Belt-and-braces: the store drops the request on duplicates too, but
+    // if the DB already says downloaded (entry absent, status='complete')
+    // we don't want to re-emit just because the store has no record.
     if (status === 'complete' || status === 'downloading') return;
-
-    setStatus('downloading');
-    setError(null);
-    setProgress(null);
-
-    void emitWithResponse<MangaDexDownloadChapterPayload, { success: boolean; error?: string }>(
-      MangaDexEvents.DOWNLOAD_CHAPTER,
-      { chapterId, mangadexSeriesId }
-    ).catch((err: unknown) => {
-      if (!mountedRef.current) return;
-      setStatus('error');
-      setError(err instanceof Error ? err.message : String(err));
-    });
-  }, [chapterId, mangadexSeriesId, status]);
+    requestDownload(chapterId, mangadexSeriesId);
+  }, [chapterId, mangadexSeriesId, requestDownload, status]);
 
   return { status, progress, error, download };
 }
