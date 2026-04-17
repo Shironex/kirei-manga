@@ -9,7 +9,9 @@ const initial = getLocalizedChangelog('en');
 
 <BaseLayout
   title="Changelog · KireiManga"
-  description="Release notes for KireiManga — the MangaDex Reader and Local Library milestones."
+  description="Release notes for KireiManga, including the MangaDex Reader and Local Library milestones."
+  titleKey="meta.changelog.title"
+  descriptionKey="meta.changelog.description"
 >
   <Navbar />
   <main id="main" class="section subpage">
@@ -29,8 +31,7 @@ const initial = getLocalizedChangelog('en');
         <h1 data-i18n="changelog.heading">What's new?</h1>
       </div>
       <p data-i18n="changelog.subtitle">
-        Release notes, by milestone. KireiManga ships slowly — each entry here
-        is a chapter that shipped, not a sprint that ended.
+        Release notes grouped by milestone. Each entry marks something that actually shipped.
       </p>
     </div>
 
@@ -114,13 +115,10 @@ const initial = getLocalizedChangelog('en');
       });
     }
 
-    // Run now, and every time the lang-toggle fires an i18n change
-    // (we re-run on click because applyTranslations updates <html lang>)
     applyChangelogLanguage();
     document.addEventListener('click', function (ev) {
       var target = ev.target;
       if (target && target.closest && target.closest('[data-lang-toggle]')) {
-        // Wait a tick for applyTranslations to run first
         setTimeout(applyChangelogLanguage, 0);
       }
     });

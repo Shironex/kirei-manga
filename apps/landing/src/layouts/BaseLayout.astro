@@ -5,9 +5,11 @@ import { LANDING_VERSION } from '../lib/site';
 interface Props {
   title: string;
   description?: string;
+  titleKey?: string;
+  descriptionKey?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, titleKey, descriptionKey } = Astro.props;
 ---
 
 <!doctype html>
@@ -18,7 +20,10 @@ const { title, description } = Astro.props;
       window.__kireimanga = { version };
     </script>
   </head>
-  <body>
+  <body
+    data-meta-title-key={titleKey}
+    data-meta-description-key={descriptionKey}
+  >
     <a href="#main" class="skip-link" data-i18n="layout.skipToContent">Skip to content</a>
     <div class="page-shell">
       <div class="paper-grain" aria-hidden="true"></div>
@@ -107,6 +112,26 @@ const { title, description } = Astro.props;
           const value = dict[key];
           if (value != null) el.setAttribute('aria-label', interpolate(value));
         });
+
+        const metaTitleKey = document.body.dataset.metaTitleKey;
+        if (metaTitleKey && dict[metaTitleKey] != null) {
+          document.title = interpolate(dict[metaTitleKey]);
+          const ogTitle = document.querySelector('meta[property="og:title"]');
+          const twitterTitle = document.querySelector('meta[name="twitter:title"]');
+          if (ogTitle) ogTitle.setAttribute('content', interpolate(dict[metaTitleKey]));
+          if (twitterTitle) twitterTitle.setAttribute('content', interpolate(dict[metaTitleKey]));
+        }
+
+        const metaDescriptionKey = document.body.dataset.metaDescriptionKey;
+        if (metaDescriptionKey && dict[metaDescriptionKey] != null) {
+          const content = interpolate(dict[metaDescriptionKey]);
+          const description = document.querySelector('meta[name="description"]');
+          const ogDescription = document.querySelector('meta[property="og:description"]');
+          const twitterDescription = document.querySelector('meta[name="twitter:description"]');
+          if (description) description.setAttribute('content', content);
+          if (ogDescription) ogDescription.setAttribute('content', content);
+          if (twitterDescription) twitterDescription.setAttribute('content', content);
+        }
 
         document.querySelectorAll<HTMLElement>('[data-lang-toggle]').forEach((btn) => {
           btn.textContent = lang === 'en' ? 'PL' : 'EN';

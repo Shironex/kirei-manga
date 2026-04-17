@@ -8,6 +8,8 @@ import { GITHUB_RELEASES_LATEST_URL, LANDING_VERSION } from '../lib/site';
 <BaseLayout
   title="Download KireiManga"
   description="Download the latest KireiManga desktop build for Windows or macOS."
+  titleKey="meta.download.title"
+  descriptionKey="meta.download.description"
 >
   <Navbar />
   <main id="main" class="section subpage">
@@ -24,11 +26,11 @@ import { GITHUB_RELEASES_LATEST_URL, LANDING_VERSION } from '../lib/site';
           <span class="num" data-i18n="cta.num">§ IV</span>
           <span class="eyebrow eyebrow--accent" data-i18n="download.label">Download</span>
         </div>
-        <h1 data-i18n="download.heading">Pick the build that fits your desk.</h1>
+        <h1 data-i18n="download.heading">Pick the build that fits your system.</h1>
       </div>
       <p data-i18n="download.subtitle">
-        KireiManga ships unsigned for now. SmartScreen will grumble on Windows;
-        macOS will block the first open. Both are one click (or one Terminal command) past.
+        KireiManga is still unsigned. SmartScreen may complain on Windows and macOS may
+        block the first launch, but both are easy to get past.
       </p>
     </div>
 
@@ -52,9 +54,7 @@ import { GITHUB_RELEASES_LATEST_URL, LANDING_VERSION } from '../lib/site';
           </span>
           <span class="download-ext" data-i18n="download.windowsExt">.exe installer</span>
         </span>
-        <span class="download-cta">
-          v{LANDING_VERSION}
-        </span>
+        <span class="download-cta">v{LANDING_VERSION}</span>
       </a>
 
       <a
@@ -76,9 +76,7 @@ import { GITHUB_RELEASES_LATEST_URL, LANDING_VERSION } from '../lib/site';
           </span>
           <span class="download-ext" data-i18n="download.macosExt">.dmg disk image</span>
         </span>
-        <span class="download-cta">
-          v{LANDING_VERSION}
-        </span>
+        <span class="download-cta">v{LANDING_VERSION}</span>
       </a>
     </div>
 
@@ -96,13 +94,13 @@ import { GITHUB_RELEASES_LATEST_URL, LANDING_VERSION } from '../lib/site';
     </a>
 
     <section class="download-note reveal">
-      <h2 data-i18n="download.notesTitle">If your OS complains…</h2>
+      <h2 data-i18n="download.notesTitle">If your system complains...</h2>
 
       <div class="download-note-row">
         <div class="download-note-label" data-i18n="download.windows">Windows</div>
         <p class="download-note-body" data-i18n="download.notesWindows">
-          Windows SmartScreen will warn on first run because the installer isn't
-          code-signed. Click 'More info', then 'Run anyway'.
+          Windows SmartScreen may warn on first launch because the installer is not code
+          signed. Click 'More info', then 'Run anyway'.
         </p>
       </div>
 
@@ -110,18 +108,18 @@ import { GITHUB_RELEASES_LATEST_URL, LANDING_VERSION } from '../lib/site';
         <div class="download-note-label" data-i18n="download.macos">macOS</div>
         <div>
           <p class="download-note-body" data-i18n="download.notesMacos">
-            macOS will block the first launch because the .dmg isn't notarised.
-            Drag the app to Applications, then open Terminal and run:
+            macOS may block the first launch because the .dmg is not notarized. Move
+            the app to Applications, then open Terminal and run:
           </p>
           <code class="download-note-cmd" data-i18n="download.notesMacosCmd">xattr -cr /Applications/KireiManga.app</code>
         </div>
       </div>
 
       <div class="download-note-row">
-        <div class="download-note-label">Source</div>
+        <div class="download-note-label" data-i18n="download.sourceLabel">Source</div>
         <p class="download-note-body" data-i18n="download.notesSource">
-          Rather build from source? Clone the repo, run pnpm install, then
-          pnpm package:win or pnpm package:mac.
+          If you would rather build from source, clone the repo, run pnpm install,
+          then pnpm package:win or pnpm package:mac.
         </p>
       </div>
     </section>

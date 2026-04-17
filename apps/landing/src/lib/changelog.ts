@@ -46,14 +46,14 @@ export function formatChangelogDate(date: string, lang: ChangelogLanguage): stri
 }
 
 export function getLocalizedChangelog(lang: ChangelogLanguage): ResolvedChangelogRelease[] {
-  return changelog.map((release) => ({
+  return changelog.map(release => ({
     version: release.version,
     date: formatChangelogDate(release.date, lang),
     title: release.title[lang],
     description: release.description[lang],
-    categories: release.categories.map((category) => ({
+    categories: release.categories.map(category => ({
       label: category.label[lang],
-      entries: category.entries.map((entry) => entry[lang]),
+      entries: category.entries.map(entry => entry[lang]),
     })),
   }));
 }
@@ -64,52 +64,52 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-04-16',
     title: l('Local Library', 'Biblioteka lokalna'),
     description: l(
-      "The Local Library milestone: first-class support for your own CBZ, ZIP, and folder-based manga alongside the existing MangaDex library. Unified reader, metadata editor, folder watching, and a Browse discovery feed that finally replaces the blank 'type to search' state.",
-      'Kamień milowy Biblioteka lokalna: pełnoprawne wsparcie dla Twoich własnych archiwów CBZ, ZIP i folderów z obrazkami obok istniejącej biblioteki MangaDex. Wspólny czytnik, edytor metadanych, obserwowanie folderów oraz kanał odkrywania na stronie Przeglądaj, który wreszcie zastępuje pusty stan „zacznij pisać, aby szukać".'
+      "The Local Library milestone adds full support for your own CBZ files, ZIP archives, and image folders alongside MangaDex. It brings one shared reader, metadata editing, folder watching, and a proper Browse feed in place of the old empty search screen.",
+      'Kamień milowy Biblioteka lokalna dodaje pełne wsparcie dla własnych plików CBZ, archiwów ZIP i folderów z obrazami obok MangaDex. Wspólny czytnik, edycja metadanych, obserwowanie folderów i pełny kanał Przeglądaj zastępują dawny pusty ekran wyszukiwania.'
     ),
     categories: [
       {
         label: l('Added', 'Dodano'),
         entries: [
           l(
-            'Local import flow — pick a folder, scan for CBZ, ZIP, and image directories, review per-series metadata, commit the selection in one step.',
-            'Przepływ importu lokalnego — wybierz folder, przeskanuj w poszukiwaniu CBZ, ZIP i katalogów z obrazkami, sprawdź metadane per seria, zatwierdź wybór jednym krokiem.'
+            'A local import flow that lets you choose a folder, scan CBZ, ZIP, and image based series, review metadata, and confirm the selection in one pass.',
+            'Nowy import lokalny pozwala wskazać folder, przeskanować serie z CBZ, ZIP i obrazów, sprawdzić metadane i zatwierdzić wybór w jednym przebiegu.'
           ),
           l(
-            'Unified library that renders MangaDex and local series in the same shelf, with filters, sorting, and fuzzy search working across both.',
-            'Zjednoczona biblioteka renderująca serie MangaDex i lokalne na jednej półce, z filtrami, sortowaniem i wyszukiwaniem fuzzy działającymi na obu źródłach.'
+            'A unified library that shows MangaDex series and local series on the same shelf, with shared filters, sorting, and fuzzy search.',
+            'Wspólna biblioteka pokazuje serie z MangaDex i serie lokalne na jednej półce, z tymi samymi filtrami, sortowaniem i wyszukiwaniem rozmytym.'
           ),
           l(
-            'Local reader wired through a new kirei-page://local/ protocol that streams pages from CBZ/ZIP archives and image folders with content-type preserved.',
-            'Czytnik lokalny podłączony przez nowy protokół kirei-page://local/ strumieniujący strony z archiwów CBZ/ZIP i folderów z obrazkami, z zachowaniem content-type.'
+            'A local reader served through the new kirei-page://local/ protocol, streaming pages from CBZ and ZIP archives as well as image folders while preserving content type.',
+            'Lokalny czytnik działa przez nowy protokół kirei-page://local/ i strumieniuje strony z archiwów CBZ i ZIP oraz folderów z obrazami, zachowując poprawny content type.'
           ),
           l(
-            'Series metadata editor — edit title, author, artist, tags, and reading direction for local and MangaDex-matched series alike.',
-            'Edytor metadanych serii — edytuj tytuł, autora, rysownika, tagi i kierunek czytania zarówno dla serii lokalnych, jak i dopasowanych do MangaDex.'
+            'A series metadata editor for title, author, artist, tags, and reading direction on local series and MangaDex matched series.',
+            'Edytor metadanych serii pozwala zmieniać tytuł, autora, rysownika, tagi i kierunek czytania zarówno dla serii lokalnych, jak i dopasowanych do MangaDex.'
           ),
           l(
-            "'Match to MangaDex' action on local series: search MangaDex by title, attach a mangadexId, pull cover and metadata from the remote record.",
-            'Akcja „Dopasuj do MangaDex" na seriach lokalnych: wyszukiwanie MangaDex po tytule, dołączenie mangadexId, pobranie okładki i metadanych z rekordu zdalnego.'
+            "A 'Match to MangaDex' action on local series that searches by title, attaches a mangadexId, and pulls the remote cover plus metadata.",
+            'Akcja „Dopasuj do MangaDex” na seriach lokalnych wyszukuje tytuł, przypina mangadexId i pobiera zdalną okładkę oraz metadane.'
           ),
           l(
-            'Browse discovery feed — three tabs (Popular, Latest, Top rated) replace the old blank search state, each backed by MangaDex sort parameters.',
-            'Kanał odkrywania na stronie Przeglądaj — trzy zakładki (Popularne, Najnowsze, Najlepiej oceniane) zastępują stary pusty stan wyszukiwania, każda zasilana parametrami sortowania MangaDex.'
+            'A Browse discovery feed with Popular, Latest, and Top rated tabs in place of the old blank search state.',
+            'Kanał odkrywania w zakładce Przeglądaj z kartami Popularne, Najnowsze i Najlepiej oceniane zastępuje stary pusty ekran wyszukiwania.'
           ),
           l(
-            "'In library' badge on Browse covers so already-followed titles are obvious without opening each card.",
-            'Odznaka „W bibliotece" na okładkach w Przeglądaj, żeby już obserwowane tytuły były widoczne bez otwierania każdej karty.'
+            "An 'In library' badge on Browse covers so followed titles are visible at a glance.",
+            'Odznaka „W bibliotece” na okładkach w Przeglądaj pozwala od razu zobaczyć śledzone tytuły.'
           ),
           l(
-            'Infinite scroll on the Browse grid with a 24-per-page sentinel, respecting the MangaDex offset + limit ≤ 10 000 ceiling.',
-            'Nieskończone przewijanie w siatce Przeglądaj z limitem 24 na stronę, z poszanowaniem pułapu MangaDex offset + limit ≤ 10 000.'
+            'Infinite scroll on the Browse grid with 24 items per page, while staying within the MangaDex offset and limit cap.',
+            'Nieskończone przewijanie siatki w Przeglądaj ładuje 24 pozycje naraz i pilnuje limitów offsetu oraz zakresu w MangaDex.'
           ),
           l(
-            "Bulk 'Download all' action on the chapter list — kicks off sequential downloads with a single click and surfaces progress per chapter.",
-            'Akcja zbiorcza „Pobierz wszystko" na liście rozdziałów — uruchamia sekwencyjne pobieranie jednym kliknięciem i pokazuje postęp per rozdział.'
+            "A bulk 'Download all' action on the chapter list that starts sequential downloads with one click and shows progress for each chapter.",
+            'Zbiorcza akcja „Pobierz wszystko” na liście rozdziałów uruchamia sekwencyjne pobieranie jednym kliknięciem i pokazuje postęp każdego rozdziału.'
           ),
           l(
-            'Per-folder update polling — local series with a root path are rescanned on a schedule and pick up new chapters without manual intervention.',
-            'Polling aktualizacji per folder — serie lokalne z zapisaną ścieżką są ponownie skanowane według harmonogramu i same wychwytują nowe rozdziały.'
+            'Scheduled rescans for local series with a saved root path, so new chapters can appear without manual work.',
+            'Zaplanowane ponowne skanowanie serii lokalnych z zapisaną ścieżką główną pozwala wykrywać nowe rozdziały bez ręcznej ingerencji.'
           ),
         ],
       },
@@ -117,20 +117,20 @@ export const changelog: ChangelogRelease[] = [
         label: l('Improvements', 'Ulepszenia'),
         entries: [
           l(
-            'Download state now persists across navigation — leaving a series while chapters are downloading no longer loses progress or orphans the worker.',
-            'Stan pobierania utrzymuje się teraz między nawigacjami — opuszczenie serii w trakcie pobierania rozdziałów nie gubi już postępu ani nie porzuca pracownika.'
+            'Download state now survives navigation, so leaving a series during downloads no longer loses progress or abandons the worker.',
+            'Stan pobierania przetrwa teraz zmianę widoku, więc wyjście z serii w trakcie pobierania nie gubi postępu ani nie porzuca procesu.'
           ),
           l(
-            'Cache clear confirm dialog + is_downloaded flag reset — the chapter list is now honest about what is actually on disk.',
-            'Okno potwierdzenia czyszczenia cache oraz reset flagi is_downloaded — lista rozdziałów pokazuje teraz zgodnie z prawdą, co rzeczywiście jest na dysku.'
+            'Clearing the cache now also resets the is_downloaded flag, so the chapter list matches what is really on disk.',
+            'Czyszczenie pamięci podręcznej resetuje teraz także flagę is_downloaded, więc lista rozdziałów pokazuje to, co naprawdę jest na dysku.'
           ),
           l(
-            'Shadcn-style Select with proper keyboard focus rings, used across Settings, Filters, and the metadata editor.',
-            'Select w stylu shadcn z porządnymi pierścieniami fokusu klawiatury, używany w Ustawieniach, Filtrach i edytorze metadanych.'
+            'The Select component now has proper keyboard focus styling across Settings, Filters, and the metadata editor.',
+            'Komponent Select ma teraz poprawny fokus klawiatury w Ustawieniach, Filtrach i edytorze metadanych.'
           ),
           l(
-            'MangaDex tag chips on series detail are now translated and demographic-sorted for readability.',
-            'Tagi MangaDex w szczegółach serii są teraz tłumaczone i sortowane demograficznie dla czytelności.'
+            'MangaDex tag chips on the series page are now translated and sorted more clearly.',
+            'Tagi MangaDex na stronie serii są teraz tłumaczone i czytelniej uporządkowane.'
           ),
         ],
       },
@@ -138,12 +138,12 @@ export const changelog: ChangelogRelease[] = [
         label: l('Known issues', 'Znane problemy'),
         entries: [
           l(
-            "CBR (RAR) archives are deferred to a follow-up milestone — unrar licensing still hasn't been resolved.",
-            'Archiwa CBR (RAR) są przesunięte do następnego kamienia milowego — licencja unrar wciąż nierozwiązana.'
+            'CBR and RAR support is still postponed to a follow up milestone because the unrar licensing question is unresolved.',
+            'Obsługa CBR i RAR nadal jest odłożona na kolejny kamień milowy, bo kwestia licencji unrar pozostaje nierozwiązana.'
           ),
           l(
-            "Auto-update channel is not yet wired on macOS. Fetch new builds manually from the Releases page until it's in place.",
-            'Kanał automatycznych aktualizacji nie jest jeszcze podłączony na macOS. Pobieraj nowe wersje ręcznie ze strony Wydań, zanim zostanie podłączony.'
+            'The automatic update channel is not yet wired on macOS, so new builds still need to be downloaded manually from Releases.',
+            'Kanał automatycznych aktualizacji nie jest jeszcze podłączony na macOS, więc nowe wersje nadal trzeba pobierać ręcznie ze strony wydań.'
           ),
         ],
       },
@@ -154,68 +154,68 @@ export const changelog: ChangelogRelease[] = [
     date: '2026-04-16',
     title: l('MangaDex Reader', 'Czytnik MangaDex'),
     description: l(
-      "First public preview: the MangaDex Reader milestone. A local-first desktop shell (Electron + embedded NestJS + SQLite) that browses MangaDex through the official API, keeps an internal library, and reads chapters in a quiet editorial reader — single, double, or webtoon, keyboard-first, offline-friendly.",
-      'Pierwsza publiczna wersja zapoznawcza: kamień milowy Czytnik MangaDex. Lokalna powłoka desktopowa (Electron + wbudowany NestJS + SQLite), która przegląda MangaDex przez oficjalne API, prowadzi wewnętrzną bibliotekę i czyta rozdziały w cichym czytniku edytorskim — pojedyncza, podwójna lub webtoon, klawiatura przede wszystkim, przyjazna dla trybu offline.'
+      'The first public preview of KireiManga introduced a local first desktop shell built with Electron, embedded NestJS, and SQLite. It focused on browsing MangaDex through the official API, keeping an internal library, and reading chapters in a quiet, keyboard friendly reader.',
+      'Pierwsza publiczna wersja KireiManga wprowadziła lokalną aplikację desktopową opartą na Electronie, osadzonym NestJS i SQLite. Skupiła się na przeglądaniu MangaDex przez oficjalne API, własnej bibliotece i spokojnym czytniku obsługiwanym wygodnie z klawiatury.'
     ),
     categories: [
       {
         label: l('Added', 'Dodano'),
         entries: [
           l(
-            'MangaDex HTTP client with per-endpoint rate limiting, retry/backoff, and a KireiManga user agent. All traffic proxied through the backend.',
-            'Klient HTTP MangaDex z limitowaniem przepustowości per endpoint, ponawianiem/backoff i user agentem KireiManga. Cały ruch proxowany przez backend.'
+            'A MangaDex HTTP client with per endpoint rate limiting, retries, backoff, and a dedicated KireiManga user agent, all proxied through the backend.',
+            'Klient HTTP do MangaDex z limitami dla poszczególnych endpointów, ponawianiem prób, backoffem i własnym user agentem KireiManga, w całości prowadzony przez backend.'
           ),
           l(
-            'Editorial Browse page — hairline search bar, filter chips, masthead with result count, and a cover grid backed by the kirei-cover:// proxy.',
-            'Redakcyjna strona Przeglądaj — cienka wyszukiwarka, chipy filtrów, nagłówek z liczbą wyników i siatka okładek zasilana proxy kirei-cover://.'
+            'An editorial Browse page with a thin search bar, filter chips, a result masthead, and a cover grid served through kirei-cover://.',
+            'Redakcyjna strona Przeglądaj z lekkim polem wyszukiwania, filtrami, nagłówkiem wyników i siatką okładek serwowaną przez kirei-cover://.'
           ),
           l(
-            'Series detail route with banner cover, Fraunces title, hairline metadata row, follow toggle, tag chips, and a chapter list with language filter.',
-            'Trasa szczegółów serii z okładką-banerem, tytułem w Fraunces, cienkim wierszem metadanych, przełącznikiem obserwowania, chipami tagów i listą rozdziałów z filtrem języka.'
+            'A series detail page with banner art, metadata, a follow toggle, translated tags, and a chapter list with language filtering.',
+            'Strona serii z banerem, metadanymi, przełącznikiem obserwowania, przetłumaczonymi tagami i listą rozdziałów z filtrem języka.'
           ),
           l(
-            'Follow / unfollow persisted in SQLite. Optimistic toggle with rollback + toast on error. library:changed events keep surfaces in sync.',
-            'Obserwowanie / przestanie obserwowania zapisywane w SQLite. Optymistyczny przełącznik z rollbackiem i toastem przy błędzie. Zdarzenia library:changed utrzymują ekrany w synchronizacji.'
+            'Follow and unfollow actions stored in SQLite, with optimistic UI updates and rollback on error.',
+            'Obserwowanie i cofanie obserwowania zapisywane w SQLite, z optymistyczną aktualizacją interfejsu i wycofaniem zmian przy błędzie.'
           ),
           l(
-            'Library page in two views (grid + list), sortable by title, last-read, date-added, and progress; filterable by reading status.',
-            'Strona Biblioteka w dwóch widokach (siatka + lista), sortowalna po tytule, ostatnim czytaniu, dacie dodania i postępie; filtrowana po statusie czytania.'
+            'A library page with grid and list views, sorting by title, last read, date added, and progress, plus filtering by reading status.',
+            'Strona biblioteki z widokiem siatki i listy, sortowaniem po tytule, ostatnim czytaniu, dacie dodania i postępie oraz filtrowaniem po statusie czytania.'
           ),
           l(
-            'Reader route with three layouts: single page, double page (auto-pairs from page 2 after the cover), and webtoon. Fit modes: width, height, original.',
-            'Trasa czytnika z trzema układami: pojedyncza strona, podwójna strona (auto-parowanie od strony 2 po okładce) i webtoon. Tryby dopasowania: szerokość, wysokość, oryginał.'
+            'A reader route with single page, double page, and webtoon layouts, plus fit by width, fit by height, and original size.',
+            'Trasa czytnika z układem pojedynczym, podwójnym i webtoon oraz z dopasowaniem do szerokości, wysokości i rozmiarem oryginalnym.'
           ),
           l(
-            'Keyboard navigation: arrows / A / D (RTL-aware), Space, Enter, Home, End, F for fullscreen, number keys for fit modes.',
-            'Nawigacja klawiaturą: strzałki / A / D (świadome RTL), Spacja, Enter, Home, End, F dla pełnego ekranu, klawisze numeryczne dla trybów dopasowania.'
+            'Keyboard navigation with arrows, A, D, Space, Enter, Home, End, fullscreen, and fit shortcuts, including RTL aware behavior.',
+            'Nawigacja klawiaturą z użyciem strzałek, A, D, Spacji, Entera, Home, End, pełnego ekranu i skrótów dopasowania, także z uwzględnieniem RTL.'
           ),
           l(
-            'Per-series reader preferences (mode, direction, fit) persisted in SQLite via reader:set-prefs.',
-            'Preferencje czytnika per seria (tryb, kierunek, dopasowanie) zapisywane w SQLite przez reader:set-prefs.'
+            'Reader preferences saved per series in SQLite.',
+            'Preferencje czytnika zapisywane osobno dla każdej serii w SQLite.'
           ),
           l(
-            'Progress tracking: lastReadAt, lastReadPage, and an isRead flip when the final page of a chapter is reached. Resume buttons in library and series detail.',
-            'Śledzenie postępu: lastReadAt, lastReadPage oraz przełączenie isRead po osiągnięciu ostatniej strony rozdziału. Przyciski wznawiania w bibliotece i szczegółach serii.'
+            'Progress tracking for last read time, last read page, and finished chapters, plus resume buttons in the library and series view.',
+            'Śledzenie czasu ostatniego czytania, ostatniej strony i ukończonych rozdziałów oraz przyciski wznawiania w bibliotece i widoku serii.'
           ),
           l(
-            'Offline cache — mangadex:download-chapter streams every page to disk, kirei-page:// checks the cache before the network, cached chapters read offline.',
-            'Cache offline — mangadex:download-chapter strumieniuje każdą stronę na dysk, kirei-page:// sprawdza cache przed siecią, rozdziały z cache czyta się bez sieci.'
+            'An offline cache that stores chapter pages on disk and serves them locally when available.',
+            'Pamięć podręczna offline zapisująca strony rozdziałów na dysku i podająca je lokalnie, gdy są dostępne.'
           ),
           l(
-            'Followed-series update poller — runs on startup and every 6 h, surfaces new-chapter badges on library tiles.',
-            'Poller aktualizacji obserwowanych serii — uruchamia się na starcie i co 6 godzin, pokazuje odznaki nowych rozdziałów na kafelkach biblioteki.'
+            'A poller for followed series that checks for new chapters on startup and on a schedule.',
+            'Mechanizm sprawdzający obserwowane serie przy starcie aplikacji i cyklicznie w poszukiwaniu nowych rozdziałów.'
           ),
           l(
-            'Bookmarks: B toggles a bookmark on the current reader page; Bookmarks panel in series detail, grouped by chapter.',
-            'Zakładki: B przełącza zakładkę na bieżącej stronie czytnika; panel Zakładek w szczegółach serii, pogrupowany po rozdziale.'
+            'Bookmarks in the reader with a matching bookmarks panel on the series page.',
+            'Zakładki w czytniku wraz z odpowiadającym im panelem zakładek na stronie serii.'
           ),
           l(
-            'Settings hub: Appearance (theme: sumi / washi, font size, reading font), Reader Defaults, Library (default language, cache size + clear), Keyboard map.',
-            'Centrum Ustawień: Wygląd (motyw: sumi / washi, rozmiar czcionki, czcionka czytania), Domyślne Czytnika, Biblioteka (domyślny język, rozmiar cache + czyszczenie), Mapa klawiatury.'
+            'A Settings hub for appearance, reader defaults, library language and cache, and the keyboard map.',
+            'Centrum Ustawień dla wyglądu, domyślnych opcji czytnika, języka biblioteki, pamięci podręcznej i mapy klawiatury.'
           ),
           l(
-            'Tiny dependency-free i18n layer. English + Polish shipped. Polish dictionary flagged for native review.',
-            'Maleńka warstwa i18n bez zależności. Angielski + polski w komplecie. Słownik polski oflagowany do recenzji natywnej.'
+            'A small dependency free i18n layer with English and Polish.',
+            'Niewielka warstwa i18n bez dodatkowych zależności, z angielskim i polskim.'
           ),
         ],
       },
@@ -223,24 +223,24 @@ export const changelog: ChangelogRelease[] = [
         label: l('Infrastructure', 'Infrastruktura'),
         entries: [
           l(
-            'pnpm workspace monorepo: apps/desktop (Electron + NestJS), apps/web (Vite + React + Tailwind 4), packages/shared.',
-            'Monorepo pnpm: apps/desktop (Electron + NestJS), apps/web (Vite + React + Tailwind 4), packages/shared.'
+            'A pnpm workspace monorepo with apps for desktop and web plus shared packages.',
+            'Monorepo pnpm z aplikacjami desktopową i webową oraz współdzielonymi pakietami.'
           ),
           l(
-            'Shared *.Events enums for every socket channel — single source of truth across the IPC boundary.',
-            'Wspólne enumeracje *.Events dla każdego kanału socket — jedno źródło prawdy po obu stronach IPC.'
+            'Shared event enums for socket channels as a single source of truth across the IPC boundary.',
+            'Wspólne enumy zdarzeń dla kanałów socket jako jedno źródło prawdy po obu stronach IPC.'
           ),
           l(
-            'Custom protocols (kirei-cover://, kirei-page://) registered with bypassCSP: false and secure: true.',
-            'Niestandardowe protokoły (kirei-cover://, kirei-page://) zarejestrowane z bypassCSP: false i secure: true.'
+            'Custom kirei-cover:// and kirei-page:// protocols registered with secure defaults.',
+            'Niestandardowe protokoły kirei-cover:// i kirei-page:// zarejestrowane z bezpiecznymi ustawieniami.'
           ),
           l(
-            'Strict CSP in production. api.mangadex.org and uploads.mangadex.org reachable only from the main process.',
-            'Ścisłe CSP w produkcji. api.mangadex.org i uploads.mangadex.org dostępne tylko z procesu głównego.'
+            'A strict production CSP that keeps direct MangaDex access in the main process.',
+            'Ścisłe CSP w produkcji, które zostawia bezpośredni dostęp do MangaDex wyłącznie w procesie głównym.'
           ),
           l(
-            'Jest test backend swapped from native better-sqlite3 to pure-WASM sql.js so the suite runs without a node-gyp toolchain.',
-            'Backend testowy Jest przełączony z natywnego better-sqlite3 na czysto-WASM sql.js, żeby pakiet testów działał bez toolchainu node-gyp.'
+            'A Jest backend test setup switched from native better-sqlite3 to WASM based sql.js, so the suite runs without a node-gyp toolchain.',
+            'Testowy backend w Jest został przełączony z natywnego better-sqlite3 na oparte na WASM sql.js, dzięki czemu pakiet testów działa bez toolchainu node-gyp.'
           ),
         ],
       },

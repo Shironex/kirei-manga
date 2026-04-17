@@ -39,14 +39,14 @@ const cards = [
       <h2 data-i18n="suite.heading">One quiet shelf for manga, anime, and music.</h2>
     </div>
     <p data-i18n="suite.body">
-      KireiManga shares monorepo patterns and design language with two sister
-      apps. Each one is built around the same idea — local-first, calm, and out
-      of the way when you just want to read, watch, or listen.
+      KireiManga shares its monorepo and design language with two sister apps.
+      All three are built around the same idea: local first, calm, and easy to
+      live with every day.
     </p>
   </div>
 
   <div class="suite reveal">
-    {cards.map((card) => (
+    {cards.map(card => (
       <a
         class={`suite-card ${card.self ? 'suite-card--self' : ''}`}
         href={card.href}

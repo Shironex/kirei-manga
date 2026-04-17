@@ -4,7 +4,7 @@ const milestones = [
     version: 'v0.1',
     key: 'v01',
     title: 'MangaDex Reader',
-    desc: 'MangaDex API, chapter streaming, internal library, reader shell, progress tracking.',
+    desc: 'MangaDex API, chapter streaming, internal library, reader shell, and progress tracking.',
     status: 'shipped',
     statusLabel: 'Shipped',
   },
@@ -12,15 +12,15 @@ const milestones = [
     version: 'v0.2',
     key: 'v02',
     title: 'Local Library',
-    desc: 'CBZ & folder import, unified library, local reader, metadata editor, MangaDex match, folder update polling.',
+    desc: 'CBZ and folder import, unified library, local reader, metadata editor, MangaDex matching, and folder update polling.',
     status: 'shipped',
-    statusLabel: 'Shipped · now',
+    statusLabel: 'Shipped · current',
   },
   {
     version: 'v0.3',
     key: 'v03',
     title: 'Translation',
-    desc: 'C++ OpenCV bubble detection, manga-ocr sidecar, DeepL / Google / Ollama overlay rendered on page.',
+    desc: 'Bubble detection, manga OCR sidecar, and on page translation overlays from DeepL, Google, or Ollama.',
     status: 'planned',
     statusLabel: 'Planned',
   },
@@ -28,7 +28,7 @@ const milestones = [
     version: 'v0.4',
     key: 'v04',
     title: 'AniList Sync',
-    desc: 'OAuth login, two-way read-progress sync, full manga-list import.',
+    desc: 'OAuth login, two way progress sync, and full manga list import.',
     status: 'planned',
     statusLabel: 'Planned',
   },
@@ -36,7 +36,7 @@ const milestones = [
     version: 'v0.5+',
     key: 'v05',
     title: 'Polish',
-    desc: 'Kanji hover dictionary, Anki export, translation corrections, community features.',
+    desc: 'Kanji hover dictionary, Anki export, translation polish, and community features.',
     status: 'planned',
     statusLabel: 'Backlog',
   },
@@ -50,16 +50,16 @@ const milestones = [
         <span class="num" data-i18n="roadmap.num">§ III</span>
         <span class="eyebrow" data-i18n="roadmap.label">Milestones</span>
       </div>
-      <h2 data-i18n="roadmap.heading">A long project, read in chapters.</h2>
+      <h2 data-i18n="roadmap.heading">A long project, released in chapters.</h2>
     </div>
     <p data-i18n="roadmap.body">
-      KireiManga is released slowly and deliberately. Each milestone ships one
-      well-chosen capability and ends when it's solid — not when the calendar says.
+      KireiManga moves carefully. Each milestone adds one clear capability and ships
+      when it feels ready, not when a date on the calendar says it should.
     </p>
   </div>
 
   <div class="ledger reveal">
-    {milestones.map((ms) => (
+    {milestones.map(ms => (
       <div class="ledger-row">
         <div class="ledger-version">{ms.version}</div>
         <div class="ledger-title" data-i18n={`roadmap.${ms.key}.title`}>{ms.title}</div>

@@ -11,17 +11,17 @@ interface FeatureItem {
 const features: FeatureItem[] = [
   {
     num: '01',
-    kanji: '漫画庫',
+    kanji: '漫画帳',
     key: '01',
     title: 'MangaDex Browse',
-    body: "Discovery tabs (Popular, Latest, Top rated) plus keyword search across title, author, tag, demographic, and rating — straight through MangaDex's official API.",
+    body: "Discovery tabs for Popular, Latest, and Top rated, plus search across title, author, tags, demographic, and rating through MangaDex's official API.",
   },
   {
     num: '02',
     kanji: '書棚',
     key: '02',
-    title: 'Internal Library',
-    body: 'Follow and unfollow titles, keep reading status (reading, completed, plan to read, on hold, dropped), track resume points per chapter — MangaDex and local alike.',
+    title: 'Library',
+    body: 'Keep follow status, reading status, and chapter progress for MangaDex series and local series in one place.',
   },
   {
     num: '03',
@@ -29,21 +29,21 @@ const features: FeatureItem[] = [
     key: '03',
     tag: 'v0.2',
     title: 'Local Import',
-    body: 'Point it at a folder. Scan CBZ, ZIP, and image-directory series, review matches, commit with a single click. Works alongside MangaDex under the same shelf.',
+    body: 'Pick a folder, scan CBZ, ZIP, and image based series, review the matches, and import everything in one pass.',
   },
   {
     num: '04',
     kanji: '読書',
     key: '04',
-    title: 'Distraction-free Reader',
-    body: 'Full-screen reader with single, double, and webtoon modes, fit variations, keyboard navigation, per-series RTL preference, and cached pages served from disk.',
+    title: 'Distraction free Reader',
+    body: 'Read in full screen with single page, double page, or webtoon layouts, fit controls, keyboard navigation, RTL support, and cached pages from disk.',
   },
   {
     num: '05',
     kanji: '栞',
     key: '05',
-    title: 'Bookmarks & Progress',
-    body: 'Per-page bookmarks with notes. Resume exactly where you stopped on every chapter, local or remote. Downloaded chapters work offline — no network needed.',
+    title: 'Bookmarks and Progress',
+    body: 'Save page bookmarks with notes and resume exactly where you stopped, whether the chapter is local, remote, or already downloaded for offline reading.',
   },
   {
     num: '06',
@@ -51,7 +51,7 @@ const features: FeatureItem[] = [
     key: '06',
     tag: 'v0.3',
     title: 'Translation Overlay',
-    body: 'C++ OpenCV bubble detection, manga-ocr Python sidecar, and DeepL / Google / Ollama translations rendered directly on the page. For raw Japanese releases.',
+    body: 'Bubble detection, manga OCR, and DeepL, Google, or Ollama translations can be rendered directly on the page for raw Japanese releases.',
   },
   {
     num: '07',
@@ -59,14 +59,14 @@ const features: FeatureItem[] = [
     key: '07',
     tag: 'v0.4',
     title: 'AniList Sync',
-    body: 'OAuth login, list import, two-way progress sync. Your reading follows you between the app and AniList without manual reconciliation.',
+    body: 'Sign in with OAuth, import your list, and keep reading progress in sync between the app and AniList.',
   },
   {
     num: '08',
     kanji: '言葉',
     key: '08',
-    title: 'English & Polski',
-    body: 'Full i18n out of the box. The interface reads in English or Polish with a single toggle. Translation corrections welcome via pull request.',
+    title: 'English and Polish',
+    body: 'The interface is available in English and Polish, with language switching built in from the start.',
   },
 ];
 ---
@@ -78,17 +78,17 @@ const features: FeatureItem[] = [
         <span class="num" data-i18n="features.num">§ I</span>
         <span class="eyebrow" data-i18n="features.label">Contents</span>
       </div>
-      <h2 data-i18n="features.heading">Everything a reader needs, nothing that shouts.</h2>
+      <h2 data-i18n="features.heading">Everything a reader needs, nothing that gets in the way.</h2>
     </div>
     <p data-i18n="features.body">
-      KireiManga was built around the way people actually read — one folder at a time,
-      one chapter at a time. Features are restrained by design: present when you need
-      them, invisible when you don't. What follows is the table of contents.
+      KireiManga is shaped around how people actually read manga, one folder at a time
+      and one chapter at a time. The feature set stays restrained on purpose. It is
+      there when you need it and quiet when you do not.
     </p>
   </div>
 
   <div class="toc reveal-stagger">
-    {features.map((feature) => (
+    {features.map(feature => (
       <article class="toc-item reveal">
         <div class="toc-num">{feature.num}</div>
         <div class="toc-title">

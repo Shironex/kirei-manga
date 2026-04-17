@@ -4,16 +4,16 @@ const plates = [
     num: 'Pl. I',
     key: '01',
     title: 'Library',
-    note: 'Your shelf — quiet, kept, and search-indexed. Cover grid renders lazily so thousands of titles scroll without jank.',
+    note: 'A calm shelf with fast search, filters, and lazy cover loading that stays smooth even with a large collection.',
     src: '/screenshots/library.png',
-    alt: 'KireiManga library view with covers in a quiet grid',
+    alt: 'KireiManga library view with covers in a clean grid',
     span: 'plate-span-7',
   },
   {
     num: 'Pl. II',
     key: '02',
     title: 'Series Detail',
-    note: 'Synopsis, chapters, follow status, and reading direction — all on one restrained page.',
+    note: 'Synopsis, chapters, follow status, and reading direction stay together on one clean page.',
     src: '/screenshots/series.png',
     alt: 'Series detail page showing synopsis and chapter list',
     span: 'plate-span-5',
@@ -22,7 +22,7 @@ const plates = [
     num: 'Pl. III',
     key: '03',
     title: 'Local Import',
-    note: 'Point at a folder. Scan CBZ, ZIP, or image directories. Review per-series metadata. Commit in one step.',
+    note: 'Choose a folder, scan archives or image folders, review metadata, and confirm the import.',
     src: '/screenshots/import.png',
     alt: 'Local import review screen',
     span: 'plate-span-6',
@@ -31,9 +31,9 @@ const plates = [
     num: 'Pl. IV',
     key: '04',
     title: 'Reader',
-    note: 'Full-screen, fit-aware, keyboard-first. Single, double, and webtoon modes with per-series right-to-left preference.',
+    note: 'Full screen reading with fit controls, keyboard navigation, and per series reading direction.',
     src: '/screenshots/reader.png',
-    alt: 'KireiManga reader in full-screen mode',
+    alt: 'KireiManga reader in full screen mode',
     span: 'plate-span-6',
   },
 ] as const;
@@ -44,18 +44,18 @@ const plates = [
     <div>
       <div class="section-label">
         <span class="num" data-i18n="gallery.num">§ II</span>
-        <span class="eyebrow" data-i18n="gallery.label">Plates</span>
+        <span class="eyebrow" data-i18n="gallery.label">Gallery</span>
       </div>
-      <h2 data-i18n="gallery.heading">A book's worth of quiet surfaces.</h2>
+      <h2 data-i18n="gallery.heading">A set of quiet screens.</h2>
     </div>
     <p data-i18n="gallery.body">
-      Interface frames from the current release, numbered like plates in a studio monograph.
-      Each view was drawn to carry its weight without asking the reader for attention.
+      These screenshots come from the current build. Each view is meant to stay
+      clear, readable, and out of the way while you browse or read.
     </p>
   </div>
 
   <div class="plate-grid reveal-stagger">
-    {plates.map((plate) => (
+    {plates.map(plate => (
       <figure class={`plate reveal ${plate.span}`}>
         <div class="plate-frame">
           <img src={plate.src} alt={plate.alt} data-i18n-alt={`gallery.${plate.key}.alt`} loading="lazy" />
