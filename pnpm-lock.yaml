@@ -99,6 +99,9 @@ importers:
       socket.io:
         specifier: ^4.8.3
         version: 4.8.3
+      tar:
+        specifier: ^7.5.0
+        version: 7.5.13
     devDependencies:
       '@anatine/esbuild-decorators':
         specifier: ^0.2.19
