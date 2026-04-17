@@ -12,6 +12,7 @@ const PACKAGE_FILES = [
   'package.json',
   'apps/desktop/package.json',
   'apps/web/package.json',
+  'apps/landing/package.json',
   'packages/shared/package.json',
 ];
 
