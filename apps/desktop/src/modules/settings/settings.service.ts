@@ -25,7 +25,7 @@ function mergeWithDefaults(stored: unknown): { merged: AppSettings; mutated: boo
   const input = stored as Partial<AppSettings>;
   let mutated = false;
 
-  const sectionKeys = ['appearance', 'reader', 'library', 'onboarding'] as const;
+  const sectionKeys = ['appearance', 'reader', 'library', 'onboarding', 'translation'] as const;
   const merged: AppSettings = { ...DEFAULT_APP_SETTINGS };
 
   for (const key of sectionKeys) {
@@ -59,10 +59,12 @@ function mergeWithDefaults(stored: unknown): { merged: AppSettings; mutated: boo
 }
 
 /**
- * Apply a DeepPartial patch onto a known-good AppSettings. Only the three
- * known sections (appearance/reader/library) are deep-merged one level — the
- * shape is shallow per section so we don't need a generic recursive merge.
- * `language` and `shortcuts` overwrite at the top level.
+ * Apply a DeepPartial patch onto a known-good AppSettings. Only the known
+ * sections (appearance/reader/library/onboarding/translation) are deep-merged
+ * one level — the shape is shallow per section so we don't need a generic
+ * recursive merge. `translation.providerKeys` is the one nested object that
+ * gets its own one-level merge so partial credential patches don't drop the
+ * other providers' keys. `language` and `shortcuts` overwrite at the top level.
  */
 function applyPatch(base: AppSettings, patch: DeepPartial<AppSettings>): AppSettings {
   const next: AppSettings = {
@@ -72,6 +74,7 @@ function applyPatch(base: AppSettings, patch: DeepPartial<AppSettings>): AppSett
     language: base.language,
     shortcuts: { ...base.shortcuts },
     onboarding: { ...base.onboarding },
+    translation: { ...base.translation, providerKeys: { ...base.translation.providerKeys } },
   };
 
   if (patch.appearance) {
@@ -96,6 +99,16 @@ function applyPatch(base: AppSettings, patch: DeepPartial<AppSettings>): AppSett
   }
   if (patch.onboarding) {
     next.onboarding = { ...next.onboarding, ...patch.onboarding } as AppSettings['onboarding'];
+  }
+  if (patch.translation) {
+    next.translation = { ...next.translation, ...patch.translation } as AppSettings['translation'];
+    if (patch.translation.providerKeys) {
+      // Merge keys so a single-provider update doesn't wipe the others.
+      next.translation.providerKeys = {
+        ...next.translation.providerKeys,
+        ...patch.translation.providerKeys,
+      };
+    }
   }
 
   return next;
@@ -150,6 +163,10 @@ export class SettingsService {
       },
       shortcuts: { ...DEFAULT_APP_SETTINGS.shortcuts },
       onboarding: { ...DEFAULT_APP_SETTINGS.onboarding },
+      translation: {
+        ...DEFAULT_APP_SETTINGS.translation,
+        providerKeys: { ...DEFAULT_APP_SETTINGS.translation.providerKeys },
+      },
     };
     store.set(STORE_KEY, this.settings);
     return this.get();

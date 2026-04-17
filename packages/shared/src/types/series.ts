@@ -1,6 +1,6 @@
 import type { ReaderMode, ReaderDirection, FitMode } from './reader';
 import type { LocalArchiveFormat } from './local';
-import type { TranslationProviderId } from './translation';
+import type { TranslationProviderId, TranslationSettings } from './translation';
 
 /**
  * Reading status for a series in the local library.
@@ -62,6 +62,12 @@ export interface Series {
    * without walking the filesystem again.
    */
   localContentHash?: string;
+  /**
+   * Per-series translation overrides layered on top of `AppSettings.translation`.
+   * `undefined` = inherit global settings; only the keys present here override.
+   * Pipeline-side resolution lands in Slice F's orchestrator, not on this type.
+   */
+  translationOverride?: Partial<TranslationSettings>;
 }
 
 /**

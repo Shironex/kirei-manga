@@ -8,6 +8,7 @@
  */
 
 import type { ReaderMode, ReaderDirection, FitMode } from './reader';
+import type { TranslationSettings } from './translation';
 
 /** Visual theme. `sumi` = ink-dark (default); `washi` = paper-light. */
 export type Theme = 'sumi' | 'washi';
@@ -92,6 +93,7 @@ export interface AppSettings {
   language: Language;
   shortcuts: Shortcuts;
   onboarding: OnboardingSettings;
+  translation: TranslationSettings;
 }
 
 /** Defaults written to the store on first boot and used as merge base. */
@@ -102,6 +104,15 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'en',
   shortcuts: {},
   onboarding: { completed: false, completedAt: null, version: 1 },
+  translation: {
+    enabled: false,
+    defaultProvider: 'deepl',
+    targetLang: 'en',
+    autoTranslate: false,
+    overlayFont: 'Fraunces',
+    overlayOpacity: 1,
+    providerKeys: {},
+  },
 };
 
 /**

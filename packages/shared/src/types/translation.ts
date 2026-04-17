@@ -39,3 +39,32 @@ export interface TranslationProviderStatus {
   reason?: string;
   remainingChars?: number;
 }
+
+/**
+ * User-facing translation pipeline settings. Lives on `AppSettings.translation`
+ * as the global default; per-series overrides are merged on top via
+ * `Series.translationOverride` (resolution lands in Slice F's orchestrator).
+ *
+ * Provider keys are persisted in the same store as the rest of `AppSettings` —
+ * future hardening (Slice F) may move them behind the OS keychain.
+ */
+export interface TranslationSettings {
+  /** Master switch. When false, the pipeline never runs regardless of overrides. */
+  enabled: boolean;
+  /** Provider used when a series doesn't pin one. */
+  defaultProvider: TranslationProviderId;
+  /** ISO 639-1 target language, e.g. `en`. */
+  targetLang: string;
+  /** Translate eagerly on page open vs. on explicit user action. */
+  autoTranslate: boolean;
+  /** CSS font-family applied to overlay text (matches `ReadingFont` palette). */
+  overlayFont: string;
+  /** Overlay background opacity, `0` (transparent) – `1` (fully opaque). */
+  overlayOpacity: number;
+  /** Per-provider credentials. Empty object = nothing configured yet. */
+  providerKeys: {
+    deepl?: string;
+    google?: string;
+    ollamaEndpoint?: string;
+  };
+}
