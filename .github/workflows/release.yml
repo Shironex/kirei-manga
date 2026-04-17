@@ -83,7 +83,7 @@ jobs:
 
       - name: Sync package.json versions for tag
         shell: bash
-        run: ./scripts/set-version-ci.sh "${{ steps.version.outputs.version }}"
+        run: bash ./scripts/set-version-ci.sh "${{ steps.version.outputs.version }}"
 
       - uses: pnpm/action-setup@v4
 
