@@ -163,6 +163,14 @@ export const pl = {
   'settings.library.cache.toast.clearedBody':
     'Usunięto zapisane strony o łącznym rozmiarze {size}.',
   'settings.library.cache.toast.clearFailed': 'Nie udało się wyczyścić pamięci podręcznej',
+  'settings.library.cache.confirm.eyebrow': 'Potwierdź czyszczenie',
+  'settings.library.cache.confirm.title': 'Wyczyścić pamięć stron?',
+  'settings.library.cache.confirm.body':
+    'Usunie {size} obrazów stron z MangaDex — zarówno bufor przeglądanych rozdziałów, jak i rozdziały pobrane ręcznie do czytania offline. Biblioteka, zakładki, postęp czytania, ustawienia ani lokalnie zaimportowane mangi nie zostaną ruszone. Strony pobiorą się ponownie przy kolejnym otwarciu rozdziału.',
+  'settings.library.cache.confirm.bodyEmpty':
+    'Usunie obrazy stron z MangaDex — zarówno bufor przeglądanych rozdziałów, jak i rozdziały pobrane ręcznie do czytania offline. Biblioteka, zakładki, postęp czytania, ustawienia ani lokalnie zaimportowane mangi nie zostaną ruszone. Strony pobiorą się ponownie przy kolejnym otwarciu rozdziału.',
+  'settings.library.cache.confirm.confirmLabel': 'Wyczyść',
+  'settings.library.cache.confirm.cancelLabel': 'Anuluj',
 
   // Settings — Updates
   'settings.section.updates': 'Aktualizacje',

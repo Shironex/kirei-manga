@@ -98,7 +98,8 @@ export type LibraryUpdatedAction =
   | 'progress-changed'
   | 'prefs-changed'
   | 'bookmark-added'
-  | 'bookmark-removed';
+  | 'bookmark-removed'
+  | 'downloads-cleared';
 
 /**
  * Payload broadcast on `LibraryEvents.UPDATED` after any library mutation.
@@ -388,6 +389,8 @@ export interface LibraryGetCacheSizeResponse {
 export interface LibraryClearCacheResponse {
   success: boolean;
   bytesFreed: number;
+  /** Count of mangadex chapters whose `is_downloaded` flag was reset. */
+  chaptersReset: number;
   error?: string;
 }
 

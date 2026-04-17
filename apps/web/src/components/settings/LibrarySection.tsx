@@ -11,6 +11,7 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { useToast } from '@/hooks/useToast';
 import { useT } from '@/hooks/useT';
 import { useSocketStore } from '@/stores/socket-store';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { SettingRow, SettingsSection } from './SettingsSection';
 
 const LANGUAGE_OPTIONS: ReadonlyArray<{ code: string; label: string }> = [
@@ -52,6 +53,7 @@ export function LibrarySection() {
   const [cacheBytes, setCacheBytes] = useState<number | null>(null);
   const [cacheLoading, setCacheLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const fetchCacheSize = useCallback(async () => {
     if (status !== 'connected') return;
@@ -110,6 +112,7 @@ export function LibrarySection() {
         }
       );
       setCacheBytes(0);
+      setConfirmOpen(false);
       // Re-fetch in the background to confirm — covers the empty-dir edge.
       void fetchCacheSize();
     } catch (err) {
@@ -156,7 +159,7 @@ export function LibrarySection() {
       >
         <button
           type="button"
-          onClick={onClearCache}
+          onClick={() => setConfirmOpen(true)}
           disabled={clearing || cacheBytes === 0}
           className="inline-flex items-center gap-2 rounded-sm border border-border bg-[var(--color-ink-sunken)] px-3 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--color-bone-muted)] transition-colors enabled:hover:border-[var(--color-accent)] enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -164,6 +167,26 @@ export function LibrarySection() {
           {clearing ? t('settings.library.cache.clearing') : t('settings.library.cache.clear')}
         </button>
       </SettingRow>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={open => {
+          if (!clearing) setConfirmOpen(open);
+        }}
+        eyebrow={t('settings.library.cache.confirm.eyebrow')}
+        title={t('settings.library.cache.confirm.title')}
+        description={
+          cacheBytes && cacheBytes > 0
+            ? t('settings.library.cache.confirm.body', { size: formatBytes(cacheBytes) })
+            : t('settings.library.cache.confirm.bodyEmpty')
+        }
+        confirmLabel={t('settings.library.cache.confirm.confirmLabel')}
+        cancelLabel={t('settings.library.cache.confirm.cancelLabel')}
+        onConfirm={() => void onClearCache()}
+        variant="danger"
+        busy={clearing}
+        busyLabel={t('settings.library.cache.clearing')}
+      />
     </SettingsSection>
   );
 }

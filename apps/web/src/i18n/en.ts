@@ -159,6 +159,14 @@ export const en = {
   'settings.library.cache.toast.clearedTitle': 'Cache cleared',
   'settings.library.cache.toast.clearedBody': 'Cleared {size} of cached pages.',
   'settings.library.cache.toast.clearFailed': 'Cache clear failed',
+  'settings.library.cache.confirm.eyebrow': 'Confirm clear',
+  'settings.library.cache.confirm.title': 'Clear page cache?',
+  'settings.library.cache.confirm.body':
+    'Removes {size} of MangaDex chapter page images — both the read-through cache and chapters you explicitly downloaded for offline reading. Your library, bookmarks, read progress, settings, and local imported manga are not affected. Pages re-download the next time you open a chapter.',
+  'settings.library.cache.confirm.bodyEmpty':
+    'Removes MangaDex chapter page images — both the read-through cache and chapters you explicitly downloaded for offline reading. Your library, bookmarks, read progress, settings, and local imported manga are not affected. Pages re-download the next time you open a chapter.',
+  'settings.library.cache.confirm.confirmLabel': 'Clear',
+  'settings.library.cache.confirm.cancelLabel': 'Cancel',
 
   // Settings — Updates
   'settings.section.updates': 'Updates',

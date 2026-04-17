@@ -4,6 +4,7 @@ import * as path from 'path';
 import { app } from 'electron';
 import { createLogger } from '@kireimanga/shared';
 import { MangaDexClient } from '../mangadex/mangadex.client';
+import { DatabaseService } from '../database';
 import { pruneDiskCache, type DiskCacheBounds } from '../../main/shared/protocol-cache';
 
 const logger = createLogger('LibraryCacheService');
@@ -94,7 +95,10 @@ export class LibraryCacheService implements OnModuleInit, OnModuleDestroy {
   private initialTimer: ReturnType<typeof setTimeout> | null = null;
   private sweepTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(private readonly mangadexClient: MangaDexClient) {
+  constructor(
+    private readonly mangadexClient: MangaDexClient,
+    private readonly databaseService: DatabaseService
+  ) {
     logger.info('LibraryCacheService initialized');
   }
 
@@ -154,10 +158,17 @@ export class LibraryCacheService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Wipe the cached chapter pages. Recreates the empty `pages/mangadex/` dir
-   * so subsequent writes still land in the expected place, and drops the
-   * in-memory at-home envelopes so the next read fetches fresh URLs.
+   * so subsequent writes still land in the expected place, drops the in-memory
+   * at-home envelopes so the next read fetches fresh URLs, and resets the
+   * `is_downloaded` flag for every MangaDex chapter (the bytes that flag
+   * promised are gone — the next reader open will silently re-download and
+   * re-set the flag).
    */
-  async clearCache(): Promise<{ success: boolean; bytesFreed: number }> {
+  async clearCache(): Promise<{
+    success: boolean;
+    bytesFreed: number;
+    chaptersReset: number;
+  }> {
     const root = getPagesRoot();
     const bytesFreed = await dirSize(root);
 
@@ -167,12 +178,25 @@ export class LibraryCacheService implements OnModuleInit, OnModuleDestroy {
       // need to mkdir the full chain on every page on the next download.
       await fs.promises.mkdir(path.join(root, 'mangadex'), { recursive: true });
       this.mangadexClient.invalidateAllAtHome();
-      logger.info(`Cleared kirei-page cache (${bytesFreed} bytes)`);
-      return { success: true, bytesFreed };
+
+      // Reset the flag on every mangadex chapter that claimed offline bytes.
+      // Local chapters keep their flag (bytes live outside the page cache).
+      const result = this.databaseService.db
+        .prepare(
+          `UPDATE chapters SET is_downloaded = 0
+             WHERE source = 'mangadex' AND is_downloaded = 1`
+        )
+        .run();
+      const chaptersReset = Number(result.changes ?? 0);
+
+      logger.info(
+        `Cleared kirei-page cache (${bytesFreed} bytes, ${chaptersReset} chapter flag(s) reset)`
+      );
+      return { success: true, bytesFreed, chaptersReset };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`clearCache failed: ${message}`);
-      return { success: false, bytesFreed: 0 };
+      return { success: false, bytesFreed: 0, chaptersReset: 0 };
     }
   }
 }

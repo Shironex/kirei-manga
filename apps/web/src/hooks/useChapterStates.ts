@@ -73,6 +73,20 @@ export function useChapterStates(
   useEffect(() => {
     const socket = getSocket();
     const handler = (payload: LibraryUpdatedEvent) => {
+      if (payload.action === 'downloads-cleared') {
+        // Global reset — the page-cache folder was wiped, so every mangadex
+        // chapter's `isDownloaded` flag is stale. Drop it on the whole map
+        // so the UI renders the "not downloaded" affordance immediately.
+        setStates(prev => {
+          if (!prev) return prev;
+          const next: ChapterStatesMap = {};
+          for (const [id, state] of Object.entries(prev)) {
+            next[id] = { ...state, isDownloaded: false };
+          }
+          return next;
+        });
+        return;
+      }
       if (payload.action !== 'progress-changed') return;
       const chapter = payload.chapter;
       if (!chapter) return;

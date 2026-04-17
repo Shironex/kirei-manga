@@ -355,9 +355,17 @@ export class LibraryGateway {
     return handleGatewayRequest({
       logger,
       action: 'library:clear-cache',
-      defaultResult: { success: false, bytesFreed: 0 },
+      defaultResult: { success: false, bytesFreed: 0, chaptersReset: 0 },
       handler: async () => {
-        return this.libraryCacheService.clearCache();
+        const result = await this.libraryCacheService.clearCache();
+        // Notify any open series-detail / library pages so the UI can drop
+        // the "downloaded" checkmark without requiring a manual refresh.
+        if (result.success && result.chaptersReset > 0) {
+          this.server.emit(LibraryEvents.UPDATED, {
+            action: 'downloads-cleared',
+          } satisfies LibraryUpdatedEvent);
+        }
+        return result;
       },
     });
   }
