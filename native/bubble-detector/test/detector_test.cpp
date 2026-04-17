@@ -95,6 +95,27 @@ TEST(Detector, PanelBorderIsRejected) {
   }
 }
 
+TEST(Detector, TallNarrowBubbleIsAccepted) {
+  auto page = MakeBlankPage();
+  // Tall narrow speech bubble (vertical strip layout) — aspect ~0.18,
+  // would have been rejected pre-C.2 (kAspectMin was 0.2). With loosened
+  // aspect range + border-ratio gate, this passes.
+  cv::ellipse(page, cv::Point(750, 1100), cv::Size(60, 330), 0, 0, 360,
+              cv::Scalar(0), cv::FILLED);
+  auto result = RunDetection(page);
+  ASSERT_GE(result.size(), 1u);
+  // confirm one box centered roughly on the ellipse
+  bool found = false;
+  for (const auto& b : result) {
+    if (std::abs((b.x + b.w / 2) - 750) < 30 &&
+        std::abs((b.y + b.h / 2) - 1100) < 30) {
+      found = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(found);
+}
+
 TEST(Detector, ConfidenceIsBounded) {
   auto page = MakeBlankPage();
   DrawSpeechBubble(page, 750, 1100, 150, 100);

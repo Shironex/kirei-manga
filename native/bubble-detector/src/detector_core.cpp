@@ -27,10 +27,16 @@ constexpr double kAdaptiveC = 5.0;
 constexpr double kAreaMinFrac = 0.002;
 constexpr double kAreaMaxFrac = 0.30;
 
-// Bounding-rect aspect ratio (width / height). Excludes panel borders and
-// long thin rules while keeping vertical/horizontal bubbles.
-constexpr double kAspectMin = 0.2;
-constexpr double kAspectMax = 5.0;
+// Bounding-rect aspect ratio (width / height). Loosened in C.2 to admit
+// tall narrow speech bubbles in vertical-strip layouts; the symmetric
+// short/long-side gate below now carries the panel-border rejection.
+constexpr double kAspectMin = 0.15;
+constexpr double kAspectMax = 7.0;
+
+// Symmetric short-side / long-side ratio. Catches axis-aligned long-thin
+// contours (panel borders, page rules) that the loosened aspect range
+// would otherwise let through.
+constexpr double kBorderRatioMin = 0.1;
 
 // Convexity = contourArea / convexHullArea. Measures how "filled" the hull
 // is by the contour itself — bubbles are near-convex blobs.
@@ -137,6 +143,17 @@ std::vector<DetectedBubble> RunDetection(const cv::Mat& gray) {
     const double aspect =
         static_cast<double>(r.width) / static_cast<double>(r.height);
     if (aspect < kAspectMin || aspect > kAspectMax) {
+      continue;
+    }
+
+    // Panel-border gate — symmetric short/long side ratio catches
+    // axis-aligned long-thin contours that the loosened aspect range
+    // now allows through.
+    const int minSide = std::min(r.width, r.height);
+    const int maxSide = std::max(r.width, r.height);
+    const double borderRatio =
+        maxSide > 0 ? static_cast<double>(minSide) / maxSide : 0.0;
+    if (borderRatio < kBorderRatioMin) {
       continue;
     }
 
