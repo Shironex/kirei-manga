@@ -1,0 +1,8 @@
+libpng — libpng / zlib-style license
+
+PLACEHOLDER — verbatim license text not yet committed. Source of truth:
+https://github.com/opencv/opencv/blob/4.11.0/3rdparty/libpng/LICENSE
+
+OpenCV's `BUILD_PNG=ON` cmake flag links the bundled libpng under
+3rdparty/libpng/ statically into our addon. Replace this file with the
+verbatim contents of that LICENSE before the next public installer release.

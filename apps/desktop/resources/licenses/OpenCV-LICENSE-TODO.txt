@@ -1,0 +1,13 @@
+OpenCV (https://opencv.org/) — Apache License 2.0
+
+PLACEHOLDER — verbatim Apache 2.0 license text not yet committed. Source of
+truth: https://github.com/opencv/opencv/blob/4.11.0/LICENSE
+
+Replace this file with the verbatim contents of that URL before the next
+public installer release. The summary in NOTICE.md is NOT a substitute for
+the full license text, which Apache 2.0 §4(a) requires us to redistribute.
+
+Reason for placeholder: the WebFetch tool used during Slice B.4 implementation
+refused to return the full ~11 KB verbatim license text. Curl from a dev
+machine with internet access (or paste from a known-good local copy of
+LICENSE-2.0.txt) is the recommended next step.

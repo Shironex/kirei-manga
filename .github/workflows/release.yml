@@ -48,16 +48,114 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
 
+  # Builds bubble-detector statically against vendored OpenCV per platform/arch.
+  # Always runs on release — the build job below downloads these artifacts before
+  # invoking electron-builder so the installer ships the prebuilt .node files
+  # instead of failing at runtime when node-gyp-build can't resolve a prebuild.
+  native-prebuild:
+    name: Native Prebuild (${{ matrix.platform }}-${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win32
+            arch: x64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+          # TODO(B.4 follow-up): re-enable macos-13 (darwin-x64) once the
+          # build matrix below also adds an Intel macOS entry. v0.3 ships
+          # arm64-only macOS — Intel users go through Rosetta.
+          # - os: macos-13
+          #   platform: darwin
+          #   arch: x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Cache OpenCV install + build
+        id: cache-opencv
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-${{ matrix.arch }}-opencv-4.11.0-${{ hashFiles('native/bubble-detector/scripts/build-opencv.*') }}
+          path: |
+            native/bubble-detector/vendor/opencv-install
+            native/bubble-detector/vendor/opencv-build
+
+      - name: Build OpenCV (POSIX)
+        if: steps.cache-opencv.outputs.cache-hit != 'true' && runner.os != 'Windows'
+        shell: bash
+        env:
+          KIREI_OPENCV_TARGET_ARCH: ${{ matrix.arch == 'arm64' && 'arm64' || 'x86_64' }}
+        run: bash native/bubble-detector/scripts/build-opencv.sh
+
+      - name: Build OpenCV (Windows)
+        if: steps.cache-opencv.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        shell: pwsh
+        run: pwsh native/bubble-detector/scripts/build-opencv.ps1
+
+      - name: Export OpenCV env (POSIX)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          # shellcheck disable=SC1091
+          . native/bubble-detector/vendor/opencv-env.sh
+          {
+            echo "OPENCV_INCLUDE_DIR=${OPENCV_INCLUDE_DIR}"
+            echo "OPENCV_LIB_DIR=${OPENCV_LIB_DIR}"
+            echo "OPENCV_3RDPARTY_DIR=${OPENCV_3RDPARTY_DIR}"
+          } >> "$GITHUB_ENV"
+
+      - name: Export OpenCV env (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          . native/bubble-detector/vendor/opencv-env.ps1
+          Add-Content -Path $env:GITHUB_ENV -Value "OPENCV_INCLUDE_DIR=$env:OPENCV_INCLUDE_DIR"
+          Add-Content -Path $env:GITHUB_ENV -Value "OPENCV_LIB_DIR=$env:OPENCV_LIB_DIR"
+          Add-Content -Path $env:GITHUB_ENV -Value "OPENCV_3RDPARTY_DIR=$env:OPENCV_3RDPARTY_DIR"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build prebuild
+        run: pnpm --filter @kireimanga/bubble-detector run prebuild
+
+      - name: Verify prebuild loads
+        run: node -e "console.log(require('./native/bubble-detector'))"
+
+      - name: Upload prebuild artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bubble-detector-${{ matrix.platform }}-${{ matrix.arch }}
+          path: native/bubble-detector/prebuilds/${{ matrix.platform }}-${{ matrix.arch }}/
+          if-no-files-found: error
+          retention-days: 30
+
   build:
-    needs: [lint, typecheck, test]
+    needs: [lint, typecheck, test, native-prebuild]
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: macos-latest
             platform: mac
+            nativePlatform: darwin
+            nativeArch: arm64
           - os: windows-latest
             platform: win
+            nativePlatform: win32
+            nativeArch: x64
+        # TODO(B.4 follow-up): add a macos-13 entry mapped to darwin-x64 when
+        # we want to ship native Intel macOS builds. For v0.3, Intel macOS
+        # users run the arm64 build under Rosetta.
 
     runs-on: ${{ matrix.os }}
 
@@ -93,6 +191,12 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      - name: Download bubble-detector prebuild
+        uses: actions/download-artifact@v4
+        with:
+          name: bubble-detector-${{ matrix.nativePlatform }}-${{ matrix.nativeArch }}
+          path: native/bubble-detector/prebuilds/${{ matrix.nativePlatform }}-${{ matrix.nativeArch }}/
 
       - run: pnpm build:packages
 

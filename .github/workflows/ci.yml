@@ -22,6 +22,7 @@ jobs:
       code: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.web == 'true' || steps.filter.outputs.desktop == 'true' }}
       web: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.web == 'true' }}
       desktop: ${{ steps.filter.outputs.root == 'true' || steps.filter.outputs.ci == 'true' || steps.filter.outputs.shared == 'true' || steps.filter.outputs.desktop == 'true' }}
+      native: ${{ steps.filter.outputs.native == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -46,6 +47,9 @@ jobs:
               - 'apps/web/**'
             desktop:
               - 'apps/desktop/**'
+            native:
+              - 'native/**'
+              - '.github/workflows/ci.yml'
 
   lint:
     name: Lint
@@ -110,10 +114,98 @@ jobs:
       - run: pnpm build:packages
       - run: pnpm --filter @kireimanga/desktop test
 
+  # Validates the bubble-detector compiles + links statically against vendored OpenCV.
+  # Artifact is consumed by release.yml.
+  native-prebuild:
+    name: Native Prebuild (${{ matrix.platform }}-${{ matrix.arch }})
+    needs: [changes]
+    if: needs.changes.outputs.native == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win32
+            arch: x64
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+          - os: macos-13
+            platform: darwin
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Cache OpenCV install + build
+        id: cache-opencv
+        uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-${{ matrix.arch }}-opencv-4.11.0-${{ hashFiles('native/bubble-detector/scripts/build-opencv.*') }}
+          path: |
+            native/bubble-detector/vendor/opencv-install
+            native/bubble-detector/vendor/opencv-build
+
+      - name: Build OpenCV (POSIX)
+        if: steps.cache-opencv.outputs.cache-hit != 'true' && runner.os != 'Windows'
+        shell: bash
+        env:
+          KIREI_OPENCV_TARGET_ARCH: ${{ matrix.arch == 'arm64' && 'arm64' || 'x86_64' }}
+        run: bash native/bubble-detector/scripts/build-opencv.sh
+
+      - name: Build OpenCV (Windows)
+        if: steps.cache-opencv.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        shell: pwsh
+        run: pwsh native/bubble-detector/scripts/build-opencv.ps1
+
+      - name: Export OpenCV env (POSIX)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          # shellcheck disable=SC1091
+          . native/bubble-detector/vendor/opencv-env.sh
+          {
+            echo "OPENCV_INCLUDE_DIR=${OPENCV_INCLUDE_DIR}"
+            echo "OPENCV_LIB_DIR=${OPENCV_LIB_DIR}"
+            echo "OPENCV_3RDPARTY_DIR=${OPENCV_3RDPARTY_DIR}"
+          } >> "$GITHUB_ENV"
+
+      - name: Export OpenCV env (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          . native/bubble-detector/vendor/opencv-env.ps1
+          Add-Content -Path $env:GITHUB_ENV -Value "OPENCV_INCLUDE_DIR=$env:OPENCV_INCLUDE_DIR"
+          Add-Content -Path $env:GITHUB_ENV -Value "OPENCV_LIB_DIR=$env:OPENCV_LIB_DIR"
+          Add-Content -Path $env:GITHUB_ENV -Value "OPENCV_3RDPARTY_DIR=$env:OPENCV_3RDPARTY_DIR"
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build prebuild
+        run: pnpm --filter @kireimanga/bubble-detector run prebuild
+
+      - name: Verify prebuild loads
+        run: node -e "console.log(require('./native/bubble-detector'))"
+
+      - name: Upload prebuild artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bubble-detector-${{ matrix.platform }}-${{ matrix.arch }}
+          path: native/bubble-detector/prebuilds/${{ matrix.platform }}-${{ matrix.arch }}/
+          if-no-files-found: error
+          retention-days: 30
+
   ci-result:
     name: CI Result
     if: always()
-    needs: [lint, typecheck, test-web, test-desktop]
+    needs: [lint, typecheck, test-web, test-desktop, native-prebuild]
     runs-on: ubuntu-latest
     steps:
       - name: Check CI outcome

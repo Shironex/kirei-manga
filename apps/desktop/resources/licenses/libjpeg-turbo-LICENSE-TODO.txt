@@ -1,0 +1,11 @@
+libjpeg-turbo — BSD-3-Clause + IJG (Independent JPEG Group) license
+
+PLACEHOLDER — verbatim license text not yet committed. Source of truth:
+https://github.com/opencv/opencv/blob/4.11.0/3rdparty/libjpeg-turbo/LICENSE.md
+
+OpenCV's `BUILD_JPEG=ON` cmake flag links the bundled libjpeg-turbo under
+3rdparty/libjpeg-turbo/ statically into our addon. The license is a hybrid
+of BSD-3-Clause for the libjpeg-turbo code and the original IJG terms for
+the libjpeg code that libjpeg-turbo derives from. Replace this file with
+the verbatim contents of that LICENSE.md before the next public installer
+release.

@@ -1,0 +1,9 @@
+zlib — zlib license (Jean-loup Gailly + Mark Adler, see upstream README)
+
+PLACEHOLDER — verbatim license text not yet committed. Source of truth:
+https://github.com/opencv/opencv/blob/4.11.0/3rdparty/zlib/README
+
+OpenCV's `BUILD_ZLIB=ON` cmake flag links the bundled zlib under
+3rdparty/zlib/ statically into our addon. The zlib license is short
+(~1 KB) and permissive — replace this file with the verbatim header from
+that README before the next public installer release.

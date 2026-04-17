@@ -28,6 +28,10 @@
     {
       "from": "resources/icon-32.png",
       "to": "icon-32.png"
+    },
+    {
+      "from": "resources/licenses",
+      "to": "licenses"
     }
   ],
   "asarUnpack": [
