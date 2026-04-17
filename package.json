@@ -36,6 +36,7 @@
     "typecheck": "pnpm build:packages && pnpm --filter @kireimanga/web typecheck && pnpm --filter @kireimanga/desktop typecheck",
     "rebuild": "pnpm --filter @kireimanga/desktop rebuild",
     "native:build": "node scripts/native-build.mjs",
+    "bench-bubble-detector": "node scripts/bench-bubble-detector.mjs",
     "fetch-prebuilds": "node scripts/fetch-prebuilds.mjs",
     "version:patch": "node scripts/bump-version.mjs patch",
     "version:minor": "node scripts/bump-version.mjs minor",
