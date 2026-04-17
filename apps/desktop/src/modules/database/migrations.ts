@@ -128,6 +128,31 @@ export const MIGRATIONS: Migration[] = [
         CHECK (local_archive_format IS NULL OR local_archive_format IN ('folder','cbz','cbr','zip'));
     `,
   },
+  {
+    version: 7,
+    description: 'Add translation cache table and per-series translation override',
+    up: `
+      CREATE TABLE IF NOT EXISTS translation_cache (
+        id TEXT PRIMARY KEY,
+        page_hash TEXT NOT NULL,
+        bubble_index INTEGER NOT NULL,
+        bbox_x INTEGER NOT NULL,
+        bbox_y INTEGER NOT NULL,
+        bbox_w INTEGER NOT NULL,
+        bbox_h INTEGER NOT NULL,
+        original_text TEXT NOT NULL,
+        translated_text TEXT NOT NULL,
+        target_language TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(page_hash, bubble_index, target_language, provider)
+      );
+      CREATE INDEX IF NOT EXISTS idx_translation_cache_lookup
+        ON translation_cache (page_hash, target_language, provider);
+
+      ALTER TABLE series ADD COLUMN translation_override TEXT;
+    `,
+  },
 ];
 
 /**
