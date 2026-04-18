@@ -37,8 +37,10 @@ let listenersInitialized = false;
 /**
  * Apply a partial patch onto the cached settings — mirrors
  * SettingsService.applyPatch on the desktop side so the optimistic UI matches
- * what the persistence layer will write. Only the three known sections are
- * deep-merged; `language` and `shortcuts` overwrite at the top level.
+ * what the persistence layer will write. Known sections are deep-merged one
+ * level; `translation.providerKeys` gets its own one-level merge so partial
+ * credential patches don't drop other providers' keys. `language` and
+ * `shortcuts` overwrite at the top level.
  */
 function applyPatch(base: AppSettings, patch: DeepPartial<AppSettings>): AppSettings {
   const next: AppSettings = {
@@ -48,6 +50,7 @@ function applyPatch(base: AppSettings, patch: DeepPartial<AppSettings>): AppSett
     language: base.language,
     shortcuts: { ...base.shortcuts },
     onboarding: { ...base.onboarding },
+    translation: { ...base.translation, providerKeys: { ...base.translation.providerKeys } },
   };
   if (patch.appearance) {
     next.appearance = { ...next.appearance, ...patch.appearance } as AppSettings['appearance'];
@@ -72,6 +75,19 @@ function applyPatch(base: AppSettings, patch: DeepPartial<AppSettings>): AppSett
   }
   if (patch.onboarding) {
     next.onboarding = { ...next.onboarding, ...patch.onboarding } as AppSettings['onboarding'];
+  }
+  if (patch.translation) {
+    next.translation = {
+      ...next.translation,
+      ...patch.translation,
+    } as AppSettings['translation'];
+    if (patch.translation.providerKeys) {
+      // Merge keys so a single-provider update doesn't wipe the others.
+      next.translation.providerKeys = {
+        ...next.translation.providerKeys,
+        ...patch.translation.providerKeys,
+      };
+    }
   }
   return next;
 }
