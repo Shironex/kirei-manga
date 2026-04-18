@@ -107,6 +107,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   translation: {
     enabled: false,
     defaultProvider: 'deepl',
+    sourceLang: 'ja',
     targetLang: 'en',
     autoTranslate: false,
     overlayFont: 'Fraunces',

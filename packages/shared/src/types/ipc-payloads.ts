@@ -563,6 +563,13 @@ export interface TranslationRunPipelinePayload {
    */
   pageUrl?: string;
   targetLang: string;
+  /**
+   * Optional BCP-47 source language. Falls back to `AppSettings.translation
+   * .sourceLang` (or `'ja'`) when omitted — same fallback shape as `targetLang`.
+   * Routes the OCR backend (manga-OCR sidecar is Japanese-only; non-`'ja'`
+   * sources fall through to Tesseract) and the provider's `source_lang` hint.
+   */
+  sourceLang?: string;
   providerHint?: TranslationProviderId;
 }
 

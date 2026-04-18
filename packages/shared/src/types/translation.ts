@@ -53,6 +53,14 @@ export interface TranslationSettings {
   enabled: boolean;
   /** Provider used when a series doesn't pin one. */
   defaultProvider: TranslationProviderId;
+  /**
+   * BCP-47 source language tag. Defaults to `'ja'` (manga-OCR is Japanese-only;
+   * the registry routes any other source through Tesseract). Setting this lets
+   * users translate from already-translated bubbles (English scanlations →
+   * Polish, etc.). Tesseract loads a per-language `traineddata` lazily on
+   * first OCR call for that source.
+   */
+  sourceLang: string;
   /** ISO 639-1 target language, e.g. `en`. */
   targetLang: string;
   /** Translate eagerly on page open vs. on explicit user action. */
