@@ -153,6 +153,22 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE series ADD COLUMN translation_override TEXT;
     `,
   },
+  {
+    version: 8,
+    description: 'Add translation_flags table for bad-translation reports',
+    up: `
+      CREATE TABLE IF NOT EXISTS translation_flags (
+        id TEXT PRIMARY KEY,
+        page_hash TEXT NOT NULL,
+        bubble_index INTEGER NOT NULL,
+        reason TEXT NOT NULL,
+        user_note TEXT,
+        flagged_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_translation_flags_page
+        ON translation_flags (page_hash, bubble_index);
+    `,
+  },
 ];
 
 /**

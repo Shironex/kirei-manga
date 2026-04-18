@@ -67,7 +67,7 @@ describe('database migrations', () => {
       .all() as MigrationRow[];
     const versions = rows.map(r => r.version);
 
-    expect(versions).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(versions).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 
   it('migration 006 adds local library columns to series', async () => {
@@ -189,5 +189,39 @@ describe('database migrations', () => {
     expect(col!.type).toBe('TEXT');
     // No NOT NULL — JSON override is implicit-NULL by default.
     expect(Boolean(col!.notnull)).toBe(false);
+  });
+
+  it('migration 008 creates the translation_flags table with the expected columns', async () => {
+    const db = await createTestDatabase();
+    const info = tableInfo(db, 'translation_flags');
+    const byName = new Map(info.map(c => [c.name, c]));
+
+    // Same SQLite quirk as migration 007: TEXT PRIMARY KEY reports notnull=0
+    // unless declared explicitly, so assert PK type separately and skip the
+    // notnull check on id.
+    const expected: Array<[string, string, boolean]> = [
+      ['page_hash', 'TEXT', true],
+      ['bubble_index', 'INTEGER', true],
+      ['reason', 'TEXT', true],
+      ['user_note', 'TEXT', false],
+      ['flagged_at', 'TEXT', true],
+    ];
+
+    expect(byName.get('id')?.type).toBe('TEXT');
+
+    for (const [name, type, notNull] of expected) {
+      const col = byName.get(name);
+      expect(col).toBeDefined();
+      expect(col!.type).toBe(type);
+      expect(Boolean(col!.notnull)).toBe(notNull);
+    }
+  });
+
+  it('migration 008 creates the page lookup index on translation_flags', async () => {
+    const db = await createTestDatabase();
+    const indexes = listIndexes(db, 'translation_flags');
+
+    expect(indexes).toContain('idx_translation_flags_page');
+    expect(indexColumns(db, 'idx_translation_flags_page')).toEqual(['page_hash', 'bubble_index']);
   });
 });
