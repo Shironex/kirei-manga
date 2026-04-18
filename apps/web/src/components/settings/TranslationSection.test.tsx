@@ -271,6 +271,85 @@ describe('TranslationSection — provider status IPC', () => {
     expect(sidecarRow.querySelector('[data-testid="status-pill-ok"]')).not.toBeNull();
   });
 
+  it('hides the Tesseract fallback row when ocrFallback is absent (Slice K.3)', async () => {
+    primeSettings({ enabled: true });
+    emitWithResponseMock.mockResolvedValue(makeStatusResponse());
+
+    const { getByTestId, queryByTestId } = render(<TranslationSection />);
+
+    await waitFor(() => {
+      expect(getByTestId('pipeline-status-ocr-sidecar')).toBeDefined();
+    });
+    // Older desktop builds omit the field; we mustn't surface a fallback row
+    // out of nothing.
+    expect(queryByTestId('pipeline-status-ocr-fallback')).toBeNull();
+  });
+
+  it('marks the Tesseract fallback Active when sidecar is down (Slice K.3)', async () => {
+    primeSettings({ enabled: true });
+    emitWithResponseMock.mockResolvedValue(
+      makeStatusResponse({
+        pipeline: {
+          bubbleDetector: { healthy: true },
+          ocrSidecar: { state: 'crashed', reason: 'sidecar exited' },
+          ocrFallback: { name: 'tesseract', healthy: true },
+        },
+      })
+    );
+
+    const { getByTestId } = render(<TranslationSection />);
+
+    await waitFor(() => {
+      const row = getByTestId('pipeline-status-ocr-fallback');
+      expect(row.querySelector('[data-testid="status-pill-ok"]')).not.toBeNull();
+      expect(row.textContent).toContain('Active');
+    });
+  });
+
+  it('marks the Tesseract fallback Standby when the sidecar is healthy (Slice K.3)', async () => {
+    primeSettings({ enabled: true });
+    emitWithResponseMock.mockResolvedValue(
+      makeStatusResponse({
+        pipeline: {
+          bubbleDetector: { healthy: true },
+          ocrSidecar: { state: 'ready', modelLoaded: true },
+          ocrFallback: { name: 'tesseract', healthy: true },
+        },
+      })
+    );
+
+    const { getByTestId } = render(<TranslationSection />);
+
+    await waitFor(() => {
+      const row = getByTestId('pipeline-status-ocr-fallback');
+      expect(row.querySelector('[data-testid="status-pill-unknown"]')).not.toBeNull();
+      expect(row.textContent).toContain('Standby');
+    });
+  });
+
+  it('marks the Tesseract fallback Unavailable + surfaces the reason (Slice K.3)', async () => {
+    primeSettings({ enabled: true });
+    emitWithResponseMock.mockResolvedValue(
+      makeStatusResponse({
+        pipeline: {
+          bubbleDetector: { healthy: true },
+          ocrSidecar: { state: 'crashed' },
+          ocrFallback: { name: 'tesseract', healthy: false, reason: 'jpn traineddata missing' },
+        },
+      })
+    );
+
+    const { getByTestId } = render(<TranslationSection />);
+
+    await waitFor(() => {
+      const row = getByTestId('pipeline-status-ocr-fallback');
+      expect(row.querySelector('[data-testid="status-pill-bad"]')).not.toBeNull();
+    });
+    expect(getByTestId('pipeline-status-ocr-fallback-reason').textContent).toBe(
+      'jpn traineddata missing'
+    );
+  });
+
   it('renders the OCR sidecar download button when state=not-downloaded', async () => {
     primeSettings({ enabled: true });
     emitWithResponseMock.mockResolvedValue(

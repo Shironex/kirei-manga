@@ -433,6 +433,7 @@ function PipelineStatusRows({
     <div className="flex flex-col">
       <PipelineRowBubbleDetector pipeline={pipeline} fetched={fetched} t={t} />
       <PipelineRowOcrSidecar pipeline={pipeline} fetched={fetched} t={t} />
+      <PipelineRowOcrFallback pipeline={pipeline} t={t} />
     </div>
   );
 }
@@ -562,6 +563,62 @@ function PipelineRowOcrSidecar({
         {showDownloadCta && <SidecarDownloadButton t={t} />}
         <StatusPill variant={variant} label={stateLabel} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Slice K.3 — surface the Tesseract OCR fallback. Only renders when the
+ * desktop reports `pipeline.ocrFallback` (older builds omit the field; absent
+ * = no fallback installed). Pill colour reflects whether the fallback is
+ * currently doing the work: when the manga-OCR sidecar is anything but
+ * `ready`, a healthy fallback shows as **Active**; otherwise it sits in
+ * **Standby** so the user knows it's there without being alarmed.
+ */
+function PipelineRowOcrFallback({
+  pipeline,
+  t,
+}: {
+  pipeline: TranslationProviderStatusResponse['pipeline'] | null;
+  t: ReturnType<typeof useT>;
+}) {
+  const fallback = pipeline?.ocrFallback;
+  if (!fallback) return null;
+
+  const sidecarUp = pipeline?.ocrSidecar?.state === 'ready';
+  let variant: 'ok' | 'bad' | 'unknown';
+  let label: string;
+  if (!fallback.healthy) {
+    variant = 'bad';
+    label = t('settings.translation.pipeline.ocrFallback.unavailable');
+  } else if (!sidecarUp) {
+    variant = 'ok';
+    label = t('settings.translation.pipeline.ocrFallback.active');
+  } else {
+    variant = 'unknown';
+    label = t('settings.translation.pipeline.ocrFallback.standby');
+  }
+  const reason = !fallback.healthy ? (fallback.reason ?? null) : null;
+
+  return (
+    <div
+      className="grid grid-cols-1 items-baseline gap-1 border-b border-border py-3 last:border-b-0 md:grid-cols-[1fr_auto] md:gap-6"
+      data-testid="pipeline-status-ocr-fallback"
+    >
+      <div className="flex flex-col gap-0.5">
+        <span className="text-[13px] text-foreground">
+          {t('settings.translation.pipeline.ocrFallback.label')}
+        </span>
+        {reason && (
+          <span
+            className="text-[11px] text-[var(--color-bone-faint)]"
+            data-testid="pipeline-status-ocr-fallback-reason"
+          >
+            {reason}
+          </span>
+        )}
+      </div>
+      <StatusPill variant={variant} label={label} />
     </div>
   );
 }

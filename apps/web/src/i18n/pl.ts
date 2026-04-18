@@ -247,6 +247,10 @@ export const pl = {
   'settings.translation.pipeline.ocr.download.unavailableTitle': 'Pobieranie sidecara',
   'settings.translation.pipeline.ocr.download.unavailable':
     'Ręczne pobieranie nie jest jeszcze podłączone — sidecar pobierze się przy pierwszym użyciu.',
+  'settings.translation.pipeline.ocrFallback.label': 'Awaryjny Tesseract',
+  'settings.translation.pipeline.ocrFallback.active': 'Aktywny',
+  'settings.translation.pipeline.ocrFallback.standby': 'W gotowości',
+  'settings.translation.pipeline.ocrFallback.unavailable': 'Niedostępny',
 
   // Settings — Updates
   'settings.section.updates': 'Aktualizacje',

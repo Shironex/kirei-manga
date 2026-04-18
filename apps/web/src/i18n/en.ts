@@ -243,6 +243,10 @@ export const en = {
   'settings.translation.pipeline.ocr.download.unavailableTitle': 'Sidecar download',
   'settings.translation.pipeline.ocr.download.unavailable':
     'Manual download isn’t wired yet — the sidecar will fetch on first use.',
+  'settings.translation.pipeline.ocrFallback.label': 'Tesseract fallback',
+  'settings.translation.pipeline.ocrFallback.active': 'Active',
+  'settings.translation.pipeline.ocrFallback.standby': 'Standby',
+  'settings.translation.pipeline.ocrFallback.unavailable': 'Unavailable',
 
   // Settings — Updates
   'settings.section.updates': 'Updates',
