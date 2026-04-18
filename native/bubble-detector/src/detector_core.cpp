@@ -24,9 +24,21 @@ namespace {
 constexpr int kAdaptiveBlockSize = 31;
 constexpr double kAdaptiveC = 5.0;
 
-// Area filter as a fraction of total image area.
+// Area filter as a fraction of total image area. Real speech bubbles are
+// 0.5–8% of page area; the previous 30% cap was permissive enough to admit
+// entire panel regions on color pages where adaptiveThreshold merges flat
+// color expanses into a single huge contour. Tightening to 8% kills the
+// "whole top half of the page is one bubble" failure mode without losing
+// real bubbles in low-density layouts.
 constexpr double kAreaMinFrac = 0.002;
-constexpr double kAreaMaxFrac = 0.30;
+constexpr double kAreaMaxFrac = 0.08;
+
+// Hard cap on returned boxes per page. Real manga pages top out around
+// 15–20 bubbles; over-detection on color pages can produce hundreds of
+// noise contours that pass every per-contour gate but collectively bury
+// the actual bubbles in the overlay layer. After all per-contour scoring
+// we keep the top-N by confidence, then re-sort by reading order.
+constexpr std::size_t kMaxBoxes = 30;
 
 // Bounding-rect aspect ratio (width / height). Loosened in C.2 to admit
 // tall narrow speech bubbles in vertical-strip layouts; the symmetric
@@ -210,6 +222,18 @@ std::vector<DetectedBubble> RunDetection(const cv::Mat& gray,
                                       varianceScore * kVarianceWeight);
 
     result.push_back(DetectedBubble{r.x, r.y, r.width, r.height, confidence});
+  }
+
+  // Cap at the top-N by confidence before reading-order sort. Color pages
+  // can survive every per-contour gate with dozens of noise contours; the
+  // overlay layer tolerates a handful of false positives but not hundreds.
+  if (result.size() > kMaxBoxes) {
+    std::partial_sort(
+        result.begin(), result.begin() + kMaxBoxes, result.end(),
+        [](const DetectedBubble& a, const DetectedBubble& b) {
+          return a.confidence > b.confidence;
+        });
+    result.resize(kMaxBoxes);
   }
 
   // Reading-order sort: group bubbles into rows by vertical-midpoint
