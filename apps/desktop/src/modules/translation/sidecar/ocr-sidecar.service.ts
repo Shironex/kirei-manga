@@ -211,6 +211,45 @@ export class OcrSidecarService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Renderer-triggered kick to make the sidecar usable, **without blocking the
+   * caller on the (potentially minutes-long) tarball download**. Distinct from
+   * the internal `ensureReady()` which awaits the full ready-promise — that one
+   * is what `ocr()` calls before sending a request, and is correct for that
+   * code path. This method is the gateway-handler entry point: the renderer
+   * polls `getStatus().downloadProgress` to track progress, so we just need to
+   * get the work kicked off.
+   *
+   * - `ready` → no-op, returns `alreadyReady: true`.
+   * - `downloading` → no-op (already in flight), returns `started: false`.
+   * - everything else (`not-downloaded` / `crashed` / `unhealthy` / `starting`)
+   *   → fire `ensureReady()` in the background and return `started: true`.
+   *   `unhealthy` is included so the user can attempt a manual retry from the
+   *   settings panel after a crash burst.
+   */
+  kickReady(): { started: boolean; alreadyReady?: boolean } {
+    const state = this.status.state;
+    if (state === 'ready') {
+      return { started: false, alreadyReady: true };
+    }
+    if (state === 'downloading') {
+      return { started: false, alreadyReady: false };
+    }
+    // `unhealthy` clears the readyPromise so a retry kick can re-arm the
+    // download from scratch — without this the catch path below would no-op
+    // because `ensureReady()` throws synchronously on the unhealthy guard.
+    if (state === 'unhealthy') {
+      this.status = { state: 'not-downloaded' };
+      this.readyPromise = null;
+    }
+    // Fire-and-forget: the failure will surface through `getStatus()` (state
+    // flips to `unhealthy`) which the renderer's next status poll picks up.
+    this.ensureReady().catch(err => {
+      logger.warn(`kickReady ensureReady failed: ${(err as Error).message}`);
+    });
+    return { started: true, alreadyReady: false };
+  }
+
   /** Send `{op:'shutdown'}` and wait up to 5s for the process to exit. */
   async shutdown(): Promise<void> {
     if (this.restartTimer) {

@@ -60,6 +60,14 @@ export const TranslationEvents = {
   REPORT_BAD: 'translation:report-bad',
 
   /**
+   * Trigger a non-blocking sidecar download / spawn. Returns immediately once
+   * the work has been kicked off — progress is then surfaced through the
+   * existing `provider-status` poll under `pipeline.ocrSidecar.downloadProgress`.
+   * Idempotent: a second call while a download is in flight is a no-op.
+   */
+  ENSURE_READY: 'translation:ensure-ready',
+
+  /**
    * Source-agnostic series-level translation override write. Local-source rows
    * use this instead of `local:update-series` so the renderer doesn't need to
    * branch on source for the translation field. MangaDex-source rows have no

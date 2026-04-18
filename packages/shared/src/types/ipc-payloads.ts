@@ -642,3 +642,25 @@ export interface TranslationSetSeriesOverrideResponse {
   series: Series | null;
   error?: string;
 }
+
+/**
+ * Renderer-triggered "kick the OCR sidecar into a usable state" call. Empty
+ * payload — the desktop owns the binary location + version. The handler does
+ * NOT block on the actual download (which can take minutes for the ~450 MB
+ * tarball); it returns once the work has been kicked off in the background
+ * and progress flips to `pipeline.ocrSidecar.downloadProgress` on the next
+ * `provider-status` poll.
+ */
+export type TranslationEnsureReadyPayload = Record<string, never>;
+
+/**
+ * - `started: true` — a fresh download has been kicked off in the background.
+ * - `started: false, alreadyReady: true` — sidecar was already `ready`; nothing to do.
+ * - `started: false, alreadyReady: false` — a download was already in flight
+ *   (the renderer's status poll will already be reflecting it).
+ */
+export interface TranslationEnsureReadyResponse {
+  started: boolean;
+  alreadyReady?: boolean;
+  error?: string;
+}

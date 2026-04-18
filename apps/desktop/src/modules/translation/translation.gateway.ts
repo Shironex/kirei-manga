@@ -4,6 +4,7 @@ import {
   createLogger,
   TranslationEvents,
   type Series,
+  type TranslationEnsureReadyResponse,
   type TranslationGetPagePayload,
   type TranslationGetPageResponse,
   type TranslationProviderStatusResponse,
@@ -209,6 +210,25 @@ export class TranslationGateway {
           payload.provider
         );
         return { page };
+      },
+    });
+  }
+
+  /**
+   * Renderer-triggered manual download / spawn for the OCR sidecar. Returns
+   * immediately — the actual download streams in the background and progress
+   * surfaces via the next `provider-status` poll under
+   * `pipeline.ocrSidecar.downloadProgress`. Replaces the placeholder Download
+   * button toast in the K.3 settings UI.
+   */
+  @SubscribeMessage(TranslationEvents.ENSURE_READY)
+  handleEnsureReady() {
+    return handleGatewayRequest({
+      logger,
+      action: 'translation:ensure-ready',
+      defaultResult: { started: false } satisfies Pick<TranslationEnsureReadyResponse, 'started'>,
+      handler: async (): Promise<TranslationEnsureReadyResponse> => {
+        return this.ocrSidecar.kickReady();
       },
     });
   }

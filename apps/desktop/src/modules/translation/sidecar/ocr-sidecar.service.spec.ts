@@ -349,6 +349,81 @@ describe('OcrSidecarService', () => {
     await harness.service.shutdown();
   });
 
+  describe('kickReady() — non-blocking download trigger', () => {
+    it('returns alreadyReady:true and does not spawn when sidecar is ready', async () => {
+      const harness = makeHarness();
+      await bringUp(harness);
+
+      const result = harness.service.kickReady();
+
+      expect(result).toEqual({ started: false, alreadyReady: true });
+      // Already-spawned child from bring-up; no extra spawns from kickReady().
+      expect(harness.spawnFn).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns started:false when a download is already in flight', () => {
+      // Hold the downloader open so the service stays in `downloading` state.
+      const harness = makeHarness();
+      harness.downloader.isAvailable.mockResolvedValue(false);
+      harness.downloader.download.mockReturnValue(new Promise(() => {}));
+
+      // Kick off the first ensureReady — it will flip status to `downloading`
+      // once the isAvailable() promise resolves and the downloader is invoked.
+      void harness.service.ensureReady();
+      // ensureReady() awaits isAvailable() and downloader.download(); we need
+      // the microtask queue to drain so the status flips.
+      return flush().then(() => {
+        expect(harness.service.getStatus().state).toBe('downloading');
+
+        const result = harness.service.kickReady();
+        expect(result).toEqual({ started: false, alreadyReady: false });
+      });
+    });
+
+    it('returns started:true and kicks ensureReady() when state is not-downloaded', async () => {
+      const harness = makeHarness();
+      // Default state on a fresh service is `not-downloaded`.
+      expect(harness.service.getStatus().state).toBe('not-downloaded');
+
+      const result = harness.service.kickReady();
+      expect(result).toEqual({ started: true, alreadyReady: false });
+
+      // The background ensureReady() should have started spawning.
+      await flush();
+      expect(harness.spawnFn).toHaveBeenCalledTimes(1);
+
+      // Drive the spawned child to ready so the service settles cleanly.
+      const child = harness.spawned[0];
+      child.emitStdout({ id: null, ready: true });
+      await flush();
+      expect(harness.service.getStatus().state).toBe('ready');
+    });
+
+    it('clears unhealthy status so a manual retry can re-arm the download', async () => {
+      const harness = makeHarness();
+      // Force the service into the unhealthy state via the public API path
+      // (mocking the private state is fragile). Set the field directly on the
+      // instance — same trick the tesseract spec uses for `langPath`.
+      Object.assign(harness.service, {
+        status: { state: 'unhealthy', reason: 'crashed 3x' },
+      });
+      expect(harness.service.getStatus().state).toBe('unhealthy');
+
+      const result = harness.service.kickReady();
+      expect(result).toEqual({ started: true, alreadyReady: false });
+
+      await flush();
+      // The unhealthy state was reset before ensureReady() was called, so the
+      // ensureReady() guard didn't throw and spawn happened normally.
+      expect(harness.spawnFn).toHaveBeenCalledTimes(1);
+
+      const child = harness.spawned[0];
+      child.emitStdout({ id: null, ready: true });
+      await flush();
+      expect(harness.service.getStatus().state).toBe('ready');
+    });
+  });
+
   it('per-box error in ocr() response surfaces as empty text in OcrResult', async () => {
     const harness = makeHarness();
     const child = await bringUp(harness);

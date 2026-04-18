@@ -22,7 +22,7 @@ describe('TranslationGateway', () => {
   let module: TestingModule;
   let gateway: TranslationGateway;
   let bubbleDetector: { getStatus: jest.Mock };
-  let ocrSidecar: { getStatus: jest.Mock };
+  let ocrSidecar: { getStatus: jest.Mock; kickReady: jest.Mock };
   let ocrBackends: { getFallbackStatus: jest.Mock; pickBackend: jest.Mock };
   let registry: { getAllStatuses: jest.Mock };
   let translationService: { runPipeline: jest.Mock };
@@ -42,7 +42,7 @@ describe('TranslationGateway', () => {
 
   beforeEach(async () => {
     bubbleDetector = { getStatus: jest.fn() };
-    ocrSidecar = { getStatus: jest.fn() };
+    ocrSidecar = { getStatus: jest.fn(), kickReady: jest.fn() };
     ocrBackends = {
       getFallbackStatus: jest
         .fn()
@@ -475,6 +475,42 @@ describe('TranslationGateway', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toMatch(/pageHash/);
+    });
+  });
+
+  // ===== translation:ensure-ready =====
+
+  describe('handleEnsureReady', () => {
+    it('forwards the kickReady result when a download is started', async () => {
+      ocrSidecar.kickReady.mockReturnValue({ started: true, alreadyReady: false });
+
+      const result = await gateway.handleEnsureReady();
+
+      expect(ocrSidecar.kickReady).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({ started: true, alreadyReady: false });
+      expect(result).not.toHaveProperty('error');
+    });
+
+    it('surfaces alreadyReady:true when the sidecar is already ready', async () => {
+      ocrSidecar.kickReady.mockReturnValue({ started: false, alreadyReady: true });
+
+      const result = await gateway.handleEnsureReady();
+
+      expect(result).toEqual({ started: false, alreadyReady: true });
+    });
+
+    it('returns the default envelope + error when the service throws', async () => {
+      ocrSidecar.kickReady.mockImplementation(() => {
+        throw new Error('boom');
+      });
+
+      const result = (await gateway.handleEnsureReady()) as {
+        started: boolean;
+        error: string;
+      };
+
+      expect(result.started).toBe(false);
+      expect(result.error).toBe('boom');
     });
   });
 });
