@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render } from '@testing-library/react';
 import type { PageTranslation } from '@kireimanga/shared';
 import { TranslationOverlay } from './TranslationOverlay';
 
@@ -291,5 +291,154 @@ describe('TranslationOverlay — overlay mode', () => {
     const translated = getByTestId('translation-text') as HTMLDivElement;
     expect(original.style.flex).toContain('40%');
     expect(translated.style.flex).toContain('60%');
+  });
+});
+
+describe('TranslationOverlay — original-text popover (G.4)', () => {
+  // The clipboard tests stub `navigator.clipboard` per case; restore the
+  // original after each so the spies don't leak between tests.
+  const originalClipboardDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis.navigator,
+    'clipboard'
+  );
+
+  afterEach(() => {
+    if (originalClipboardDescriptor) {
+      Object.defineProperty(navigator, 'clipboard', originalClipboardDescriptor);
+    } else {
+      // jsdom doesn't ship a clipboard at all — drop whatever the test
+      // installed so the next case starts from the same baseline.
+      // @ts-expect-error — intentionally clearing the polyfilled prop.
+      delete navigator.clipboard;
+    }
+  });
+
+  it('clicking a bubble opens the popover with the original JP text', () => {
+    const page = makePage([makeBubble({ original: 'こんにちは', translated: 'Hello' })]);
+
+    const { getByTestId, queryByTestId } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+      />
+    );
+
+    expect(queryByTestId('original-text-popover')).toBeNull();
+
+    fireEvent.click(getByTestId('translation-bubble'));
+
+    const popover = getByTestId('original-text-popover');
+    expect(popover).toBeDefined();
+    expect(getByTestId('original-text-popover-text').textContent).toBe('こんにちは');
+  });
+
+  it('clicking the same bubble a second time closes the popover', () => {
+    const page = makePage([makeBubble({ original: 'こんにちは' })]);
+
+    const { getByTestId, queryByTestId } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+      />
+    );
+
+    const bubble = getByTestId('translation-bubble');
+
+    fireEvent.click(bubble);
+    expect(queryByTestId('original-text-popover')).not.toBeNull();
+
+    fireEvent.click(bubble);
+    expect(queryByTestId('original-text-popover')).toBeNull();
+  });
+
+  it('Escape closes the popover', () => {
+    const page = makePage([makeBubble({ original: 'こんにちは' })]);
+
+    const { getByTestId, queryByTestId } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+      />
+    );
+
+    fireEvent.click(getByTestId('translation-bubble'));
+    expect(queryByTestId('original-text-popover')).not.toBeNull();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(queryByTestId('original-text-popover')).toBeNull();
+  });
+
+  it('mousedown outside the popover closes it', () => {
+    const page = makePage([makeBubble({ original: 'こんにちは' })]);
+
+    const { getByTestId, queryByTestId } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+      />
+    );
+
+    fireEvent.click(getByTestId('translation-bubble'));
+    expect(queryByTestId('original-text-popover')).not.toBeNull();
+
+    fireEvent.mouseDown(document.body);
+    expect(queryByTestId('original-text-popover')).toBeNull();
+  });
+
+  it('Copy button writes the original text to the clipboard', async () => {
+    const page = makePage([
+      makeBubble({ original: '吾輩は猫である', translated: 'I am a cat' }),
+    ]);
+
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    const { getByTestId } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+      />
+    );
+
+    fireEvent.click(getByTestId('translation-bubble'));
+    const copy = getByTestId('original-text-popover-copy') as HTMLButtonElement;
+    expect(copy.textContent).toBe('Copy');
+
+    // The click handler awaits the clipboard write before flipping the
+    // label — flush microtasks so the "Copied!" state is observable.
+    await act(async () => {
+      fireEvent.click(copy);
+    });
+
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(writeText).toHaveBeenCalledWith('吾輩は猫である');
+    expect(copy.textContent).toBe('Copied!');
+  });
+
+  it('renders the popover original text in the kanji font (Shippori Mincho)', () => {
+    const page = makePage([makeBubble({ original: 'こんにちは' })]);
+
+    const { getByTestId } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+      />
+    );
+
+    fireEvent.click(getByTestId('translation-bubble'));
+
+    const text = getByTestId('original-text-popover-text') as HTMLParagraphElement;
+    // Default `originalFont` resolves to the project's kanji token, which
+    // declares Shippori Mincho first in its stack.
+    expect(text.style.fontFamily).toBe('var(--font-kanji)');
   });
 });

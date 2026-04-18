@@ -1,4 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ForwardedRef,
+  type MouseEvent,
+} from 'react';
 import type { BoundingBox, PageTranslation } from '@kireimanga/shared';
 import { FittedText } from './FittedText';
 import { DEFAULT_OVERLAY_MODE, type OverlayMode } from './overlay-mode';
@@ -35,6 +43,8 @@ interface BubbleBoxProps {
   font: string;
   originalFont: string;
   mode: OverlayMode;
+  onClick: (event: MouseEvent<HTMLDivElement>) => void;
+  isActive: boolean;
 }
 
 const DEFAULT_FONT = 'var(--font-fraunces)';
@@ -57,7 +67,12 @@ export function TranslationOverlay({
   mode = DEFAULT_OVERLAY_MODE,
 }: TranslationOverlayProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  // G.4: which bubble (by index in `page.bubbles`) currently shows its
+  // original-text popover. `null` means no popover is open. Single-state
+  // means clicking another bubble switches the popover instead of stacking.
+  const [activeBubbleIndex, setActiveBubbleIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!imageElement) {
@@ -82,7 +97,54 @@ export function TranslationOverlay({
     return () => observer.disconnect();
   }, [imageElement, imageNaturalWidth]);
 
+  // Reset the popover whenever the page itself changes (e.g. user navigates
+  // to the next chapter page) — otherwise a stale `activeBubbleIndex` would
+  // anchor the popover to whichever bubble happens to share the index.
+  useEffect(() => {
+    setActiveBubbleIndex(null);
+  }, [page.pageHash]);
+
+  // Close on Escape, and on a mousedown that lands outside the popover and
+  // outside the active bubble. Listeners are only installed while the
+  // popover is actually open so we don't pay per-click work on every page.
+  useEffect(() => {
+    if (activeBubbleIndex === null) return;
+
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') {
+        setActiveBubbleIndex(null);
+      }
+    };
+
+    const onMouseDown = (e: globalThis.MouseEvent): void => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      // Click inside the popover stays open.
+      if (popoverRef.current && popoverRef.current.contains(target)) return;
+      // Click on any bubble is handled by BubbleBox's own onClick (which
+      // toggles or swaps the active index) — let it through.
+      if (target instanceof Element && target.closest('[data-testid="translation-bubble"]')) {
+        return;
+      }
+      setActiveBubbleIndex(null);
+    };
+
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('mousedown', onMouseDown);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('mousedown', onMouseDown);
+    };
+  }, [activeBubbleIndex]);
+
+  const handleBubbleClick = useCallback((index: number) => {
+    setActiveBubbleIndex(prev => (prev === index ? null : index));
+  }, []);
+
   if (page.bubbles.length === 0) return null;
+
+  const activeBubble =
+    activeBubbleIndex !== null ? page.bubbles[activeBubbleIndex] : undefined;
 
   return (
     <div
@@ -96,8 +158,8 @@ export function TranslationOverlay({
         width: '100%',
         height: '100%',
         // Bubble click-through; individual BubbleBoxes re-enable pointer
-        // events so G.4's popover can attach to them without the wrapper
-        // blocking page-image gestures (zoom-on-wheel, drag, etc).
+        // events so the G.4 popover trigger can attach to them without the
+        // wrapper blocking page-image gestures (zoom-on-wheel, drag, etc).
         pointerEvents: 'none',
       }}
     >
@@ -112,8 +174,20 @@ export function TranslationOverlay({
           font={font}
           originalFont={originalFont}
           mode={mode}
+          isActive={activeBubbleIndex === i}
+          onClick={() => handleBubbleClick(i)}
         />
       ))}
+      {activeBubble && (
+        <OriginalTextPopover
+          ref={popoverRef}
+          box={activeBubble.box}
+          original={activeBubble.original}
+          scale={scale}
+          originalFont={originalFont}
+          onClose={() => setActiveBubbleIndex(null)}
+        />
+      )}
     </div>
   );
 }
@@ -131,6 +205,8 @@ function BubbleBox({
   font,
   originalFont,
   mode,
+  onClick,
+  isActive,
 }: BubbleBoxProps) {
   const clampedOpacity = Math.max(0, Math.min(1, opacity));
   const padding = Math.max(2, 4 * scale);
@@ -138,7 +214,11 @@ function BubbleBox({
     <div
       data-testid="translation-bubble"
       data-mode={mode}
+      data-active={isActive ? 'true' : 'false'}
       className="translation-bubble"
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
       style={{
         position: 'absolute',
         left: `${box.x * scale}px`,
@@ -151,9 +231,10 @@ function BubbleBox({
         backgroundColor: `color-mix(in oklch, var(--color-bone) ${clampedOpacity * 100}%, transparent)`,
         color: 'var(--color-ink)',
         borderRadius: 'var(--radius-sm)',
-        // Re-enable pointer events so G.4's per-bubble popover handler
-        // (added in a later phase) can hit-test against each box.
+        // Re-enable pointer events so the per-bubble popover trigger can
+        // hit-test against each box (the wrapper sets pointerEvents: none).
         pointerEvents: 'auto',
+        cursor: 'pointer',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'stretch',
@@ -222,5 +303,131 @@ function BubbleRegion({ text, font, flexBasis, testId }: BubbleRegionProps) {
     >
       <FittedText text={text} font={font} />
     </div>
+  );
+}
+
+interface OriginalTextPopoverProps {
+  box: BoundingBox;
+  original: string;
+  scale: number;
+  originalFont: string;
+  onClose: () => void;
+}
+
+/**
+ * Small anchored popover that surfaces the bubble's untranslated JP text
+ * (Slice G.4). Positioned in the same coordinate system as the bubble it
+ * came from — placed above by default, or below if the bubble sits near
+ * the top of the page so the popover would otherwise clip off-screen.
+ *
+ * Wrapped in `forwardRef` so the overlay's outside-click handler can
+ * compare `event.target` against the popover's DOM node.
+ */
+const OriginalTextPopover = forwardRef(function OriginalTextPopover(
+  { box, original, scale, originalFont, onClose }: OriginalTextPopoverProps,
+  ref: ForwardedRef<HTMLDivElement>
+) {
+  const POPOVER_OFFSET = 8;
+  const ESTIMATED_POPOVER_HEIGHT = 96;
+
+  const anchorTop = box.y * scale;
+  const anchorLeft = box.x * scale;
+  const anchorWidth = box.w * scale;
+
+  // Prefer placing the popover above the bubble. Flip below when there's
+  // not enough room above for the rough popover footprint.
+  const placeBelow = anchorTop < ESTIMATED_POPOVER_HEIGHT + POPOVER_OFFSET;
+  const top = placeBelow
+    ? anchorTop + box.h * scale + POPOVER_OFFSET
+    : anchorTop - POPOVER_OFFSET;
+
+  return (
+    <div
+      ref={ref}
+      role="dialog"
+      aria-label="Original text"
+      data-testid="original-text-popover"
+      data-placement={placeBelow ? 'below' : 'above'}
+      onClick={e => e.stopPropagation()}
+      style={{
+        position: 'absolute',
+        top: `${top}px`,
+        left: `${anchorLeft}px`,
+        minWidth: `${Math.max(anchorWidth, 200)}px`,
+        maxWidth: '320px',
+        // Anchor the popover's bottom edge to `top` when placed above
+        // (translateY(-100%)) so the bubble peeks out beneath it.
+        transform: placeBelow ? 'none' : 'translateY(-100%)',
+        pointerEvents: 'auto',
+        zIndex: 20,
+      }}
+      className="border border-border bg-[var(--color-ink-raised)] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.45)]"
+    >
+      <p
+        data-testid="original-text-popover-text"
+        style={{
+          fontFamily: originalFont,
+          fontSize: '17px',
+          lineHeight: 1.5,
+          color: 'var(--color-bone)',
+          margin: 0,
+          wordBreak: 'break-word',
+        }}
+      >
+        {original}
+      </p>
+      <div className="mt-3 flex items-center justify-end gap-2">
+        <CopyButton text={original} />
+        <button
+          type="button"
+          data-testid="original-text-popover-close"
+          onClick={onClose}
+          className="font-mono text-[10px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase transition-colors hover:text-foreground"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+});
+
+interface CopyButtonProps {
+  text: string;
+}
+
+/**
+ * Small "Copy" affordance that writes the bubble's original text to the
+ * clipboard via `navigator.clipboard.writeText`. Flips to a transient
+ * "Copied!" label for ~1.5s on success; silently stays "Copy" if the
+ * clipboard API rejects (e.g. permission denied in a non-secure context).
+ */
+function CopyButton({ text }: CopyButtonProps) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const id = window.setTimeout(() => setCopied(false), 1500);
+    return () => window.clearTimeout(id);
+  }, [copied]);
+
+  const onCopy = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      // Clipboard permission denied — keep the button in its idle state.
+      setCopied(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      data-testid="original-text-popover-copy"
+      onClick={onCopy}
+      className="inline-flex h-7 items-center rounded-[2px] border border-border px-3 font-mono text-[10.5px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+    >
+      {copied ? 'Copied!' : 'Copy'}
+    </button>
   );
 }
