@@ -23,6 +23,7 @@ import type {
 import type { BubbleDetectorService } from './bubble-detector.service';
 import type { TranslationProviderRegistry } from './providers';
 import type { OcrSidecarService } from './sidecar';
+import type { PageUrlResolverService } from '../shared/page-url-resolver';
 import { createTestDatabase, type CompatDatabase } from '../database/__test__/sqljs-adapter';
 import type { DatabaseService } from '../database';
 import { TranslationCacheService } from './cache';
@@ -99,11 +100,20 @@ describe('TranslationService pipeline integration', () => {
     mockPageHash.mockResolvedValue(PAGE_HASH);
 
     mocks = buildMocks();
+    // Resolver is unused in this spec — every test passes `pageImagePath`
+    // directly so the explicit-path branch wins. Stubbed so the dep slot
+    // stays satisfied.
+    const resolver = {
+      resolveToFilesystemPath: jest
+        .fn()
+        .mockRejectedValue(new Error('resolver should not be called')),
+    } as unknown as PageUrlResolverService;
     service = new TranslationService(
       mocks.detector as unknown as BubbleDetectorService,
       mocks.sidecar as unknown as OcrSidecarService,
       mocks.registry as unknown as TranslationProviderRegistry,
       cache,
+      resolver,
     );
   });
 

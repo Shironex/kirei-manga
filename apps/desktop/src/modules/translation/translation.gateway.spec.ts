@@ -163,6 +163,7 @@ describe('TranslationGateway', () => {
 
     expect(translationService.runPipeline).toHaveBeenCalledWith({
       pageImagePath: '/library/series/ch01/page-001.jpg',
+      pageUrl: undefined,
       targetLang: 'en',
       providerHint: 'deepl',
     });
@@ -170,7 +171,7 @@ describe('TranslationGateway', () => {
     expect(result).not.toHaveProperty('error');
   });
 
-  it('handleRunPipeline rejects an empty pageImagePath without invoking the service', async () => {
+  it('handleRunPipeline rejects when neither pageImagePath nor pageUrl is provided', async () => {
     const result = (await gateway.handleRunPipeline({
       pageImagePath: '',
       targetLang: 'en',
@@ -178,7 +179,42 @@ describe('TranslationGateway', () => {
 
     expect(translationService.runPipeline).not.toHaveBeenCalled();
     expect(result.page).toEqual({ pageHash: '', bubbles: [] });
-    expect(result.error).toMatch(/pageImagePath/);
+    expect(result.error).toMatch(/pageImagePath \/ pageUrl/);
+  });
+
+  it('handleRunPipeline rejects when both pageImagePath and pageUrl are provided', async () => {
+    const result = (await gateway.handleRunPipeline({
+      pageImagePath: '/library/series/ch01/page-001.jpg',
+      pageUrl: 'kirei-page://mangadex/ch01/page-001.jpg',
+      targetLang: 'en',
+    })) as { page: PageTranslation; error: string };
+
+    expect(translationService.runPipeline).not.toHaveBeenCalled();
+    expect(result.page).toEqual({ pageHash: '', bubbles: [] });
+    expect(result.error).toMatch(/pageImagePath \/ pageUrl/);
+  });
+
+  it('handleRunPipeline forwards a pageUrl payload to the orchestrator', async () => {
+    const page: PageTranslation = {
+      pageHash: 'e'.repeat(64),
+      bubbles: [],
+    };
+    translationService.runPipeline.mockResolvedValue(page);
+
+    const result = await gateway.handleRunPipeline({
+      pageUrl: 'kirei-page://mangadex/ch01/page-001.jpg',
+      targetLang: 'en',
+      providerHint: 'deepl',
+    });
+
+    expect(translationService.runPipeline).toHaveBeenCalledWith({
+      pageImagePath: undefined,
+      pageUrl: 'kirei-page://mangadex/ch01/page-001.jpg',
+      targetLang: 'en',
+      providerHint: 'deepl',
+    });
+    expect(result).toEqual({ page });
+    expect(result).not.toHaveProperty('error');
   });
 
   it('handleRunPipeline propagates orchestrator errors via the gateway-handler envelope', async () => {

@@ -5,3 +5,4 @@ export { WsThrottlerGuard } from './ws-throttler.guard';
 export { handleGatewayRequest } from './gateway-handler';
 export { getFetch, type FetchLike } from './net-fetch';
 export { MinIntervalGate, sleep } from './rate-limit';
+export { PageUrlResolverService } from './page-url-resolver';

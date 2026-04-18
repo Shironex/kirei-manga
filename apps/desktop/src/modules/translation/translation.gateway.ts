@@ -91,14 +91,20 @@ export class TranslationGateway {
       action: 'translation:run-pipeline',
       defaultResult: { page: EMPTY_PAGE } satisfies Pick<TranslationRunPipelineResponse, 'page'>,
       handler: async (): Promise<TranslationRunPipelineResponse> => {
-        if (typeof payload?.pageImagePath !== 'string' || payload.pageImagePath.length === 0) {
-          throw new Error('pageImagePath must be a non-empty string');
+        const hasPath =
+          typeof payload?.pageImagePath === 'string' && payload.pageImagePath.length > 0;
+        const hasUrl = typeof payload?.pageUrl === 'string' && payload.pageUrl.length > 0;
+        if (hasPath === hasUrl) {
+          throw new Error(
+            'exactly one of pageImagePath / pageUrl must be a non-empty string',
+          );
         }
         if (typeof payload.targetLang !== 'string' || payload.targetLang.length === 0) {
           throw new Error('targetLang must be a non-empty string');
         }
         const page = await this.translationService.runPipeline({
-          pageImagePath: payload.pageImagePath,
+          pageImagePath: hasPath ? payload.pageImagePath : undefined,
+          pageUrl: hasUrl ? payload.pageUrl : undefined,
           targetLang: payload.targetLang,
           providerHint: payload.providerHint,
         });

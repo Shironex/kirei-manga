@@ -545,9 +545,22 @@ export interface TranslationGetPageResponse {
 /**
  * Primary entry point for the translation pipeline. `providerHint` is optional
  * — the registry resolves to `hint > default > any-healthy` (Slice E phase 3).
+ *
+ * Exactly one of `pageImagePath` / `pageUrl` must be provided. The renderer
+ * usually only knows the `kirei-page://` URL of the displayed page; the
+ * orchestrator resolves that URL to a filesystem path server-side via
+ * `PageUrlResolverService` before hashing / cache lookup. Tests and other
+ * code paths that already hold a real path can pass `pageImagePath` directly
+ * to bypass resolution.
  */
 export interface TranslationRunPipelinePayload {
-  pageImagePath: string;
+  /** Filesystem path to the page image (preferred when known). */
+  pageImagePath?: string;
+  /**
+   * `kirei-page://...` / `file://...` URL — or any absolute path — to be
+   * resolved server-side. Mutually exclusive with `pageImagePath`.
+   */
+  pageUrl?: string;
   targetLang: string;
   providerHint?: TranslationProviderId;
 }

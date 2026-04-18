@@ -267,21 +267,19 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
 
   const safeIndex = Math.min(pageIndex, pages.length - 1);
 
-  // Slice G.5 — drive the translation overlay + status pill from the
-  // active page. `pageImagePath` is intentionally `null` for now: the
-  // renderer only has `kirei-page://` URLs and the desktop's pipeline
-  // requires a real filesystem path. Wiring + slot ship in this slice;
-  // the URL → path resolution is a follow-up that extends the orchestrator
-  // (or a small renderer-side resolver gateway message) without touching
-  // these mount points. Until then the hook stays `idle`, the pill stays
-  // hidden, and the overlay never renders — but every view component
-  // already accepts an `overlay` slot ready for that wire-up.
+  // Drive the translation overlay + status pill from the active page. The
+  // renderer only ever holds the `kirei-page://...` proxy URL; the desktop's
+  // `PageUrlResolverService` maps that URL to the on-disk file the pipeline
+  // needs (cached mangadex page or extracted-on-demand local archive entry).
+  // A null URL — pages still loading, or no chapter open — leaves the hook
+  // in `idle`.
+  const activePageUrl = pages[safeIndex] ?? null;
   const {
     page: translationPage,
     status: translationStatus,
     error: translationError,
     runNow: runTranslationNow,
-  } = useTranslationForPage({ pageImagePath: null });
+  } = useTranslationForPage({ pageUrl: activePageUrl });
 
   // Slice G.6 — error banner dismissal state. The user can dismiss the
   // banner without retrying; the next page navigation or a fresh error

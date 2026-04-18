@@ -23,6 +23,13 @@ import { useSettingsStore } from '@/stores/settings-store';
 import { useSocketStore } from '@/stores/socket-store';
 import { useTranslationForPage } from './useTranslationForPage';
 
+const URL_1 = 'kirei-page://mangadex/ch01/page-001.jpg';
+const URL_2 = 'kirei-page://mangadex/ch01/page-002.jpg';
+const URL_AUTO = 'kirei-page://mangadex/ch01/auto.jpg';
+const URL_MANUAL = 'kirei-page://mangadex/ch01/manual.jpg';
+const URL_ERR = 'kirei-page://mangadex/ch01/err.jpg';
+const URL_THROW = 'kirei-page://mangadex/ch01/throw.jpg';
+
 function primeSettings(translation: Partial<AppSettings['translation']> = {}): void {
   const seed = structuredClone(DEFAULT_APP_SETTINGS);
   seed.translation = { ...seed.translation, ...translation };
@@ -62,9 +69,7 @@ describe('useTranslationForPage — autoTranslate gating', () => {
   it('stays idle and does not call run-pipeline when translation is disabled', async () => {
     primeSettings({ enabled: false, autoTranslate: true });
 
-    const { result } = renderHook(() =>
-      useTranslationForPage({ pageImagePath: 'C:/pages/p1.jpg' })
-    );
+    const { result } = renderHook(() => useTranslationForPage({ pageUrl: URL_1 }));
 
     expect(result.current.status).toBe('idle');
     expect(result.current.page).toBeNull();
@@ -77,21 +82,17 @@ describe('useTranslationForPage — autoTranslate gating', () => {
   it('stays idle and does not fire when autoTranslate is off', async () => {
     primeSettings({ enabled: true, autoTranslate: false });
 
-    const { result } = renderHook(() =>
-      useTranslationForPage({ pageImagePath: 'C:/pages/p1.jpg' })
-    );
+    const { result } = renderHook(() => useTranslationForPage({ pageUrl: URL_1 }));
 
     expect(result.current.status).toBe('idle');
     await Promise.resolve();
     expect(emitWithResponseMock).not.toHaveBeenCalled();
   });
 
-  it('stays idle when pageImagePath is null even with autoTranslate on', async () => {
+  it('stays idle when pageUrl is null even with autoTranslate on', async () => {
     primeSettings({ enabled: true, autoTranslate: true });
 
-    const { result } = renderHook(() =>
-      useTranslationForPage({ pageImagePath: null })
-    );
+    const { result } = renderHook(() => useTranslationForPage({ pageUrl: null }));
 
     expect(result.current.status).toBe('idle');
     await Promise.resolve();
@@ -100,20 +101,18 @@ describe('useTranslationForPage — autoTranslate gating', () => {
 });
 
 describe('useTranslationForPage — auto-firing pipeline', () => {
-  it('fires translation:run-pipeline on mount when enabled + autoTranslate are on', async () => {
+  it('fires translation:run-pipeline with pageUrl on mount when enabled + autoTranslate are on', async () => {
     primeSettings({ enabled: true, autoTranslate: true, targetLang: 'en', defaultProvider: 'deepl' });
     const expected = makePageTranslation('h-mount');
     emitWithResponseMock.mockResolvedValueOnce({ page: expected });
 
-    const { result } = renderHook(() =>
-      useTranslationForPage({ pageImagePath: 'C:/pages/auto.jpg' })
-    );
+    const { result } = renderHook(() => useTranslationForPage({ pageUrl: URL_AUTO }));
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
     expect(emitWithResponseMock).toHaveBeenCalledTimes(1);
     expect(emitWithResponseMock).toHaveBeenCalledWith('translation:run-pipeline', {
-      pageImagePath: 'C:/pages/auto.jpg',
+      pageUrl: URL_AUTO,
       targetLang: 'en',
       providerHint: 'deepl',
     });
@@ -127,7 +126,7 @@ describe('useTranslationForPage — auto-firing pipeline', () => {
 
     renderHook(() =>
       useTranslationForPage({
-        pageImagePath: 'C:/pages/p1.jpg',
+        pageUrl: URL_1,
         targetLang: 'pl',
         providerHint: 'ollama',
       })
@@ -135,9 +134,25 @@ describe('useTranslationForPage — auto-firing pipeline', () => {
 
     await waitFor(() => expect(emitWithResponseMock).toHaveBeenCalledTimes(1));
     expect(emitWithResponseMock).toHaveBeenCalledWith('translation:run-pipeline', {
-      pageImagePath: 'C:/pages/p1.jpg',
+      pageUrl: URL_1,
       targetLang: 'pl',
       providerHint: 'ollama',
+    });
+  });
+
+  it('falls back to pageImagePath when no pageUrl is supplied (legacy / test path)', async () => {
+    primeSettings({ enabled: true, autoTranslate: true, defaultProvider: 'deepl' });
+    emitWithResponseMock.mockResolvedValueOnce({ page: makePageTranslation('h-path') });
+
+    renderHook(() =>
+      useTranslationForPage({ pageUrl: null, pageImagePath: 'C:/pages/legacy.jpg' })
+    );
+
+    await waitFor(() => expect(emitWithResponseMock).toHaveBeenCalledTimes(1));
+    expect(emitWithResponseMock).toHaveBeenCalledWith('translation:run-pipeline', {
+      pageImagePath: 'C:/pages/legacy.jpg',
+      targetLang: 'en',
+      providerHint: 'deepl',
     });
   });
 });
@@ -148,9 +163,7 @@ describe('useTranslationForPage — manual runNow', () => {
     const expected = makePageTranslation('h-manual');
     emitWithResponseMock.mockResolvedValueOnce({ page: expected });
 
-    const { result } = renderHook(() =>
-      useTranslationForPage({ pageImagePath: 'C:/pages/manual.jpg' })
-    );
+    const { result } = renderHook(() => useTranslationForPage({ pageUrl: URL_MANUAL }));
 
     expect(result.current.status).toBe('idle');
 
@@ -160,7 +173,7 @@ describe('useTranslationForPage — manual runNow', () => {
 
     expect(emitWithResponseMock).toHaveBeenCalledTimes(1);
     expect(emitWithResponseMock).toHaveBeenCalledWith('translation:run-pipeline', {
-      pageImagePath: 'C:/pages/manual.jpg',
+      pageUrl: URL_MANUAL,
       targetLang: 'en',
       providerHint: 'deepl',
     });
@@ -168,11 +181,11 @@ describe('useTranslationForPage — manual runNow', () => {
     expect(result.current.page).toEqual(expected);
   });
 
-  it('runNow is a no-op when pageImagePath is null', async () => {
+  it('runNow is a no-op when both pageUrl and pageImagePath are null', async () => {
     primeSettings({ enabled: true, autoTranslate: false });
 
     const { result } = renderHook(() =>
-      useTranslationForPage({ pageImagePath: null })
+      useTranslationForPage({ pageUrl: null, pageImagePath: null })
     );
 
     await act(async () => {
@@ -192,9 +205,7 @@ describe('useTranslationForPage — error propagation', () => {
       error: 'sidecar-offline',
     });
 
-    const { result } = renderHook(() =>
-      useTranslationForPage({ pageImagePath: 'C:/pages/err.jpg' })
-    );
+    const { result } = renderHook(() => useTranslationForPage({ pageUrl: URL_ERR }));
 
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).toBe('sidecar-offline');
@@ -205,9 +216,7 @@ describe('useTranslationForPage — error propagation', () => {
     primeSettings({ enabled: true, autoTranslate: true });
     emitWithResponseMock.mockRejectedValueOnce(new Error('socket timeout'));
 
-    const { result } = renderHook(() =>
-      useTranslationForPage({ pageImagePath: 'C:/pages/throw.jpg' })
-    );
+    const { result } = renderHook(() => useTranslationForPage({ pageUrl: URL_THROW }));
 
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).toBe('socket timeout');
@@ -218,9 +227,7 @@ describe('useTranslationForPage — error propagation', () => {
     primeSettings({ enabled: true, autoTranslate: false });
     primeSocket('reconnecting');
 
-    const { result } = renderHook(() =>
-      useTranslationForPage({ pageImagePath: 'C:/pages/p1.jpg' })
-    );
+    const { result } = renderHook(() => useTranslationForPage({ pageUrl: URL_1 }));
 
     await act(async () => {
       await result.current.runNow();
@@ -233,7 +240,7 @@ describe('useTranslationForPage — error propagation', () => {
 });
 
 describe('useTranslationForPage — page-change reset', () => {
-  it('resets state and re-fires the pipeline when pageImagePath changes', async () => {
+  it('resets state and re-fires the pipeline when pageUrl changes', async () => {
     primeSettings({ enabled: true, autoTranslate: true });
     const first = makePageTranslation('h-first');
     const second = makePageTranslation('h-second');
@@ -242,14 +249,14 @@ describe('useTranslationForPage — page-change reset', () => {
       .mockResolvedValueOnce({ page: second });
 
     const { result, rerender } = renderHook(
-      (props: { pageImagePath: string | null }) => useTranslationForPage(props),
-      { initialProps: { pageImagePath: 'C:/pages/p1.jpg' } }
+      (props: { pageUrl: string | null }) => useTranslationForPage(props),
+      { initialProps: { pageUrl: URL_1 } }
     );
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(result.current.page?.pageHash).toBe('h-first');
 
-    rerender({ pageImagePath: 'C:/pages/p2.jpg' });
+    rerender({ pageUrl: URL_2 });
 
     // Stale page data must clear on page change — no flash of the previous
     // bubble overlay. Status flips to 'loading' immediately because the new
@@ -261,24 +268,24 @@ describe('useTranslationForPage — page-change reset', () => {
     expect(result.current.page?.pageHash).toBe('h-second');
     expect(emitWithResponseMock).toHaveBeenCalledTimes(2);
     expect(emitWithResponseMock).toHaveBeenLastCalledWith('translation:run-pipeline', {
-      pageImagePath: 'C:/pages/p2.jpg',
+      pageUrl: URL_2,
       targetLang: 'en',
       providerHint: 'deepl',
     });
   });
 
-  it('clears state to idle when pageImagePath becomes null', async () => {
+  it('clears state to idle when pageUrl becomes null', async () => {
     primeSettings({ enabled: true, autoTranslate: true });
     emitWithResponseMock.mockResolvedValueOnce({ page: makePageTranslation('h-1') });
 
     const { result, rerender } = renderHook(
-      (props: { pageImagePath: string | null }) => useTranslationForPage(props),
-      { initialProps: { pageImagePath: 'C:/pages/p1.jpg' as string | null } }
+      (props: { pageUrl: string | null }) => useTranslationForPage(props),
+      { initialProps: { pageUrl: URL_1 as string | null } }
     );
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
-    rerender({ pageImagePath: null });
+    rerender({ pageUrl: null });
     expect(result.current.status).toBe('idle');
     expect(result.current.page).toBeNull();
     expect(result.current.error).toBeNull();

@@ -22,6 +22,7 @@ import type { BubbleDetectorService } from './bubble-detector.service';
 import type { TranslationCacheService } from './cache';
 import type { TranslationProvider, TranslationProviderRegistry } from './providers';
 import type { OcrSidecarService } from './sidecar';
+import type { PageUrlResolverService } from '../shared/page-url-resolver';
 import { TranslationService } from './translation.service';
 
 const PAGE_PATH = '/library/series/ch01/page-001.jpg';
@@ -47,6 +48,7 @@ interface Collaborators {
   sidecar: { ocr: jest.Mock };
   registry: { pickProvider: jest.Mock };
   cache: { getForPage: jest.Mock; putBubble: jest.Mock };
+  resolver: { resolveToFilesystemPath: jest.Mock };
   provider: {
     id: Exclude<TranslationProviderId, 'tesseract-only'>;
     translate: jest.Mock;
@@ -71,12 +73,14 @@ function buildService(
   const sidecar = { ocr: jest.fn() };
   const registry = { pickProvider: jest.fn().mockResolvedValue(provider) };
   const cache = { getForPage: jest.fn().mockReturnValue(null), putBubble: jest.fn() };
+  const resolver = { resolveToFilesystemPath: jest.fn() };
 
   const service = new TranslationService(
     detector as unknown as BubbleDetectorService,
     sidecar as unknown as OcrSidecarService,
     registry as unknown as TranslationProviderRegistry,
     cache as unknown as TranslationCacheService,
+    resolver as unknown as PageUrlResolverService,
   );
 
   return {
@@ -86,6 +90,7 @@ function buildService(
       sidecar,
       registry,
       cache,
+      resolver,
       provider: provider as Collaborators['provider'],
     },
   };
@@ -232,5 +237,51 @@ describe('TranslationService.runPipeline', () => {
       });
       expect(collab.detector.detect).toHaveBeenCalledWith(PAGE_PATH, { direction: 'ltr' });
     }
+  });
+
+  // ===== G.5 — pageUrl → resolver bridging =====
+
+  it('resolves pageUrl via the resolver, then hashes the resolved path', async () => {
+    const RESOLVED = '/userData/pages/mangadex/ch01/page-001.jpg';
+    const { service, collab } = buildService();
+    collab.resolver.resolveToFilesystemPath.mockResolvedValue(RESOLVED);
+    collab.detector.detect.mockResolvedValue(makeDetection([]));
+
+    await service.runPipeline({
+      pageUrl: 'kirei-page://mangadex/ch01/page-001.jpg',
+      targetLang: 'en',
+    });
+
+    expect(collab.resolver.resolveToFilesystemPath).toHaveBeenCalledWith(
+      'kirei-page://mangadex/ch01/page-001.jpg',
+    );
+    // The detector receives the *resolved* path, not the URL — the URL would
+    // never round-trip through the native bubble detector.
+    expect(collab.detector.detect).toHaveBeenCalledWith(RESOLVED, { direction: 'rtl' });
+    expect(mockPageHash).toHaveBeenCalledWith(RESOLVED);
+  });
+
+  it('skips the resolver when pageImagePath is provided alongside pageUrl', async () => {
+    const { service, collab } = buildService();
+    collab.detector.detect.mockResolvedValue(makeDetection([]));
+
+    await service.runPipeline({
+      pageImagePath: PAGE_PATH,
+      pageUrl: 'kirei-page://mangadex/should/be-ignored.jpg',
+      targetLang: 'en',
+    });
+
+    expect(collab.resolver.resolveToFilesystemPath).not.toHaveBeenCalled();
+    expect(collab.detector.detect).toHaveBeenCalledWith(PAGE_PATH, { direction: 'rtl' });
+  });
+
+  it('throws when neither pageImagePath nor pageUrl is supplied', async () => {
+    const { service, collab } = buildService();
+
+    await expect(service.runPipeline({ targetLang: 'en' })).rejects.toThrow(
+      /pageImagePath \/ pageUrl/,
+    );
+    expect(collab.resolver.resolveToFilesystemPath).not.toHaveBeenCalled();
+    expect(collab.detector.detect).not.toHaveBeenCalled();
   });
 });

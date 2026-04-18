@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { LocalModule } from '../local';
 import { SettingsModule } from '../settings';
+import { PageUrlResolverService } from '../shared/page-url-resolver';
 import { BubbleDetectorService } from './bubble-detector.service';
 import { TranslationCacheService } from './cache';
 import { DeepLProvider, TranslationProviderRegistry } from './providers';
@@ -20,7 +22,7 @@ import { TranslationService } from './translation.service';
  * `TranslationCacheService` resolves `DatabaseService` from the global scope.
  */
 @Module({
-  imports: [SettingsModule],
+  imports: [SettingsModule, LocalModule],
   providers: [
     BubbleDetectorService,
     OcrSidecarDownloader,
@@ -28,6 +30,7 @@ import { TranslationService } from './translation.service';
     DeepLProvider,
     TranslationProviderRegistry,
     TranslationCacheService,
+    PageUrlResolverService,
     TranslationService,
     TranslationGateway,
   ],
@@ -38,6 +41,7 @@ import { TranslationService } from './translation.service';
     DeepLProvider,
     TranslationProviderRegistry,
     TranslationCacheService,
+    PageUrlResolverService,
     TranslationService,
   ],
 })

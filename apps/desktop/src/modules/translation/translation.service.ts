@@ -4,6 +4,7 @@ import {
   type PageTranslation,
   type TranslationProviderId,
 } from '@kireimanga/shared';
+import { PageUrlResolverService } from '../shared/page-url-resolver';
 import { BubbleDetectorService } from './bubble-detector.service';
 import { TranslationCacheService, pageHash } from './cache';
 import { TranslationProviderRegistry } from './providers';
@@ -26,19 +27,39 @@ export class TranslationService {
     private readonly ocrSidecar: OcrSidecarService,
     private readonly registry: TranslationProviderRegistry,
     private readonly cache: TranslationCacheService,
+    private readonly resolver: PageUrlResolverService,
   ) {}
 
-  /** Run the full translation pipeline for one page image. */
+  /**
+   * Run the full translation pipeline for one page image. The caller may
+   * supply either an already-resolved `pageImagePath` (preferred when
+   * known) or a `pageUrl` — typically a `kirei-page://...` proxy address —
+   * which the resolver maps to a real on-disk path before hashing. Passing
+   * both takes `pageImagePath` as a hint that resolution already happened.
+   */
   async runPipeline(args: {
-    pageImagePath: string;
+    pageImagePath?: string;
+    pageUrl?: string;
     targetLang: string;
     providerHint?: TranslationProviderId;
     direction?: 'rtl' | 'ltr';
   }): Promise<PageTranslation> {
-    const { pageImagePath, targetLang, providerHint, direction = 'rtl' } = args;
+    const { pageImagePath, pageUrl, targetLang, providerHint, direction = 'rtl' } = args;
+
+    // 0. Resolve URL → filesystem path when only the URL is known. The
+    //    explicit-path branch wins so existing callers (F.5 integration test,
+    //    cache warm-ups) skip the resolver entirely.
+    let resolvedPath: string;
+    if (typeof pageImagePath === 'string' && pageImagePath.length > 0) {
+      resolvedPath = pageImagePath;
+    } else if (typeof pageUrl === 'string' && pageUrl.length > 0) {
+      resolvedPath = await this.resolver.resolveToFilesystemPath(pageUrl);
+    } else {
+      throw new Error('runPipeline: exactly one of pageImagePath / pageUrl must be provided');
+    }
 
     // 1. Hash the page image.
-    const pageHashValue = await pageHash(pageImagePath);
+    const pageHashValue = await pageHash(resolvedPath);
 
     // 2. Resolve the provider — picked BEFORE the cache lookup because the
     //    cache key includes provider id (a hint can swing us to a different
@@ -55,7 +76,7 @@ export class TranslationService {
     }
 
     // 4. Detect bubbles via the native addon.
-    const detection = await this.bubbleDetector.detect(pageImagePath, { direction });
+    const detection = await this.bubbleDetector.detect(resolvedPath, { direction });
     if (detection.boxes.length === 0) {
       this.logger.debug(`no bubbles detected on ${pageHashValue.slice(0, 8)}`);
       return { pageHash: pageHashValue, bubbles: [] };
@@ -63,7 +84,7 @@ export class TranslationService {
 
     // 5. OCR every detected bubble in a single sidecar IPC round-trip.
     const ocrResults = await this.ocrSidecar.ocr(
-      pageImagePath,
+      resolvedPath,
       detection.boxes.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h })),
     );
 

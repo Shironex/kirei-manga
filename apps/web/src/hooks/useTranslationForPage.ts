@@ -16,15 +16,23 @@ export type TranslationStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 export interface UseTranslationForPageArgs {
   /**
-   * Absolute filesystem path to the page image. The desktop's pipeline
-   * orchestrator hashes this file and consults the translation cache before
-   * doing any expensive work — so passing the same path twice in a row is a
-   * cheap second call.
+   * `kirei-page://...` proxy URL of the page being shown — what the renderer
+   * actually has on hand. The desktop's pipeline orchestrator resolves this
+   * to a real on-disk file via `PageUrlResolverService`, then hashes it for
+   * the cache key, so a stable URL across renders maps to the same cache
+   * row.
    *
-   * `null` (e.g. while the reader is still resolving the URL → path) leaves
-   * the hook in `idle` and never fires.
+   * `null` (e.g. before pages have loaded) leaves the hook in `idle` and
+   * never fires.
    */
-  pageImagePath: string | null;
+  pageUrl: string | null;
+  /**
+   * Already-resolved filesystem path. Mutually exclusive with `pageUrl` —
+   * present so legacy callers / tests that already hold the path can skip
+   * server-side resolution. Exactly one of the two must be non-null for
+   * the hook to fire.
+   */
+  pageImagePath?: string | null;
   /** Override the user's default `settings.translation.targetLang`. */
   targetLang?: string;
   /** Override the user's default `settings.translation.defaultProvider`. */
@@ -56,13 +64,18 @@ export interface UseTranslationForPageState {
  *
  * Auto-fires when `settings.translation.enabled` AND
  * `settings.translation.autoTranslate` are both on; otherwise stays `idle`
- * and waits for `runNow()`. A new `pageImagePath` resets the state and, if
- * auto-translate is on, fires the pipeline again.
+ * and waits for `runNow()`. A new page key (URL or path) resets the state
+ * and, if auto-translate is on, fires the pipeline again.
  */
 export function useTranslationForPage(
   args: UseTranslationForPageArgs
 ): UseTranslationForPageState {
-  const { pageImagePath, targetLang: targetLangOverride, providerHint: providerHintOverride } = args;
+  const {
+    pageUrl,
+    pageImagePath = null,
+    targetLang: targetLangOverride,
+    providerHint: providerHintOverride,
+  } = args;
 
   const translationSettings = useSettingsStore(s => s.settings?.translation);
   const socketStatus = useSocketStore(s => s.status);
@@ -89,24 +102,32 @@ export function useTranslationForPage(
   const targetLang = targetLangOverride ?? settingsTargetLang ?? 'en';
   const providerHint = providerHintOverride ?? settingsDefaultProvider;
 
+  // The "page key" — what we treat as the unit identity of a page. URL wins
+  // over path so the renderer's normal flow (kirei-page://...) drives the
+  // hook; tests / legacy callers that pass a real path still work.
+  const pageKey = pageUrl ?? pageImagePath ?? null;
+
   // Refs let `runNow` stay stable while still observing the latest settings —
   // a manual click should always use the user's current target lang / provider
   // even if the component memoized the callback earlier.
   const targetLangRef = useRef(targetLang);
   const providerHintRef = useRef(providerHint);
+  const pageUrlRef = useRef(pageUrl);
   const pageImagePathRef = useRef(pageImagePath);
   const socketStatusRef = useRef(socketStatus);
 
   useEffect(() => {
     targetLangRef.current = targetLang;
     providerHintRef.current = providerHint;
+    pageUrlRef.current = pageUrl;
     pageImagePathRef.current = pageImagePath;
     socketStatusRef.current = socketStatus;
   });
 
   const runNow = useCallback(async (): Promise<void> => {
+    const url = pageUrlRef.current;
     const path = pageImagePathRef.current;
-    if (!path) return;
+    if (!url && !path) return;
 
     if (socketStatusRef.current !== 'connected') {
       setStatus('error');
@@ -120,8 +141,11 @@ export function useTranslationForPage(
     setError(null);
 
     try {
+      // URL wins — the renderer never resolves to disk. Path is a fallback
+      // for tests and legacy callers; the orchestrator's gateway enforces
+      // exactly-one.
       const payload: TranslationRunPipelinePayload = {
-        pageImagePath: path,
+        ...(url ? { pageUrl: url } : { pageImagePath: path as string }),
         targetLang: targetLangRef.current,
         ...(providerHintRef.current ? { providerHint: providerHintRef.current } : {}),
       };
@@ -155,7 +179,7 @@ export function useTranslationForPage(
     // discarded when its response arrives.
     requestIdRef.current += 1;
 
-    if (!pageImagePath) {
+    if (!pageKey) {
       setPage(null);
       setStatus('idle');
       setError(null);
@@ -176,7 +200,7 @@ export function useTranslationForPage(
     // `runNow` reads target lang / provider from refs, so re-firing on those
     // changes alone (without a page change) is intentionally skipped — the
     // user can hit the manual button if they switch provider mid-page.
-  }, [pageImagePath, enabled, autoTranslate, runNow]);
+  }, [pageKey, enabled, autoTranslate, runNow]);
 
   return { page, status, error, runNow };
 }
