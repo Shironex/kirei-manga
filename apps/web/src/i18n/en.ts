@@ -399,6 +399,23 @@ export const en = {
     'That MangaDex entry is already linked to another library series.',
   'series.local.drawer.toast.savedTitle': 'Saved',
   'series.local.drawer.toast.savedBody': '{title} updated.',
+  'series.local.drawer.field.translation': 'Translation',
+
+  // Per-series translation override (Slice H.2) — shared between
+  // LocalMetadataDrawer and the MangaDex SeriesDetail inline panel.
+  'series.translationOverride.eyebrow': 'Translation',
+  'series.translationOverride.heading': 'Per-series overrides',
+  'series.translationOverride.description':
+    'Override the global translation settings just for this series. Provider keys stay shared across your library.',
+  'series.translationOverride.useGlobal.label': 'Use global settings',
+  'series.translationOverride.useGlobal.hint':
+    'When on, this series follows the values from Settings → Translation.',
+  'series.translationOverride.expand': 'Translation override',
+  'series.translationOverride.expand.hint':
+    'Customize provider, language, and overlay defaults for this series.',
+  'series.translationOverride.toast.savedTitle': 'Override saved',
+  'series.translationOverride.toast.savedBody': 'Translation override applied to {title}.',
+  'series.translationOverride.toast.errorTitle': 'Could not save override',
 
   // Series — status / rating / demographic enums (MangaDex)
   'series.status.ongoing': 'Ongoing',

@@ -58,6 +58,14 @@ export const TranslationEvents = {
   RUN_PIPELINE: 'translation:run-pipeline',
   PROVIDER_STATUS: 'translation:provider-status',
   REPORT_BAD: 'translation:report-bad',
+
+  /**
+   * Source-agnostic series-level translation override write. Local-source rows
+   * use this instead of `local:update-series` so the renderer doesn't need to
+   * branch on source for the translation field. MangaDex-source rows have no
+   * other writable metadata channel today — this is the first.
+   */
+  SET_SERIES_OVERRIDE: 'translation:set-series-override',
 } as const;
 
 // ============================================

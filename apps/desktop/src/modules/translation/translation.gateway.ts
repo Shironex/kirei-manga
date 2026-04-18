@@ -3,15 +3,20 @@ import { UseGuards } from '@nestjs/common';
 import {
   createLogger,
   TranslationEvents,
+  type Series,
   type TranslationGetPagePayload,
   type TranslationGetPageResponse,
   type TranslationProviderStatusResponse,
   type TranslationRunPipelinePayload,
   type TranslationRunPipelineResponse,
+  type TranslationSetSeriesOverridePayload,
+  type TranslationSetSeriesOverrideResponse,
+  type TranslationSettings,
 } from '@kireimanga/shared';
 import { CORS_CONFIG } from '../shared/cors.config';
 import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
 import { handleGatewayRequest } from '../shared/gateway-handler';
+import { DatabaseService } from '../database';
 import { BubbleDetectorService } from './bubble-detector.service';
 import { TranslationCacheService } from './cache';
 import { TranslationProviderRegistry } from './providers';
@@ -45,7 +50,8 @@ export class TranslationGateway {
     private readonly ocrSidecar: OcrSidecarService,
     private readonly registry: TranslationProviderRegistry,
     private readonly translationService: TranslationService,
-    private readonly cacheService: TranslationCacheService
+    private readonly cacheService: TranslationCacheService,
+    private readonly database: DatabaseService
     // Future: google / ollama land in the registry directly (Slices I / J / K).
   ) {
     logger.info('TranslationGateway initialized');
@@ -113,6 +119,67 @@ export class TranslationGateway {
     });
   }
 
+  /**
+   * Persist a per-series translation override (Slice H.2). Source-agnostic —
+   * works for both `local` and `mangadex` rows. `override === undefined` clears
+   * the column so the series falls back to global settings on the next pipeline
+   * invocation. The broader resolution logic (`global ∪ override` at pipeline
+   * time) lands with Slice H.3 — this handler only owns the write path.
+   */
+  @SubscribeMessage(TranslationEvents.SET_SERIES_OVERRIDE)
+  handleSetSeriesOverride(@MessageBody() payload: TranslationSetSeriesOverridePayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'translation:set-series-override',
+      defaultResult: { series: null } satisfies Pick<TranslationSetSeriesOverrideResponse, 'series'>,
+      handler: async (): Promise<TranslationSetSeriesOverrideResponse> => {
+        if (typeof payload?.seriesId !== 'string' || payload.seriesId.length === 0) {
+          throw new Error('seriesId must be a non-empty string');
+        }
+        const json =
+          payload.override === undefined ? null : JSON.stringify(payload.override);
+        this.database.db
+          .prepare('UPDATE series SET translation_override = ? WHERE id = ?')
+          .run(json, payload.seriesId);
+
+        const row = this.database.db
+          .prepare(
+            `SELECT id, title, title_japanese, cover_path, source, mangadex_id, status,
+                    score, notes, added_at, last_read_at, last_chapter_id, last_checked_at,
+                    new_chapter_count, local_root_path, local_content_hash, translation_override
+             FROM series WHERE id = ?`
+          )
+          .get(payload.seriesId) as Record<string, unknown> | undefined;
+
+        if (!row) return { series: null };
+
+        const series: Series = {
+          id: row.id as string,
+          title: row.title as string,
+          titleJapanese: (row.title_japanese as string | null) ?? undefined,
+          coverPath: (row.cover_path as string | null) ?? undefined,
+          source: row.source as Series['source'],
+          mangadexId: (row.mangadex_id as string | null) ?? undefined,
+          status: row.status as Series['status'],
+          score: (row.score as number | null) ?? undefined,
+          notes: (row.notes as string | null) ?? undefined,
+          addedAt: new Date(row.added_at as string),
+          lastReadAt: row.last_read_at ? new Date(row.last_read_at as string) : undefined,
+          lastChapterId: (row.last_chapter_id as string | null) ?? undefined,
+          lastCheckedAt: row.last_checked_at ? new Date(row.last_checked_at as string) : undefined,
+          newChapterCount: (row.new_chapter_count as number | null) ?? undefined,
+          localRootPath: (row.local_root_path as string | null) ?? undefined,
+          localContentHash: (row.local_content_hash as string | null) ?? undefined,
+          translationOverride: parseTranslationOverride(
+            row.translation_override as string | null
+          ),
+        };
+
+        return { series };
+      },
+    });
+  }
+
   /** Cache-only lookup for the renderer's warm-cache reads (no pipeline kick-off). */
   @SubscribeMessage(TranslationEvents.GET_PAGE)
   handleGetPage(@MessageBody() payload: TranslationGetPagePayload) {
@@ -138,5 +205,27 @@ export class TranslationGateway {
         return { page };
       },
     });
+  }
+}
+
+/**
+ * Decode the JSON blob stored in `series.translation_override`. Defensive: a
+ * malformed blob (manual edit, partial migration) collapses to `undefined`
+ * rather than crashing the read — the series simply falls back to global
+ * settings until the user re-saves the override.
+ */
+function parseTranslationOverride(
+  raw: string | null
+): Partial<TranslationSettings> | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Partial<TranslationSettings>;
+    }
+    return undefined;
+  } catch {
+    logger.warn('failed to parse translation_override JSON; ignoring');
+    return undefined;
   }
 }

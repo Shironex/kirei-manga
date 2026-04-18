@@ -407,6 +407,22 @@ export const pl = {
   'series.local.drawer.error.mangadexTaken':
     'Ten wpis z MangaDex jest już połączony z inną serią w bibliotece.',
   'series.local.drawer.toast.savedTitle': 'Zapisano',
+  'series.local.drawer.field.translation': 'Tłumaczenie',
+
+  // Per-series translation override (Slice H.2)
+  'series.translationOverride.eyebrow': 'Tłumaczenie',
+  'series.translationOverride.heading': 'Nadpisania dla tej serii',
+  'series.translationOverride.description':
+    'Nadpisz globalne ustawienia tłumaczenia tylko dla tej serii. Klucze API pozostają wspólne dla całej biblioteki.',
+  'series.translationOverride.useGlobal.label': 'Użyj ustawień globalnych',
+  'series.translationOverride.useGlobal.hint':
+    'Włączone: ta seria korzysta z wartości z Ustawienia → Tłumaczenie.',
+  'series.translationOverride.expand': 'Nadpisanie tłumaczenia',
+  'series.translationOverride.expand.hint':
+    'Dostosuj dostawcę, język i ustawienia nakładki dla tej serii.',
+  'series.translationOverride.toast.savedTitle': 'Nadpisanie zapisane',
+  'series.translationOverride.toast.savedBody': 'Nadpisanie tłumaczenia zastosowane do {title}.',
+  'series.translationOverride.toast.errorTitle': 'Nie udało się zapisać nadpisania',
   'series.local.drawer.toast.savedBody': 'Zapisano zmiany w „{title}”.',
 
   // Series — status / rating / demographic enums (MangaDex)

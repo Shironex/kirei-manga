@@ -6,6 +6,7 @@ import { TranslationCacheService } from './cache';
 import { TranslationProviderRegistry } from './providers';
 import { OcrSidecarService } from './sidecar';
 import { TranslationService } from './translation.service';
+import { DatabaseService } from '../database';
 import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
 
 /**
@@ -24,6 +25,17 @@ describe('TranslationGateway', () => {
   let registry: { getAllStatuses: jest.Mock };
   let translationService: { runPipeline: jest.Mock };
   let cacheService: { getForPage: jest.Mock };
+  // The gateway's `set-series-override` handler runs raw SQL through the
+  // shared DatabaseService, so the spec stubs `prepare(...).run()` /
+  // `prepare(...).get()` behind a chainable mock. Each test sets the row the
+  // SELECT returns (or `undefined` to simulate a deleted series).
+  let database: {
+    db: {
+      prepare: jest.Mock;
+    };
+    runMock: jest.Mock;
+    getMock: jest.Mock;
+  };
 
   beforeEach(async () => {
     bubbleDetector = { getStatus: jest.fn() };
@@ -31,6 +43,16 @@ describe('TranslationGateway', () => {
     registry = { getAllStatuses: jest.fn().mockResolvedValue([]) };
     translationService = { runPipeline: jest.fn() };
     cacheService = { getForPage: jest.fn() };
+
+    const runMock = jest.fn();
+    const getMock = jest.fn();
+    database = {
+      db: {
+        prepare: jest.fn(() => ({ run: runMock, get: getMock })),
+      },
+      runMock,
+      getMock,
+    };
 
     module = await Test.createTestingModule({
       providers: [
@@ -40,6 +62,7 @@ describe('TranslationGateway', () => {
         { provide: TranslationProviderRegistry, useValue: registry },
         { provide: TranslationService, useValue: translationService },
         { provide: TranslationCacheService, useValue: cacheService },
+        { provide: DatabaseService, useValue: database },
       ],
     })
       .overrideGuard(WsThrottlerGuard)
@@ -281,5 +304,104 @@ describe('TranslationGateway', () => {
     expect(cacheService.getForPage).not.toHaveBeenCalled();
     expect(result.page).toBeNull();
     expect(result.error).toMatch(/pageHash/);
+  });
+
+  // ===== H.2 — translation:set-series-override =====
+
+  it('handleSetSeriesOverride stores the override as JSON and rehydrates the row', async () => {
+    database.getMock.mockReturnValue({
+      id: 'series-1',
+      title: 'Berserk',
+      title_japanese: 'ベルセルク',
+      cover_path: null,
+      source: 'mangadex',
+      mangadex_id: 'mdx-1',
+      status: 'reading',
+      score: 9,
+      notes: null,
+      added_at: '2026-01-01T00:00:00.000Z',
+      last_read_at: null,
+      last_chapter_id: null,
+      last_checked_at: null,
+      new_chapter_count: null,
+      local_root_path: null,
+      local_content_hash: null,
+      translation_override: '{"targetLang":"pl","autoTranslate":true}',
+    });
+
+    const result = await gateway.handleSetSeriesOverride({
+      seriesId: 'series-1',
+      override: { targetLang: 'pl', autoTranslate: true },
+    });
+
+    expect(database.db.prepare).toHaveBeenCalledWith(
+      'UPDATE series SET translation_override = ? WHERE id = ?'
+    );
+    expect(database.runMock).toHaveBeenCalledWith(
+      JSON.stringify({ targetLang: 'pl', autoTranslate: true }),
+      'series-1'
+    );
+    expect(result).toEqual({
+      series: expect.objectContaining({
+        id: 'series-1',
+        title: 'Berserk',
+        source: 'mangadex',
+        translationOverride: { targetLang: 'pl', autoTranslate: true },
+      }),
+    });
+    expect(result).not.toHaveProperty('error');
+  });
+
+  it('handleSetSeriesOverride writes NULL when override is undefined (clear)', async () => {
+    database.getMock.mockReturnValue({
+      id: 'series-2',
+      title: 'Vagabond',
+      title_japanese: null,
+      cover_path: null,
+      source: 'local',
+      mangadex_id: null,
+      status: 'reading',
+      score: null,
+      notes: null,
+      added_at: '2026-01-01T00:00:00.000Z',
+      last_read_at: null,
+      last_chapter_id: null,
+      last_checked_at: null,
+      new_chapter_count: null,
+      local_root_path: '/library/vagabond',
+      local_content_hash: null,
+      translation_override: null,
+    });
+
+    const result = await gateway.handleSetSeriesOverride({
+      seriesId: 'series-2',
+      override: undefined,
+    });
+
+    expect(database.runMock).toHaveBeenCalledWith(null, 'series-2');
+    expect(result.series?.translationOverride).toBeUndefined();
+  });
+
+  it('handleSetSeriesOverride returns `{ series: null }` when the row no longer exists', async () => {
+    database.getMock.mockReturnValue(undefined);
+
+    const result = await gateway.handleSetSeriesOverride({
+      seriesId: 'gone',
+      override: { targetLang: 'pl' },
+    });
+
+    expect(result).toEqual({ series: null });
+    expect(result).not.toHaveProperty('error');
+  });
+
+  it('handleSetSeriesOverride rejects an empty seriesId without writing', async () => {
+    const result = (await gateway.handleSetSeriesOverride({
+      seriesId: '',
+      override: { targetLang: 'pl' },
+    })) as { series: null; error: string };
+
+    expect(database.db.prepare).not.toHaveBeenCalled();
+    expect(result.series).toBeNull();
+    expect(result.error).toMatch(/seriesId/);
   });
 });

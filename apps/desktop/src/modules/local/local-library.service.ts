@@ -13,6 +13,7 @@ import {
   type LocalChapterMetaPatch,
   type ScanCandidateSeries,
   type Series,
+  type TranslationSettings,
 } from '@kireimanga/shared';
 import { DatabaseService } from '../database';
 import { openArchive, type PageEntry } from './archive';
@@ -401,6 +402,9 @@ export class LocalLibraryService {
       newChapterCount: (row.new_chapter_count as number | null) ?? undefined,
       localRootPath: (row.local_root_path as string | null) ?? undefined,
       localContentHash: (row.local_content_hash as string | null) ?? undefined,
+      translationOverride: parseTranslationOverride(
+        row.translation_override as string | null
+      ),
     };
   }
 
@@ -600,5 +604,25 @@ export class LocalLibraryService {
     } finally {
       await reader.close();
     }
+  }
+}
+
+/**
+ * Decode the JSON blob stored in `series.translation_override` (Slice A.4).
+ * Defensive: a malformed blob collapses to `undefined` so the renderer falls
+ * back to global translation settings rather than crashing the row mapping.
+ */
+function parseTranslationOverride(
+  raw: string | null
+): Partial<TranslationSettings> | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Partial<TranslationSettings>;
+    }
+    return undefined;
+  } catch {
+    return undefined;
   }
 }

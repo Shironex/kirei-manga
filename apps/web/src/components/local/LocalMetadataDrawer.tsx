@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { SearchResult, Series } from '@kireimanga/shared';
+import type { SearchResult, Series, TranslationSettings } from '@kireimanga/shared';
 import {
   LocalEvents,
+  TranslationEvents,
   type LocalUpdateSeriesPayload,
   type LocalUpdateSeriesResponse,
   type LocalSeriesMetaPatch,
+  type TranslationSetSeriesOverridePayload,
+  type TranslationSetSeriesOverrideResponse,
 } from '@kireimanga/shared';
 import { Drawer } from '../ui/Drawer';
+import { TranslationOverrideForm } from '../translation/TranslationOverrideForm';
 import { emitWithResponse } from '@/lib/socket';
 import { useMangaDexSearch } from '@/hooks/useMangaDexSearch';
 import { useToastStore } from '@/stores/toast-store';
@@ -36,6 +40,9 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
   const [notes, setNotes] = useState(series.notes ?? '');
   const [score, setScore] = useState<string>(series.score?.toString() ?? '');
   const [mangadexId, setMangadexId] = useState<string | undefined>(series.mangadexId);
+  const [translationOverride, setTranslationOverride] = useState<
+    Partial<TranslationSettings> | undefined
+  >(series.translationOverride);
   const [linkedPreview, setLinkedPreview] = useState<SearchResult | null>(null);
   const [mangadexQuery, setMangadexQuery] = useState('');
   const [saving, setSaving] = useState(false);
@@ -50,6 +57,7 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
     setNotes(series.notes ?? '');
     setScore(series.score?.toString() ?? '');
     setMangadexId(series.mangadexId);
+    setTranslationOverride(series.translationOverride);
     setLinkedPreview(null);
     setMangadexQuery('');
     setError(null);
@@ -61,6 +69,7 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
     series.notes,
     series.score,
     series.mangadexId,
+    series.translationOverride,
   ]);
 
   // Keep the search filter stable for the hook's request-id dedup.
@@ -103,33 +112,71 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
     setLinkedPreview(null);
   };
 
+  /**
+   * Reference equality is too strict for a `Partial<TranslationSettings>`:
+   * the override form rebuilds the object on every keystroke, so the user
+   * could "no-op save" and still trip the IPC. JSON-stringify is good enough
+   * for an object of small primitive values and avoids hand-rolled diffing.
+   */
+  const overrideChanged = (): boolean => {
+    return JSON.stringify(translationOverride ?? null) !==
+      JSON.stringify(series.translationOverride ?? null);
+  };
+
   const handleSave = async (): Promise<void> => {
     const patch = buildPatch();
-    if (Object.keys(patch).length === 0) {
+    const hasMetaChanges = Object.keys(patch).length > 0;
+    const hasOverrideChanges = overrideChanged();
+
+    if (!hasMetaChanges && !hasOverrideChanges) {
       onClose();
       return;
     }
+
     setSaving(true);
     setError(null);
     try {
-      const response = await emitWithResponse<LocalUpdateSeriesPayload, LocalUpdateSeriesResponse>(
-        LocalEvents.UPDATE_SERIES,
-        { id: series.id, patch }
-      );
-      if (response.error || !response.series) {
-        // Re-raise with a friendlier message on the typed mangadex-id-taken
-        // error so the user understands the collision without leaving the
-        // drawer open in a confusing state.
-        if (response.error === 'mangadex-id-taken') {
-          throw new Error(t('series.local.drawer.error.mangadexTaken'));
+      let updated: Series | null = series;
+
+      if (hasMetaChanges) {
+        const response = await emitWithResponse<
+          LocalUpdateSeriesPayload,
+          LocalUpdateSeriesResponse
+        >(LocalEvents.UPDATE_SERIES, { id: series.id, patch });
+        if (response.error || !response.series) {
+          // Re-raise with a friendlier message on the typed mangadex-id-taken
+          // error so the user understands the collision without leaving the
+          // drawer open in a confusing state.
+          if (response.error === 'mangadex-id-taken') {
+            throw new Error(t('series.local.drawer.error.mangadexTaken'));
+          }
+          throw new Error(response.error ?? 'local:update-series returned no series');
         }
-        throw new Error(response.error ?? 'local:update-series returned no series');
+        updated = response.series;
       }
-      onSaved(response.series);
+
+      if (hasOverrideChanges) {
+        const overrideResponse = await emitWithResponse<
+          TranslationSetSeriesOverridePayload,
+          TranslationSetSeriesOverrideResponse
+        >(TranslationEvents.SET_SERIES_OVERRIDE, {
+          seriesId: series.id,
+          override: translationOverride,
+        });
+        if (overrideResponse.error || !overrideResponse.series) {
+          throw new Error(
+            overrideResponse.error ?? 'translation:set-series-override returned no series'
+          );
+        }
+        updated = overrideResponse.series;
+      }
+
+      if (!updated) throw new Error('series disappeared mid-save');
+      onSaved(updated);
       pushToast({
         variant: 'success',
         title: t('series.local.drawer.toast.savedTitle'),
-        body: t('series.local.drawer.toast.savedBody', { title: response.series.title }),
+        body: t('series.local.drawer.toast.savedBody', { title: updated.title }),
       });
       onClose();
     } catch (err) {
@@ -274,6 +321,19 @@ export function LocalMetadataDrawer({ open, onClose, series, onSaved }: Props) {
               )}
             </>
           )}
+        </div>
+
+        <div className="mt-3 flex flex-col gap-3 border-t border-[var(--color-rule)] pt-5">
+          <span className="font-mono text-[10px] tracking-[0.24em] text-[var(--color-bone-faint)] uppercase">
+            {t('series.translationOverride.eyebrow')}
+          </span>
+          <p className="text-[12.5px] leading-relaxed text-muted-foreground">
+            {t('series.translationOverride.description')}
+          </p>
+          <TranslationOverrideForm
+            override={translationOverride}
+            onChange={setTranslationOverride}
+          />
         </div>
 
         {error && (

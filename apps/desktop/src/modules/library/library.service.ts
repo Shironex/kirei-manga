@@ -11,6 +11,7 @@ import type {
   ReaderUpdateProgressPayload,
   ReaderMarkReadPayload,
   LibraryChapterStatePatch,
+  TranslationSettings,
 } from '@kireimanga/shared';
 import { DatabaseService } from '../database';
 import { MangaDexService } from '../mangadex/mangadex.service';
@@ -43,6 +44,8 @@ interface SeriesRow {
   new_chapter_count: number | null;
   local_root_path: string | null;
   local_content_hash: string | null;
+  /** JSON-encoded `Partial<TranslationSettings>` (Slice A.4 migration 007). */
+  translation_override: string | null;
   // Aggregated from the chapters table by `getAll()` only — other
   // single-row queries leave these NULL / undefined.
   last_chapter_number: number | null;
@@ -109,6 +112,7 @@ export class LibraryService {
       lastChapterNumber: row.last_chapter_number ?? undefined,
       totalChapterCount: row.total_chapter_count ?? undefined,
       readChapterCount: row.read_chapter_count ?? undefined,
+      translationOverride: parseTranslationOverride(row.translation_override),
     };
   }
 
@@ -541,5 +545,25 @@ export class LibraryService {
    */
   async markSeen(localSeriesId: string): Promise<void> {
     this.db.db.prepare('UPDATE series SET new_chapter_count = 0 WHERE id = ?').run(localSeriesId);
+  }
+}
+
+/**
+ * Decode the JSON blob stored in `series.translation_override` (Slice A.4).
+ * Defensive: a malformed blob collapses to `undefined` so the renderer falls
+ * back to global translation settings rather than crashing the row mapping.
+ */
+function parseTranslationOverride(
+  raw: string | null
+): Partial<TranslationSettings> | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Partial<TranslationSettings>;
+    }
+    return undefined;
+  } catch {
+    return undefined;
   }
 }

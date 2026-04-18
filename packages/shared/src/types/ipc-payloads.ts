@@ -18,6 +18,7 @@ import type {
   PageTranslation,
   TranslationProviderId,
   TranslationProviderStatus,
+  TranslationSettings,
 } from './translation';
 import type { AppSettings, DeepPartial } from './settings';
 import type {
@@ -611,5 +612,24 @@ export interface TranslationReportBadPayload {
 
 export interface TranslationReportBadResponse {
   success: boolean;
+  error?: string;
+}
+
+/**
+ * Set or clear the per-series translation override (Slice H.2). Source-agnostic:
+ * works for both `local` and `mangadex` rows. Pass `override: undefined` to
+ * clear the override entirely (the series falls back to global settings on the
+ * next pipeline invocation).
+ *
+ * Stored as JSON in `series.translation_override` — the resolution logic
+ * (`global ∪ override`) ships with Slice H.3's pipeline-orchestrator wiring.
+ */
+export interface TranslationSetSeriesOverridePayload {
+  seriesId: string;
+  override: Partial<TranslationSettings> | undefined;
+}
+
+export interface TranslationSetSeriesOverrideResponse {
+  series: Series | null;
   error?: string;
 }
