@@ -475,6 +475,20 @@ export const en = {
   'reader.translation.translating': 'Translating page {page}…',
   'reader.translation.failed': 'Translation failed',
 
+  // Reader — translation error banner (Slice G.6). The banner is non-modal
+  // and dismissible; the page continues to read normally underneath.
+  'reader.translation.banner.title': 'Translation unavailable.',
+  'reader.translation.banner.retry': 'Retry',
+  'reader.translation.banner.dismissAria': 'Dismiss',
+  // `prettifyError` reasons — pattern-matched against the raw pipeline error.
+  'reader.translation.error.noNativeAddon':
+    'Bubble detector unavailable — run pnpm fetch-prebuilds or build OpenCV locally.',
+  'reader.translation.error.sidecarOffline': 'OCR sidecar offline.',
+  'reader.translation.error.noApiKey': 'DeepL API key not configured (Settings → Translation).',
+  'reader.translation.error.noHealthyProvider': 'No translation provider available.',
+  'reader.translation.error.disconnected':
+    'Disconnected from the desktop service — reconnecting…',
+
   // Reader — toast titles emitted from reader hooks
   'reader.toast.progressTitle': 'Reader progress',
   'reader.toast.sessionTitle': 'Reader session',

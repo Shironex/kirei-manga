@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useChapterBookmarks } from '@/hooks/useChapterBookmarks';
@@ -14,6 +14,7 @@ import { SinglePageView } from '@/components/reader/SinglePageView';
 import { DoublePageView } from '@/components/reader/DoublePageView';
 import { WebtoonView } from '@/components/reader/WebtoonView';
 import { ReaderChrome } from '@/components/reader/ReaderChrome';
+import { TranslationErrorBanner } from '@/components/reader/TranslationErrorBanner';
 import { TranslationOverlay } from '@/components/reader/TranslationOverlay';
 import { useT } from '@/hooks/useT';
 
@@ -279,7 +280,18 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
     page: translationPage,
     status: translationStatus,
     error: translationError,
+    runNow: runTranslationNow,
   } = useTranslationForPage({ pageImagePath: null });
+
+  // Slice G.6 — error banner dismissal state. The user can dismiss the
+  // banner without retrying; the next page navigation or a fresh error
+  // resets the dismissal so a new failure can re-surface it. Retry simply
+  // re-fires the pipeline — `runNow` flips the hook back into `loading`
+  // which hides the banner via the `status === 'error'` gate below.
+  const [translationBannerDismissed, setTranslationBannerDismissed] = useState(false);
+  useEffect(() => {
+    setTranslationBannerDismissed(false);
+  }, [pageIndex, translationError]);
 
   // Build the overlay node once and hand it to whichever view is active.
   // We render nothing while the pipeline hasn't produced a page yet — the
@@ -344,6 +356,26 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
         translationStatus={translationStatus}
         translationError={translationError}
       />
+
+      {/*
+       * Slice G.6 — pipeline failure banner. Anchored at the top of the
+       * reader area, below the chrome's auto-hiding header. Uses
+       * `pointer-events-none` on the wrapper so the page underneath stays
+       * clickable everywhere except the banner itself, which re-enables
+       * pointer events for its retry / dismiss controls.
+       */}
+      {!translationBannerDismissed && translationStatus === 'error' && (
+        <div className="pointer-events-none fixed inset-x-0 top-14 z-30 flex justify-center px-4">
+          <TranslationErrorBanner
+            error={translationError}
+            onRetry={() => {
+              setTranslationBannerDismissed(false);
+              void runTranslationNow();
+            }}
+            onDismiss={() => setTranslationBannerDismissed(true)}
+          />
+        </div>
+      )}
     </div>
   );
 }

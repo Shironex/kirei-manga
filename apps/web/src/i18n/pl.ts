@@ -486,6 +486,21 @@ export const pl = {
   'reader.translation.translating': 'Tłumaczenie strony {page}…',
   'reader.translation.failed': 'Tłumaczenie nieudane',
 
+  // Reader — translation error banner (Slice G.6). Niemodalny pasek
+  // dający się zamknąć; strona czyta się normalnie pod spodem.
+  'reader.translation.banner.title': 'Tłumaczenie niedostępne.',
+  'reader.translation.banner.retry': 'Spróbuj ponownie',
+  'reader.translation.banner.dismissAria': 'Zamknij',
+  // Komunikaty mapowane z surowych błędów potoku przez `prettifyError`.
+  'reader.translation.error.noNativeAddon':
+    'Detektor dymków niedostępny — uruchom pnpm fetch-prebuilds lub zbuduj OpenCV lokalnie.',
+  'reader.translation.error.sidecarOffline': 'Sidecar OCR offline.',
+  'reader.translation.error.noApiKey':
+    'Brak klucza API DeepL (Ustawienia → Tłumaczenie).',
+  'reader.translation.error.noHealthyProvider': 'Brak dostępnego dostawcy tłumaczenia.',
+  'reader.translation.error.disconnected':
+    'Brak połączenia z usługą — ponawiamy próbę…',
+
   // Reader — toast titles emitted from reader hooks
   'reader.toast.progressTitle': 'Postęp czytania',
   'reader.toast.sessionTitle': 'Sesja czytania',
