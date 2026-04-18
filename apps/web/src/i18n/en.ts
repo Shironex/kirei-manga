@@ -170,6 +170,75 @@ export const en = {
   'settings.library.cache.confirm.confirmLabel': 'Clear',
   'settings.library.cache.confirm.cancelLabel': 'Cancel',
 
+  // Settings — Translation (Slice H.1)
+  'settings.section.translation': 'Translation',
+  'settings.translation.title': 'Translation engine',
+  'settings.translation.description':
+    'Bubble detection, OCR, and a translation provider stitched together. API keys live on this machine; nothing is sent until you read a page.',
+  'settings.translation.enabled.label': 'Enabled',
+  'settings.translation.enabled.hint':
+    'Master switch. When off, the pipeline never runs and the reader shows the page untouched.',
+  'settings.translation.autoTranslate.label': 'Auto-translate on page open',
+  'settings.translation.autoTranslate.hint':
+    'When on, opening a page kicks the pipeline immediately. Off means you press T (or tap the bubble) to translate.',
+  'settings.translation.defaultProvider.label': 'Default provider',
+  'settings.translation.defaultProvider.hint':
+    'Used when a series has no override. Tesseract is OCR-only and not selectable here.',
+  'settings.translation.provider.deepl': 'DeepL',
+  'settings.translation.provider.google': 'Google',
+  'settings.translation.provider.ollama': 'Ollama (local)',
+  'settings.translation.targetLang.label': 'Target language',
+  'settings.translation.targetLang.hint':
+    'BCP-47 tag — `en`, `pl`, `es-la`, etc. Used as the default for new series.',
+  'settings.translation.overlayFont.label': 'Overlay font',
+  'settings.translation.overlayFont.hint':
+    'CSS font-family applied to translated bubble text. Defaults to Fraunces.',
+  'settings.translation.overlayOpacity.label': 'Overlay opacity',
+  'settings.translation.overlayOpacity.hint':
+    'How opaque the kinari (paper) backdrop behind translated text appears.',
+
+  // Settings — Translation · Provider keys
+  'settings.translation.keys.eyebrow': 'Provider keys',
+  'settings.translation.keys.description':
+    'Stored locally in the app data directory. Never logged, never sent over the wire in plain form. Empty fields disable that provider.',
+  'settings.translation.keys.placeholder': 'Not configured',
+  'settings.translation.keys.deepl.label': 'DeepL API key',
+  'settings.translation.keys.google.label': 'Google API key',
+  'settings.translation.keys.ollama.label': 'Ollama endpoint',
+  'settings.translation.keys.ollama.hint': 'URL of your local Ollama server.',
+
+  // Settings — Translation · Provider status
+  'settings.translation.status.eyebrow': 'Provider status',
+  'settings.translation.status.description':
+    'Pings each provider and reports whether the credentials and reachability check succeeded.',
+  'settings.translation.status.test': 'Test',
+  'settings.translation.status.ok': 'Healthy',
+  'settings.translation.status.bad': 'Unavailable',
+  'settings.translation.status.unknown': 'Unknown',
+  'settings.translation.status.notFetched': 'Not checked',
+  'settings.translation.status.toast.title': 'Translation status',
+
+  // Settings — Translation · Pipeline status
+  'settings.translation.pipeline.eyebrow': 'Pipeline status',
+  'settings.translation.pipeline.description':
+    'The native bubble detector and the manga-OCR sidecar back every translation request.',
+  'settings.translation.pipeline.bubbleDetector.label': 'Bubble detector',
+  'settings.translation.pipeline.bubbleDetector.healthy': 'Healthy',
+  'settings.translation.pipeline.bubbleDetector.unhealthy': 'Unhealthy',
+  'settings.translation.pipeline.ocr.label': 'OCR sidecar',
+  'settings.translation.pipeline.ocr.modelLoaded': 'Model loaded',
+  'settings.translation.pipeline.ocr.progressAria': 'Sidecar download progress',
+  'settings.translation.pipeline.ocr.state.notDownloaded': 'Not downloaded',
+  'settings.translation.pipeline.ocr.state.downloading': 'Downloading',
+  'settings.translation.pipeline.ocr.state.starting': 'Starting',
+  'settings.translation.pipeline.ocr.state.ready': 'Ready',
+  'settings.translation.pipeline.ocr.state.crashed': 'Crashed',
+  'settings.translation.pipeline.ocr.state.unhealthy': 'Unhealthy',
+  'settings.translation.pipeline.ocr.download.label': 'Download',
+  'settings.translation.pipeline.ocr.download.unavailableTitle': 'Sidecar download',
+  'settings.translation.pipeline.ocr.download.unavailable':
+    'Manual download isn’t wired yet — the sidecar will fetch on first use.',
+
   // Settings — Updates
   'settings.section.updates': 'Updates',
   'settings.updates.title': 'Version & auto-update',
@@ -486,8 +555,7 @@ export const en = {
   'reader.translation.error.sidecarOffline': 'OCR sidecar offline.',
   'reader.translation.error.noApiKey': 'DeepL API key not configured (Settings → Translation).',
   'reader.translation.error.noHealthyProvider': 'No translation provider available.',
-  'reader.translation.error.disconnected':
-    'Disconnected from the desktop service — reconnecting…',
+  'reader.translation.error.disconnected': 'Disconnected from the desktop service — reconnecting…',
 
   // Reader — toast titles emitted from reader hooks
   'reader.toast.progressTitle': 'Reader progress',

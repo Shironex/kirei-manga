@@ -174,6 +174,75 @@ export const pl = {
   'settings.library.cache.confirm.confirmLabel': 'Wyczyść',
   'settings.library.cache.confirm.cancelLabel': 'Anuluj',
 
+  // Settings — Translation (Slice H.1)
+  'settings.section.translation': 'Tłumaczenie',
+  'settings.translation.title': 'Silnik tłumaczeń',
+  'settings.translation.description':
+    'Wykrywanie dymków, OCR i wybrany dostawca tłumaczeń złożone w jeden potok. Klucze API zostają na tym komputerze, a zapytania są wysyłane dopiero przy czytaniu strony.',
+  'settings.translation.enabled.label': 'Włączone',
+  'settings.translation.enabled.hint':
+    'Główny przełącznik. Gdy wyłączony, potok nie startuje, a czytnik pokazuje stronę bez nakładki.',
+  'settings.translation.autoTranslate.label': 'Tłumacz automatycznie',
+  'settings.translation.autoTranslate.hint':
+    'Gdy włączone, otwarcie strony od razu uruchamia potok. Gdy wyłączone, naciśnij T (lub dotknij dymka), aby przetłumaczyć.',
+  'settings.translation.defaultProvider.label': 'Domyślny dostawca',
+  'settings.translation.defaultProvider.hint':
+    'Używany, gdy seria nie ma własnego wyboru. Tesseract jest tylko OCR i nie pojawia się tu jako opcja.',
+  'settings.translation.provider.deepl': 'DeepL',
+  'settings.translation.provider.google': 'Google',
+  'settings.translation.provider.ollama': 'Ollama (lokalnie)',
+  'settings.translation.targetLang.label': 'Język docelowy',
+  'settings.translation.targetLang.hint':
+    'Tag BCP-47 — `en`, `pl`, `es-la` itd. Używany jako domyślny dla nowych serii.',
+  'settings.translation.overlayFont.label': 'Czcionka nakładki',
+  'settings.translation.overlayFont.hint':
+    'Rodzina czcionek CSS użyta dla przetłumaczonego tekstu w dymkach. Domyślnie Fraunces.',
+  'settings.translation.overlayOpacity.label': 'Krycie nakładki',
+  'settings.translation.overlayOpacity.hint':
+    'Jak nieprzezroczyste jest tło kinari (papier) pod przetłumaczonym tekstem.',
+
+  // Settings — Translation · Provider keys
+  'settings.translation.keys.eyebrow': 'Klucze dostawców',
+  'settings.translation.keys.description':
+    'Zapisywane lokalnie w katalogu danych aplikacji. Nigdy nie są logowane ani wysyłane otwartym tekstem. Puste pole wyłącza danego dostawcę.',
+  'settings.translation.keys.placeholder': 'Nieskonfigurowane',
+  'settings.translation.keys.deepl.label': 'Klucz API DeepL',
+  'settings.translation.keys.google.label': 'Klucz API Google',
+  'settings.translation.keys.ollama.label': 'Adres Ollama',
+  'settings.translation.keys.ollama.hint': 'URL twojego lokalnego serwera Ollama.',
+
+  // Settings — Translation · Provider status
+  'settings.translation.status.eyebrow': 'Status dostawców',
+  'settings.translation.status.description':
+    'Sprawdza każdego dostawcę i pokazuje, czy uwierzytelnienie i połączenie się powiodło.',
+  'settings.translation.status.test': 'Test',
+  'settings.translation.status.ok': 'Działa',
+  'settings.translation.status.bad': 'Niedostępny',
+  'settings.translation.status.unknown': 'Nieznany',
+  'settings.translation.status.notFetched': 'Niesprawdzony',
+  'settings.translation.status.toast.title': 'Status tłumaczenia',
+
+  // Settings — Translation · Pipeline status
+  'settings.translation.pipeline.eyebrow': 'Status potoku',
+  'settings.translation.pipeline.description':
+    'Natywny detektor dymków i sidecar manga-OCR obsługują każde żądanie tłumaczenia.',
+  'settings.translation.pipeline.bubbleDetector.label': 'Detektor dymków',
+  'settings.translation.pipeline.bubbleDetector.healthy': 'Sprawny',
+  'settings.translation.pipeline.bubbleDetector.unhealthy': 'Niesprawny',
+  'settings.translation.pipeline.ocr.label': 'Sidecar OCR',
+  'settings.translation.pipeline.ocr.modelLoaded': 'Model załadowany',
+  'settings.translation.pipeline.ocr.progressAria': 'Postęp pobierania sidecara',
+  'settings.translation.pipeline.ocr.state.notDownloaded': 'Niepobrany',
+  'settings.translation.pipeline.ocr.state.downloading': 'Pobieranie',
+  'settings.translation.pipeline.ocr.state.starting': 'Uruchamianie',
+  'settings.translation.pipeline.ocr.state.ready': 'Gotowy',
+  'settings.translation.pipeline.ocr.state.crashed': 'Awaria',
+  'settings.translation.pipeline.ocr.state.unhealthy': 'Niesprawny',
+  'settings.translation.pipeline.ocr.download.label': 'Pobierz',
+  'settings.translation.pipeline.ocr.download.unavailableTitle': 'Pobieranie sidecara',
+  'settings.translation.pipeline.ocr.download.unavailable':
+    'Ręczne pobieranie nie jest jeszcze podłączone — sidecar pobierze się przy pierwszym użyciu.',
+
   // Settings — Updates
   'settings.section.updates': 'Aktualizacje',
   'settings.updates.title': 'Wersja i autoaktualizacje',
@@ -495,11 +564,9 @@ export const pl = {
   'reader.translation.error.noNativeAddon':
     'Detektor dymków niedostępny — uruchom pnpm fetch-prebuilds lub zbuduj OpenCV lokalnie.',
   'reader.translation.error.sidecarOffline': 'Sidecar OCR offline.',
-  'reader.translation.error.noApiKey':
-    'Brak klucza API DeepL (Ustawienia → Tłumaczenie).',
+  'reader.translation.error.noApiKey': 'Brak klucza API DeepL (Ustawienia → Tłumaczenie).',
   'reader.translation.error.noHealthyProvider': 'Brak dostępnego dostawcy tłumaczenia.',
-  'reader.translation.error.disconnected':
-    'Brak połączenia z usługą — ponawiamy próbę…',
+  'reader.translation.error.disconnected': 'Brak połączenia z usługą — ponawiamy próbę…',
 
   // Reader — toast titles emitted from reader hooks
   'reader.toast.progressTitle': 'Postęp czytania',
