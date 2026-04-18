@@ -15,6 +15,7 @@ jest.mock('./cache', () => {
 });
 
 import type {
+  AppSettings,
   BoundingBox,
   BubbleDetectionResult,
   OcrResult,
@@ -24,6 +25,7 @@ import type { BubbleDetectorService } from './bubble-detector.service';
 import type { TranslationProviderRegistry } from './providers';
 import type { OcrBackend, OcrBackendRegistry } from './sidecar';
 import type { PageUrlResolverService } from '../shared/page-url-resolver';
+import type { SettingsService } from '../settings';
 import { createTestDatabase, type CompatDatabase } from '../database/__test__/sqljs-adapter';
 import type { DatabaseService } from '../database';
 import { TranslationCacheService } from './cache';
@@ -118,12 +120,22 @@ describe('TranslationService pipeline integration', () => {
         .fn()
         .mockRejectedValue(new Error('resolver should not be called')),
     } as unknown as PageUrlResolverService;
+    // Settings stub — the orchestrator reads settings.translation.sourceLang
+    // when the payload doesn't carry one. Default `'ja'` mirrors
+    // DEFAULT_APP_SETTINGS so the pre-Phase-2 pipeline behaviour is preserved
+    // for every test in this suite.
+    const settings = {
+      get: jest.fn().mockReturnValue({
+        translation: { sourceLang: 'ja' },
+      } as unknown as AppSettings),
+    } as unknown as SettingsService;
     service = new TranslationService(
       mocks.detector as unknown as BubbleDetectorService,
       mocks.ocrBackends as unknown as OcrBackendRegistry,
       mocks.registry as unknown as TranslationProviderRegistry,
       cache,
       resolver,
+      settings,
     );
   });
 
