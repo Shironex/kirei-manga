@@ -186,10 +186,10 @@ describe('GoogleTranslateProvider', () => {
       );
     });
 
-    it('lowercases the target lang and hardcodes source=ja', async () => {
+    it('lowercases the target lang and defaults source=ja when sourceLang is omitted', async () => {
       // Google v2 expects lowercase ISO-639-1; the helper normalises whatever
-      // BCP-47 tag the orchestrator passes in. Source is fixed to `ja` for
-      // v0.3 — Slice F can extend the interface if multi-source ever matters.
+      // BCP-47 tag the orchestrator passes in. Source defaults to `ja` to
+      // preserve the v0.3 Japanese-only contract when callers don't pass one.
       const fetchMock = jest
         .fn()
         .mockImplementation(() =>
@@ -201,6 +201,24 @@ describe('GoogleTranslateProvider', () => {
       const body = jsonBody(fetchMock, 0);
       expect(body.target).toBe('en');
       expect(body.source).toBe('ja');
+    });
+
+    it('forwards an explicit sourceLang lowercased', async () => {
+      // Google's source enum is lowercase BCP-47. The provider passes the tag
+      // straight through after lowercasing — unsupported tags surface as a
+      // 400 from the endpoint.
+      const fetchMock = jest
+        .fn()
+        .mockImplementation(() =>
+          jsonResponse({ data: { translations: [{ translatedText: 'OK' }] } })
+        );
+      const provider = new GoogleTranslateProvider(makeSettings('test-key'), fetchMock);
+
+      await provider.translate(['hi'], 'pl', 'EN');
+      expect(jsonBody(fetchMock, 0).source).toBe('en');
+
+      await provider.translate(['hi'], 'pl', 'ko');
+      expect(jsonBody(fetchMock, 1).source).toBe('ko');
     });
 
     it('URL-encodes the API key in the query string', async () => {

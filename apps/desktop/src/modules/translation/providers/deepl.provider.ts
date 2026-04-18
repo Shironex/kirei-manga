@@ -18,9 +18,9 @@ const MAX_RETRIES = 3;
 // JSON-array `text` parameter at 50; we mirror that with the form-encoded shape
 // for predictable behavior across both API tiers.
 const MAX_BATCH_SIZE = 50;
-// Source language for v0.3 — manga is JP. Slice F's orchestrator can extend
-// the TranslationProvider interface to accept a source if multi-source matters.
-const SOURCE_LANG = 'JA';
+// Default source language — preserves the v0.3 Japanese-only behaviour when
+// the orchestrator doesn't pass an explicit sourceLang.
+const DEFAULT_SOURCE_LANG = 'JA';
 
 /**
  * BCP-47 → DeepL target-language map. DeepL accepts a fixed enum (mostly
@@ -36,6 +36,26 @@ const TARGET_LANG_MAP: Record<string, string> = {
 function mapTargetLang(bcp47: string): string {
   const lower = bcp47.toLowerCase();
   return TARGET_LANG_MAP[lower] ?? bcp47.toUpperCase();
+}
+
+/**
+ * BCP-47 → DeepL source-language map. DeepL's source enum is uppercase
+ * ISO-639-1 with a few specific exceptions (`EN`, `PT`, `ZH`). Anything
+ * not listed passes through uppercase — DeepL will 400 on unsupported.
+ * Notably the source set does NOT take regional variants (`EN-US` would
+ * be rejected as a source even though it's valid as a target).
+ */
+const SOURCE_LANG_MAP: Record<string, string> = {
+  ja: 'JA',
+  en: 'EN',
+  pl: 'PL',
+  ko: 'KO',
+  zh: 'ZH',
+};
+
+function mapSourceLang(bcp47: string): string {
+  const lower = bcp47.toLowerCase();
+  return SOURCE_LANG_MAP[lower] ?? bcp47.toUpperCase();
 }
 
 /** Free-tier keys are suffixed with `:fx` per DeepL's docs. */
@@ -111,7 +131,11 @@ export class DeepLProvider implements TranslationProvider {
   }
 
   /** Translate a batch of source strings. Chunks the input into ≤50-text requests. */
-  async translate(texts: string[], targetLang: string): Promise<string[]> {
+  async translate(
+    texts: string[],
+    targetLang: string,
+    sourceLang?: string,
+  ): Promise<string[]> {
     if (texts.length === 0) return [];
 
     const key = this.getApiKey();
@@ -120,11 +144,12 @@ export class DeepLProvider implements TranslationProvider {
     }
 
     const target = mapTargetLang(targetLang);
+    const source = sourceLang ? mapSourceLang(sourceLang) : DEFAULT_SOURCE_LANG;
     const out: string[] = new Array(texts.length);
 
     for (let start = 0; start < texts.length; start += MAX_BATCH_SIZE) {
       const slice = texts.slice(start, start + MAX_BATCH_SIZE);
-      const translated = await this.translateChunk(slice, target, key);
+      const translated = await this.translateChunk(slice, target, source, key);
       if (translated.length !== slice.length) {
         throw new Error(
           `DeepL: response length mismatch — sent ${slice.length}, got ${translated.length}`
@@ -194,6 +219,7 @@ export class DeepLProvider implements TranslationProvider {
   private async translateChunk(
     texts: string[],
     targetLang: string,
+    sourceLang: string,
     key: string
   ): Promise<string[]> {
     const url = `${endpointFor(key)}/v2/translate`;
@@ -206,7 +232,7 @@ export class DeepLProvider implements TranslationProvider {
     for (const text of texts) {
       body.append('text', text);
     }
-    body.append('source_lang', SOURCE_LANG);
+    body.append('source_lang', sourceLang);
     body.append('target_lang', targetLang);
     body.append('preserve_formatting', '1');
 

@@ -211,6 +211,36 @@ describe('DeepLProvider', () => {
       await provider.translate(['hi'], 'EN');
       expect(bodyParams(fetchMock, 1).get('target_lang')).toBe('EN-US');
     });
+
+    it('forwards an explicit sourceLang as DeepL uppercase source_lang', async () => {
+      // DeepL uses uppercase ISO-639-1 for source. The provider must map
+      // BCP-47 `'en'` → `'EN'` and pass through unmapped tags as uppercase.
+      const fetchMock = jest
+        .fn()
+        .mockImplementation(() => jsonResponse({ translations: [{ text: 'OK' }] }));
+      const provider = new DeepLProvider(makeSettings('test-key:fx'), fetchMock);
+
+      await provider.translate(['hi'], 'pl', 'en');
+      expect(bodyParams(fetchMock, 0).get('source_lang')).toBe('EN');
+
+      await provider.translate(['hi'], 'pl', 'ko');
+      expect(bodyParams(fetchMock, 1).get('source_lang')).toBe('KO');
+
+      // Unmapped sourceLang falls through uppercase; DeepL will 400 if the
+      // lang is unsupported, but that surfaces a clear error to the user.
+      await provider.translate(['hi'], 'pl', 'xx');
+      expect(bodyParams(fetchMock, 2).get('source_lang')).toBe('XX');
+    });
+
+    it('defaults source_lang to JA when sourceLang is omitted (preserves v0.3 behaviour)', async () => {
+      const fetchMock = jest.fn(() =>
+        jsonResponse({ translations: [{ text: 'OK' }] })
+      );
+      const provider = new DeepLProvider(makeSettings('test-key:fx'), fetchMock);
+
+      await provider.translate(['hi'], 'en');
+      expect(bodyParams(fetchMock, 0).get('source_lang')).toBe('JA');
+    });
   });
 
   describe('429 retry', () => {

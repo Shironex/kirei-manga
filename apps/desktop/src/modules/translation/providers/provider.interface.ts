@@ -18,10 +18,19 @@ export interface TranslationProvider {
    *
    * @param texts source strings (non-empty)
    * @param targetLang BCP-47 language tag (e.g. 'en', 'pl')
+   * @param sourceLang optional BCP-47 source tag. When omitted, providers
+   *   keep the v0.3 default of Japanese — same fallback shape as the
+   *   pipeline payload's `sourceLang`. DeepL forwards it as `source_lang`
+   *   (uppercase), Google as `source` (lowercase), Ollama interpolates it
+   *   into the system prompt as a human-readable label.
    * @throws if the request fails non-recoverably (auth, network, etc.) — the
    *   orchestrator catches and surfaces via gateway error.
    */
-  translate(texts: string[], targetLang: string): Promise<string[]>;
+  translate(
+    texts: string[],
+    targetLang: string,
+    sourceLang?: string,
+  ): Promise<string[]>;
 
   /**
    * Probe the provider's health. Used by the settings UI's "Test" button

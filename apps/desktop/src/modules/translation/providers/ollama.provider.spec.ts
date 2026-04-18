@@ -112,6 +112,18 @@ describe('OllamaProvider', () => {
       const { system } = formatPrompt(['hi'], 'fr');
       expect(system).toContain('Translate Japanese text to fr');
     });
+
+    it('interpolates an explicit sourceLang label when provided', () => {
+      // sourceLang=en flips the system prompt to "Translate English text…".
+      // Defaults to Japanese to preserve the v0.3 prompt phrasing.
+      const { system } = formatPrompt(['hi'], 'pl', 'en');
+      expect(system).toContain('Translate English text to Polish');
+    });
+
+    it('falls back to the raw BCP-47 tag when no human label is mapped for source', () => {
+      const { system } = formatPrompt(['hi'], 'pl', 'xx');
+      expect(system).toContain('Translate xx text to Polish');
+    });
   });
 
   describe('parseResponse', () => {

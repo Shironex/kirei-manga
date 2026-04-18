@@ -17,9 +17,9 @@ const MAX_RETRIES = 3;
 // Google's v2 `q` parameter accepts up to 128 strings per request per their
 // public docs; chunk anything larger.
 const MAX_BATCH_SIZE = 128;
-// Source language for v0.3 — manga is JP. Slice F's orchestrator can extend
-// the TranslationProvider interface to accept a source if multi-source matters.
-const SOURCE_LANG = 'ja';
+// Default source language — preserves the v0.3 Japanese-only behaviour when
+// the orchestrator doesn't pass an explicit sourceLang.
+const DEFAULT_SOURCE_LANG = 'ja';
 
 /**
  * BCP-47 → Google target-language map. Google's v2 API uses ISO-639-1
@@ -28,6 +28,15 @@ const SOURCE_LANG = 'ja';
  * 400 from the endpoint.
  */
 function mapTargetLang(bcp47: string): string {
+  return bcp47.toLowerCase();
+}
+
+/**
+ * Same shape as the target map — Google's source enum is also lowercase
+ * BCP-47 / ISO-639-1. Pass-through is correct for the languages we care
+ * about; an unrecognised tag will 400 from the endpoint.
+ */
+function mapSourceLang(bcp47: string): string {
   return bcp47.toLowerCase();
 }
 
@@ -123,7 +132,11 @@ export class GoogleTranslateProvider implements TranslationProvider {
   }
 
   /** Translate a batch of source strings. Chunks the input into ≤128-text requests. */
-  async translate(texts: string[], targetLang: string): Promise<string[]> {
+  async translate(
+    texts: string[],
+    targetLang: string,
+    sourceLang?: string,
+  ): Promise<string[]> {
     if (texts.length === 0) return [];
 
     const key = this.getApiKey();
@@ -132,11 +145,12 @@ export class GoogleTranslateProvider implements TranslationProvider {
     }
 
     const target = mapTargetLang(targetLang);
+    const source = sourceLang ? mapSourceLang(sourceLang) : DEFAULT_SOURCE_LANG;
     const out: string[] = new Array(texts.length);
 
     for (let start = 0; start < texts.length; start += MAX_BATCH_SIZE) {
       const slice = texts.slice(start, start + MAX_BATCH_SIZE);
-      const translated = await this.translateChunk(slice, target, key);
+      const translated = await this.translateChunk(slice, target, source, key);
       if (translated.length !== slice.length) {
         throw new Error(
           `Google: response length mismatch — sent ${slice.length}, got ${translated.length}`
@@ -174,6 +188,7 @@ export class GoogleTranslateProvider implements TranslationProvider {
   private async translateChunk(
     texts: string[],
     targetLang: string,
+    sourceLang: string,
     key: string
   ): Promise<string[]> {
     const url = `${ENDPOINT}?key=${encodeURIComponent(key)}`;
@@ -183,7 +198,7 @@ export class GoogleTranslateProvider implements TranslationProvider {
     };
     const body = JSON.stringify({
       q: texts,
-      source: SOURCE_LANG,
+      source: sourceLang,
       target: targetLang,
       format: 'text',
     });

@@ -20,20 +20,27 @@ const MAX_RETRIES = 2;
 const REQUEST_TIMEOUT_MS = 60_000;
 
 /**
- * BCP-47 -> human-readable target-language for the system-prompt phrasing.
- * The model is told to translate "to <name>" rather than to a tag, because
- * LLMs follow natural-language directives more reliably than ISO codes.
- * Anything not listed falls back to the raw tag — the model usually copes.
+ * BCP-47 -> human-readable language label for the system-prompt phrasing.
+ * Used for both source and target — the model is told to translate
+ * "<source> text to <target>" rather than ISO codes because LLMs follow
+ * natural-language directives more reliably than tags. Anything not listed
+ * falls back to the raw tag — the model usually copes.
  */
-const TARGET_LANG_NAMES: Record<string, string> = {
+const LANG_NAMES: Record<string, string> = {
+  ja: 'Japanese',
   en: 'English',
   pl: 'Polish',
+  ko: 'Korean',
+  zh: 'Chinese',
 };
 
-function targetLangLabel(bcp47: string): string {
+function langLabel(bcp47: string): string {
   const lower = bcp47.toLowerCase();
-  return TARGET_LANG_NAMES[lower] ?? bcp47;
+  return LANG_NAMES[lower] ?? bcp47;
 }
+
+/** Default source language label — preserves the v0.3 prompt phrasing. */
+const DEFAULT_SOURCE_LABEL = 'Japanese';
 
 interface OllamaChatResponse {
   model: string;
@@ -70,14 +77,20 @@ function isTagsResponse(value: unknown): value is OllamaTagsResponse {
  * LLMs occasionally emit blank lines, commentary, or reorder outputs; the
  * prefix lets `parseResponse` map every reply back to its source index even
  * when the model misbehaves.
+ *
+ * `sourceLang` is optional and defaults to Japanese to preserve the v0.3
+ * prompt — passing `'en'` flips the system message to "Translate English
+ * text to <target>" so users can translate from already-translated bubbles.
  */
 export function formatPrompt(
   texts: string[],
-  targetLang: string
+  targetLang: string,
+  sourceLang?: string
 ): { system: string; user: string } {
-  const langLabel = targetLangLabel(targetLang);
+  const targetLabel = langLabel(targetLang);
+  const sourceLabel = sourceLang ? langLabel(sourceLang) : DEFAULT_SOURCE_LABEL;
   const system = [
-    `You are a manga translator. Translate Japanese text to ${langLabel}.`,
+    `You are a manga translator. Translate ${sourceLabel} text to ${targetLabel}.`,
     'Keep honorifics (-san, -kun, -chan, -sama, -sensei).',
     'Do not paraphrase.',
     'Output one translation per input line, in the same order.',
@@ -180,12 +193,16 @@ export class OllamaProvider implements TranslationProvider {
   }
 
   /** Translate a batch of source strings in a single Ollama chat request. */
-  async translate(texts: string[], targetLang: string): Promise<string[]> {
+  async translate(
+    texts: string[],
+    targetLang: string,
+    sourceLang?: string,
+  ): Promise<string[]> {
     if (texts.length === 0) return [];
 
     const endpoint = this.getEndpoint();
     const model = this.getModel();
-    const { system, user } = formatPrompt(texts, targetLang);
+    const { system, user } = formatPrompt(texts, targetLang, sourceLang);
 
     const url = `${endpoint}/api/chat`;
     const body = JSON.stringify({
