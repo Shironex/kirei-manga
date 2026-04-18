@@ -7,6 +7,8 @@ import {
   type TranslationGetPagePayload,
   type TranslationGetPageResponse,
   type TranslationProviderStatusResponse,
+  type TranslationReportBadPayload,
+  type TranslationReportBadResponse,
   type TranslationRunPipelinePayload,
   type TranslationRunPipelineResponse,
   type TranslationSetSeriesOverridePayload,
@@ -21,6 +23,7 @@ import { BubbleDetectorService } from './bubble-detector.service';
 import { TranslationCacheService } from './cache';
 import { TranslationProviderRegistry } from './providers';
 import { OcrBackendRegistry, OcrSidecarService } from './sidecar';
+import { TranslationFlagsService } from './translation-flags.service';
 import { TranslationService } from './translation.service';
 
 const logger = createLogger('TranslationGateway');
@@ -52,7 +55,8 @@ export class TranslationGateway {
     private readonly registry: TranslationProviderRegistry,
     private readonly translationService: TranslationService,
     private readonly cacheService: TranslationCacheService,
-    private readonly database: DatabaseService
+    private readonly database: DatabaseService,
+    private readonly flagsService: TranslationFlagsService
   ) {
     logger.info('TranslationGateway initialized');
   }
@@ -205,6 +209,23 @@ export class TranslationGateway {
           payload.provider
         );
         return { page };
+      },
+    });
+  }
+
+  /**
+   * Slice L.3 — record a "this translation is wrong" report against a single
+   * bubble. Validation lives in `TranslationFlagsService`; thrown errors are
+   * surfaced via the gateway-handler envelope as `{ success: false, error }`.
+   */
+  @SubscribeMessage(TranslationEvents.REPORT_BAD)
+  handleReportBad(@MessageBody() payload: TranslationReportBadPayload) {
+    return handleGatewayRequest({
+      logger,
+      action: 'translation:report-bad',
+      defaultResult: { success: false } satisfies Pick<TranslationReportBadResponse, 'success'>,
+      handler: async (): Promise<TranslationReportBadResponse> => {
+        return this.flagsService.flagBubble(payload);
       },
     });
   }

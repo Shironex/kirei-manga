@@ -5,6 +5,7 @@ import { BubbleDetectorService } from './bubble-detector.service';
 import { TranslationCacheService } from './cache';
 import { TranslationProviderRegistry } from './providers';
 import { OcrBackendRegistry, OcrSidecarService } from './sidecar';
+import { TranslationFlagsService } from './translation-flags.service';
 import { TranslationService } from './translation.service';
 import { DatabaseService } from '../database';
 import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
@@ -26,6 +27,7 @@ describe('TranslationGateway', () => {
   let registry: { getAllStatuses: jest.Mock };
   let translationService: { runPipeline: jest.Mock };
   let cacheService: { getForPage: jest.Mock };
+  let flagsService: { flagBubble: jest.Mock };
   // The gateway's `set-series-override` handler runs raw SQL through the
   // shared DatabaseService, so the spec stubs `prepare(...).run()` /
   // `prepare(...).get()` behind a chainable mock. Each test sets the row the
@@ -50,6 +52,7 @@ describe('TranslationGateway', () => {
     registry = { getAllStatuses: jest.fn().mockResolvedValue([]) };
     translationService = { runPipeline: jest.fn() };
     cacheService = { getForPage: jest.fn() };
+    flagsService = { flagBubble: jest.fn() };
 
     const runMock = jest.fn();
     const getMock = jest.fn();
@@ -71,6 +74,7 @@ describe('TranslationGateway', () => {
         { provide: TranslationService, useValue: translationService },
         { provide: TranslationCacheService, useValue: cacheService },
         { provide: DatabaseService, useValue: database },
+        { provide: TranslationFlagsService, useValue: flagsService },
       ],
     })
       .overrideGuard(WsThrottlerGuard)
@@ -433,5 +437,44 @@ describe('TranslationGateway', () => {
     expect(database.db.prepare).not.toHaveBeenCalled();
     expect(result.series).toBeNull();
     expect(result.error).toMatch(/seriesId/);
+  });
+
+  // ===== L.3 — translation:report-bad =====
+
+  describe('handleReportBad', () => {
+    it('forwards the payload to the flags service and returns success', async () => {
+      flagsService.flagBubble.mockReturnValue({ success: true });
+
+      const result = await gateway.handleReportBad({
+        pageHash: 'a'.repeat(64),
+        bubbleIndex: 2,
+        reason: 'user-flagged',
+        userNote: 'Wrong word.',
+      });
+
+      expect(flagsService.flagBubble).toHaveBeenCalledWith({
+        pageHash: 'a'.repeat(64),
+        bubbleIndex: 2,
+        reason: 'user-flagged',
+        userNote: 'Wrong word.',
+      });
+      expect(result).toEqual({ success: true });
+      expect(result).not.toHaveProperty('error');
+    });
+
+    it('surfaces validation failures from the service via the error envelope', async () => {
+      flagsService.flagBubble.mockImplementation(() => {
+        throw new Error('pageHash must be a non-empty string');
+      });
+
+      const result = (await gateway.handleReportBad({
+        pageHash: '',
+        bubbleIndex: 0,
+        reason: 'user-flagged',
+      })) as { success: boolean; error: string };
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/pageHash/);
+    });
   });
 });

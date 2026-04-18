@@ -16,6 +16,7 @@ import {
   OcrSidecarService,
   TesseractOcrService,
 } from './sidecar';
+import { TranslationFlagsService } from './translation-flags.service';
 import { TranslationGateway } from './translation.gateway';
 import { TranslationService } from './translation.service';
 
@@ -49,6 +50,7 @@ import { TranslationService } from './translation.service';
     TranslationCacheService,
     PageUrlResolverService,
     TranslationService,
+    TranslationFlagsService,
     TranslationGateway,
   ],
   exports: [
@@ -64,6 +66,7 @@ import { TranslationService } from './translation.service';
     TranslationCacheService,
     PageUrlResolverService,
     TranslationService,
+    TranslationFlagsService,
   ],
 })
 export class TranslationModule {}
