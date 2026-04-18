@@ -5,6 +5,7 @@ import {
   type TranslationProviderId,
 } from '@kireimanga/shared';
 import { PageUrlResolverService } from '../shared/page-url-resolver';
+import { SettingsService } from '../settings';
 import { BubbleDetectorService } from './bubble-detector.service';
 import { TranslationCacheService, pageHash } from './cache';
 import { TranslationProviderRegistry } from './providers';
@@ -28,6 +29,7 @@ export class TranslationService {
     private readonly registry: TranslationProviderRegistry,
     private readonly cache: TranslationCacheService,
     private readonly resolver: PageUrlResolverService,
+    private readonly settings: SettingsService,
   ) {}
 
   /**
@@ -36,15 +38,35 @@ export class TranslationService {
    * known) or a `pageUrl` — typically a `kirei-page://...` proxy address —
    * which the resolver maps to a real on-disk path before hashing. Passing
    * both takes `pageImagePath` as a hint that resolution already happened.
+   *
+   * `sourceLang` is optional — when omitted, the orchestrator falls back to
+   * `AppSettings.translation.sourceLang` (defaults to `'ja'`). Threaded
+   * through to: (1) the OCR backend registry's pickBackend (skips the
+   * Japanese-only sidecar for non-`'ja'` sources), (2) the chosen backend's
+   * ocr() call (Tesseract picks the right traineddata), and (3) the
+   * provider's translate() (DeepL `source_lang`, Google `source`, Ollama
+   * prompt label).
    */
   async runPipeline(args: {
     pageImagePath?: string;
     pageUrl?: string;
     targetLang: string;
+    sourceLang?: string;
     providerHint?: TranslationProviderId;
     direction?: 'rtl' | 'ltr';
   }): Promise<PageTranslation> {
-    const { pageImagePath, pageUrl, targetLang, providerHint, direction = 'rtl' } = args;
+    const {
+      pageImagePath,
+      pageUrl,
+      targetLang,
+      sourceLang,
+      providerHint,
+      direction = 'rtl',
+    } = args;
+    // Fall back to the persisted setting (which itself defaults to `'ja'` via
+    // DEFAULT_APP_SETTINGS) when the caller omits the override.
+    const effectiveSourceLang =
+      sourceLang ?? this.settings.get().translation.sourceLang ?? 'ja';
 
     // 0. Resolve URL → filesystem path when only the URL is known. The
     //    explicit-path branch wins so existing callers (F.5 integration test,
@@ -83,12 +105,13 @@ export class TranslationService {
     }
 
     // 5. OCR every detected bubble. The registry hands us the first healthy
-    //    backend — sidecar (manga-ocr) when available, Tesseract otherwise.
+    //    backend — sidecar (manga-ocr) for Japanese, Tesseract otherwise.
     //    Same call shape either way; the orchestrator never branches on which.
-    const ocrBackend = this.ocrBackends.pickBackend();
+    const ocrBackend = this.ocrBackends.pickBackend(effectiveSourceLang);
     const ocrResults = await ocrBackend.ocr(
       resolvedPath,
       detection.boxes.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h })),
+      effectiveSourceLang,
     );
 
     // 6. Translate — drop empty OCR results so we don't waste API quota; map
@@ -102,6 +125,7 @@ export class TranslationService {
         : await provider.translate(
             indexedTexts.map(e => e.text),
             targetLang,
+            effectiveSourceLang,
           );
 
     // 7. Compose result + persist successful bubbles. Empty translations

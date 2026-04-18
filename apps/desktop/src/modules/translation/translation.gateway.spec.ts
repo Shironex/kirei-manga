@@ -274,6 +274,44 @@ describe('TranslationGateway', () => {
     expect(result).not.toHaveProperty('error');
   });
 
+  it('handleRunPipeline threads an explicit sourceLang to the orchestrator', async () => {
+    const page: PageTranslation = { pageHash: 'f'.repeat(64), bubbles: [] };
+    translationService.runPipeline.mockResolvedValue(page);
+
+    await gateway.handleRunPipeline({
+      pageImagePath: '/library/series/ch01/page-001.jpg',
+      targetLang: 'pl',
+      sourceLang: 'en',
+    });
+
+    expect(translationService.runPipeline).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetLang: 'pl',
+        sourceLang: 'en',
+      }),
+    );
+  });
+
+  it('handleRunPipeline drops empty-string sourceLang so the orchestrator falls back to settings', async () => {
+    const page: PageTranslation = { pageHash: 'g'.repeat(64), bubbles: [] };
+    translationService.runPipeline.mockResolvedValue(page);
+
+    await gateway.handleRunPipeline({
+      pageImagePath: '/library/series/ch01/page-001.jpg',
+      targetLang: 'en',
+      sourceLang: '',
+    });
+
+    // Empty string should not propagate — the orchestrator's settings
+    // fallback owns the default. Pass `undefined` so the runPipeline arg
+    // shape stays uniform with omit-the-field callers.
+    const callArgs = translationService.runPipeline.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(callArgs.sourceLang).toBeUndefined();
+  });
+
   it('handleRunPipeline propagates orchestrator errors via the gateway-handler envelope', async () => {
     translationService.runPipeline.mockRejectedValue(new Error('no healthy provider'));
 

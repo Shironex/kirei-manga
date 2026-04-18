@@ -119,6 +119,10 @@ export class TranslationGateway {
           pageImagePath: hasPath ? payload.pageImagePath : undefined,
           pageUrl: hasUrl ? payload.pageUrl : undefined,
           targetLang: payload.targetLang,
+          sourceLang:
+            typeof payload.sourceLang === 'string' && payload.sourceLang.length > 0
+              ? payload.sourceLang
+              : undefined,
           providerHint: payload.providerHint,
         });
         return { page };

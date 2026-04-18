@@ -12,6 +12,7 @@ jest.mock('./cache', () => {
 });
 
 import type {
+  AppSettings,
   BoundingBox,
   BubbleDetectionResult,
   OcrResult,
@@ -23,6 +24,7 @@ import type { TranslationCacheService } from './cache';
 import type { TranslationProvider, TranslationProviderRegistry } from './providers';
 import type { OcrBackend, OcrBackendRegistry } from './sidecar';
 import type { PageUrlResolverService } from '../shared/page-url-resolver';
+import type { SettingsService } from '../settings';
 import { TranslationService } from './translation.service';
 
 const PAGE_PATH = '/library/series/ch01/page-001.jpg';
@@ -50,6 +52,7 @@ interface Collaborators {
   registry: { pickProvider: jest.Mock };
   cache: { getForPage: jest.Mock; putBubble: jest.Mock };
   resolver: { resolveToFilesystemPath: jest.Mock };
+  settings: { get: jest.Mock };
   provider: {
     id: Exclude<TranslationProviderId, 'tesseract-only'>;
     translate: jest.Mock;
@@ -62,6 +65,7 @@ function buildService(
     providerId: Exclude<TranslationProviderId, 'tesseract-only'>;
     translate: jest.Mock;
     status: jest.Mock;
+    settingsSourceLang: string;
   }> = {},
 ): { service: TranslationService; collab: Collaborators } {
   const providerId = overrides.providerId ?? 'deepl';
@@ -83,6 +87,11 @@ function buildService(
   const registry = { pickProvider: jest.fn().mockResolvedValue(provider) };
   const cache = { getForPage: jest.fn().mockReturnValue(null), putBubble: jest.fn() };
   const resolver = { resolveToFilesystemPath: jest.fn() };
+  const settings = {
+    get: jest.fn().mockReturnValue({
+      translation: { sourceLang: overrides.settingsSourceLang ?? 'ja' },
+    } as unknown as AppSettings),
+  };
 
   const service = new TranslationService(
     detector as unknown as BubbleDetectorService,
@@ -90,6 +99,7 @@ function buildService(
     registry as unknown as TranslationProviderRegistry,
     cache as unknown as TranslationCacheService,
     resolver as unknown as PageUrlResolverService,
+    settings as unknown as SettingsService,
   );
 
   return {
@@ -101,6 +111,7 @@ function buildService(
       registry,
       cache,
       resolver,
+      settings,
       provider: provider as Collaborators['provider'],
     },
   };
@@ -159,7 +170,7 @@ describe('TranslationService.runPipeline', () => {
 
     const result = await service.runPipeline({ pageImagePath: PAGE_PATH, targetLang: 'en' });
 
-    expect(collab.provider.translate).toHaveBeenCalledWith(['一', '二', '三'], 'en');
+    expect(collab.provider.translate).toHaveBeenCalledWith(['一', '二', '三'], 'en', 'ja');
     expect(result.pageHash).toBe(PAGE_HASH);
     expect(result.bubbles).toHaveLength(3);
     expect(result.bubbles.map(b => b.translated)).toEqual(['one', 'two', 'three']);
@@ -192,7 +203,7 @@ describe('TranslationService.runPipeline', () => {
 
     const result = await service.runPipeline({ pageImagePath: PAGE_PATH, targetLang: 'en' });
 
-    expect(collab.provider.translate).toHaveBeenCalledWith(['一', '三'], 'en');
+    expect(collab.provider.translate).toHaveBeenCalledWith(['一', '三'], 'en', 'ja');
     expect(result.bubbles).toHaveLength(3);
     expect(result.bubbles[0]).toMatchObject({ original: '一', translated: 'one' });
     expect(result.bubbles[1]).toMatchObject({ original: '   ', translated: '' });
@@ -293,5 +304,89 @@ describe('TranslationService.runPipeline', () => {
     );
     expect(collab.resolver.resolveToFilesystemPath).not.toHaveBeenCalled();
     expect(collab.detector.detect).not.toHaveBeenCalled();
+  });
+
+  // ===== Phase 2 — sourceLang propagation =====
+
+  describe('sourceLang propagation', () => {
+    it('forwards explicit sourceLang to pickBackend, ocr, and translate', async () => {
+      const boxes = [box(0, 0)];
+      const { service, collab } = buildService();
+      collab.detector.detect.mockResolvedValue(makeDetection(boxes));
+      collab.sidecar.ocr.mockResolvedValue(makeOcr(['hello']));
+      collab.provider.translate.mockResolvedValue(['cześć']);
+
+      await service.runPipeline({
+        pageImagePath: PAGE_PATH,
+        targetLang: 'pl',
+        sourceLang: 'en',
+      });
+
+      // Backend selection: registry sees the explicit sourceLang.
+      expect(collab.ocrBackends.pickBackend).toHaveBeenCalledWith('en');
+      // OCR call: backend's ocr() receives the sourceLang too so Tesseract
+      // can pick the right traineddata.
+      expect(collab.sidecar.ocr).toHaveBeenCalledWith(
+        PAGE_PATH,
+        [{ x: 0, y: 0, w: 50, h: 60 }],
+        'en',
+      );
+      // Provider: source_lang threads through for DeepL/Google/Ollama.
+      expect(collab.provider.translate).toHaveBeenCalledWith(
+        ['hello'],
+        'pl',
+        'en',
+      );
+    });
+
+    it('falls back to settings.translation.sourceLang when payload omits it', async () => {
+      const boxes = [box(0, 0)];
+      const { service, collab } = buildService({ settingsSourceLang: 'en' });
+      collab.detector.detect.mockResolvedValue(makeDetection(boxes));
+      collab.sidecar.ocr.mockResolvedValue(makeOcr(['hi']));
+      collab.provider.translate.mockResolvedValue(['cześć']);
+
+      await service.runPipeline({ pageImagePath: PAGE_PATH, targetLang: 'pl' });
+
+      // Settings sourceLang ('en') wins when the payload omits it.
+      expect(collab.ocrBackends.pickBackend).toHaveBeenCalledWith('en');
+      expect(collab.provider.translate).toHaveBeenCalledWith(['hi'], 'pl', 'en');
+    });
+
+    it('defaults to ja when both payload and settings lack sourceLang', async () => {
+      const boxes = [box(0, 0)];
+      const { service, collab } = buildService();
+      // Override the default settings stub to return undefined sourceLang.
+      collab.settings.get.mockReturnValue({
+        translation: {},
+      } as unknown as AppSettings);
+      collab.detector.detect.mockResolvedValue(makeDetection(boxes));
+      collab.sidecar.ocr.mockResolvedValue(makeOcr(['一']));
+      collab.provider.translate.mockResolvedValue(['one']);
+
+      await service.runPipeline({ pageImagePath: PAGE_PATH, targetLang: 'en' });
+
+      // ja default — registry skips no backends, OCR gets 'ja', provider gets 'ja'.
+      expect(collab.ocrBackends.pickBackend).toHaveBeenCalledWith('ja');
+      expect(collab.provider.translate).toHaveBeenCalledWith(['一'], 'en', 'ja');
+    });
+
+    it('explicit payload sourceLang overrides settings sourceLang', async () => {
+      const boxes = [box(0, 0)];
+      const { service, collab } = buildService({ settingsSourceLang: 'ja' });
+      collab.detector.detect.mockResolvedValue(makeDetection(boxes));
+      collab.sidecar.ocr.mockResolvedValue(makeOcr(['hi']));
+      collab.provider.translate.mockResolvedValue(['cześć']);
+
+      await service.runPipeline({
+        pageImagePath: PAGE_PATH,
+        targetLang: 'pl',
+        sourceLang: 'en',
+      });
+
+      // Payload wins over the persisted setting — same precedence pattern as
+      // targetLang / providerHint.
+      expect(collab.ocrBackends.pickBackend).toHaveBeenCalledWith('en');
+    });
   });
 });
