@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Download, Loader2, RefreshCw } from 'lucide-react';
 import {
   TranslationEvents,
+  type TranslationEnsureReadyPayload,
+  type TranslationEnsureReadyResponse,
   type TranslationProviderStatus,
   type TranslationProviderStatusResponse,
   type TranslationSettings,
@@ -292,7 +294,12 @@ export function TranslationSection() {
               eyebrow={t('settings.translation.pipeline.eyebrow')}
               description={t('settings.translation.pipeline.description')}
             />
-            <PipelineStatusRows pipeline={pipeline} fetched={statusFetched} t={t} />
+            <PipelineStatusRows
+              pipeline={pipeline}
+              fetched={statusFetched}
+              t={t}
+              onDownloadKicked={fetchStatus}
+            />
           </div>
         </div>
       </DisabledFieldset>
@@ -424,15 +431,22 @@ function PipelineStatusRows({
   pipeline,
   fetched,
   t,
+  onDownloadKicked,
 }: {
   pipeline: TranslationProviderStatusResponse['pipeline'] | null;
   fetched: boolean;
   t: ReturnType<typeof useT>;
+  onDownloadKicked: () => Promise<void>;
 }) {
   return (
     <div className="flex flex-col">
       <PipelineRowBubbleDetector pipeline={pipeline} fetched={fetched} t={t} />
-      <PipelineRowOcrSidecar pipeline={pipeline} fetched={fetched} t={t} />
+      <PipelineRowOcrSidecar
+        pipeline={pipeline}
+        fetched={fetched}
+        t={t}
+        onDownloadKicked={onDownloadKicked}
+      />
       <PipelineRowOcrFallback pipeline={pipeline} t={t} />
     </div>
   );
@@ -516,10 +530,12 @@ function PipelineRowOcrSidecar({
   pipeline,
   fetched,
   t,
+  onDownloadKicked,
 }: {
   pipeline: TranslationProviderStatusResponse['pipeline'] | null;
   fetched: boolean;
   t: ReturnType<typeof useT>;
+  onDownloadKicked: () => Promise<void>;
 }) {
   const sidecar = pipeline?.ocrSidecar;
   const stateLabel = sidecar
@@ -530,10 +546,11 @@ function PipelineRowOcrSidecar({
   const showProgress = sidecar?.state === 'downloading' && sidecar.downloadProgress;
   const modelLoaded = sidecar?.state === 'ready' && sidecar.modelLoaded === true;
 
-  // No `translation:ensure-ready` channel exists yet (v0.3 deferred). When the
-  // sidecar reports `not-downloaded`, render a passive Download button that
-  // surfaces the gap to the user via a toast — replace with a real handler
-  // once Slice D ships the channel.
+  // The sidecar exposes its own download via `translation:ensure-ready`; the
+  // CTA is only meaningful while the binary is missing. `crashed` / `unhealthy`
+  // also benefit from a manual retry but the desktop's auto-restart already
+  // handles short-lived crashes — surface the manual CTA for the persistent
+  // not-downloaded state to keep the UI quiet during normal operation.
   const showDownloadCta = sidecar?.state === 'not-downloaded';
 
   return (
@@ -560,7 +577,9 @@ function PipelineRowOcrSidecar({
         )}
       </div>
       <div className="flex items-center gap-2">
-        {showDownloadCta && <SidecarDownloadButton t={t} />}
+        {showDownloadCta && (
+          <SidecarDownloadButton t={t} onAfter={onDownloadKicked} />
+        )}
         <StatusPill variant={variant} label={stateLabel} />
       </div>
     </div>
@@ -655,24 +674,60 @@ function OcrDownloadProgress({
   );
 }
 
-function SidecarDownloadButton({ t }: { t: ReturnType<typeof useT> }) {
+function SidecarDownloadButton({
+  t,
+  onAfter,
+}: {
+  t: ReturnType<typeof useT>;
+  onAfter: () => Promise<void>;
+}) {
   const toast = useToast();
-  // No IPC channel exists yet — surface the limitation rather than wire a
-  // half-broken button. Replace the toast with `emitWithResponse(...ENSURE_READY)`
-  // once the channel lands.
-  const onClick = () => {
-    toast.error(t('settings.translation.pipeline.ocr.download.unavailable'), {
-      title: t('settings.translation.pipeline.ocr.download.unavailableTitle'),
-    });
+  const [pending, setPending] = useState(false);
+
+  const onClick = async () => {
+    if (pending) return;
+    setPending(true);
+    try {
+      const response = await emitWithResponse<
+        TranslationEnsureReadyPayload,
+        TranslationEnsureReadyResponse
+      >(TranslationEvents.ENSURE_READY, {});
+      if (response.error) {
+        toast.error(response.error, {
+          title: t('settings.translation.pipeline.ocr.download.failedTitle'),
+        });
+        return;
+      }
+      if (response.alreadyReady === true) {
+        toast.success(t('settings.translation.pipeline.ocr.download.alreadyReady'));
+      } else if (response.started) {
+        toast.info(t('settings.translation.pipeline.ocr.download.started'));
+      }
+      // Refresh the status snapshot so the pill flips from "Not downloaded"
+      // → "Downloading" without having to wait for the next interval tick.
+      void onAfter();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err), {
+        title: t('settings.translation.pipeline.ocr.download.failedTitle'),
+      });
+    } finally {
+      setPending(false);
+    }
   };
+
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => void onClick()}
+      disabled={pending}
       data-testid="sidecar-download-button"
-      className="inline-flex items-center gap-2 rounded-sm border border-border bg-[var(--color-ink-sunken)] px-3 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--color-bone-muted)] transition-colors hover:border-[var(--color-accent)] hover:text-foreground"
+      className="inline-flex items-center gap-2 rounded-sm border border-border bg-[var(--color-ink-sunken)] px-3 py-1.5 font-mono text-[11px] tracking-[0.18em] uppercase text-[var(--color-bone-muted)] transition-colors enabled:hover:border-[var(--color-accent)] enabled:hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
     >
-      <Download className="h-3.5 w-3.5" />
+      {pending ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Download className="h-3.5 w-3.5" />
+      )}
       {t('settings.translation.pipeline.ocr.download.label')}
     </button>
   );

@@ -244,9 +244,11 @@ export const pl = {
   'settings.translation.pipeline.ocr.state.crashed': 'Awaria',
   'settings.translation.pipeline.ocr.state.unhealthy': 'Niesprawny',
   'settings.translation.pipeline.ocr.download.label': 'Pobierz',
-  'settings.translation.pipeline.ocr.download.unavailableTitle': 'Pobieranie sidecara',
-  'settings.translation.pipeline.ocr.download.unavailable':
-    'Ręczne pobieranie nie jest jeszcze podłączone — sidecar pobierze się przy pierwszym użyciu.',
+  'settings.translation.pipeline.ocr.download.failedTitle': 'Pobieranie sidecara',
+  'settings.translation.pipeline.ocr.download.started':
+    'Pobieranie sidecara wystartowało — postęp widoczny poniżej.',
+  'settings.translation.pipeline.ocr.download.alreadyReady':
+    'Sidecar jest już zainstalowany.',
   'settings.translation.pipeline.ocrFallback.label': 'Awaryjny Tesseract',
   'settings.translation.pipeline.ocrFallback.active': 'Aktywny',
   'settings.translation.pipeline.ocrFallback.standby': 'W gotowości',

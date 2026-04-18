@@ -376,4 +376,74 @@ describe('TranslationSection — provider status IPC', () => {
       expect(getByTestId('sidecar-download-button')).toBeDefined();
     });
   });
+
+  it('clicking the OCR download button fires translation:ensure-ready and refetches status', async () => {
+    primeSettings({ enabled: true });
+    // Auto-fetch on mount: sidecar is not-downloaded so the button renders.
+    // Subsequent calls receive the ensure-ready response then a fresh status.
+    const statusResponse = makeStatusResponse({
+      pipeline: {
+        bubbleDetector: { healthy: true },
+        ocrSidecar: { state: 'not-downloaded' },
+      },
+    });
+    emitWithResponseMock.mockImplementation((event: string) => {
+      if (event === 'translation:ensure-ready') {
+        return Promise.resolve({ started: true, alreadyReady: false });
+      }
+      return Promise.resolve(statusResponse);
+    });
+
+    const { getByTestId } = render(<TranslationSection />);
+
+    await waitFor(() => {
+      expect(getByTestId('sidecar-download-button')).toBeDefined();
+    });
+
+    await act(async () => {
+      fireEvent.click(getByTestId('sidecar-download-button'));
+    });
+
+    await waitFor(() => {
+      expect(emitWithResponseMock).toHaveBeenCalledWith('translation:ensure-ready', {});
+    });
+
+    // Post-click refetch — provider-status fires again so the pill flips
+    // immediately rather than waiting for the next interval tick.
+    const statusCalls = emitWithResponseMock.mock.calls.filter(
+      ([event]) => event === 'translation:provider-status'
+    );
+    expect(statusCalls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('renders alreadyReady toast path without throwing when sidecar is already installed', async () => {
+    primeSettings({ enabled: true });
+    emitWithResponseMock.mockImplementation((event: string) => {
+      if (event === 'translation:ensure-ready') {
+        return Promise.resolve({ started: false, alreadyReady: true });
+      }
+      return Promise.resolve(
+        makeStatusResponse({
+          pipeline: {
+            bubbleDetector: { healthy: true },
+            ocrSidecar: { state: 'not-downloaded' },
+          },
+        })
+      );
+    });
+
+    const { getByTestId } = render(<TranslationSection />);
+
+    await waitFor(() => {
+      expect(getByTestId('sidecar-download-button')).toBeDefined();
+    });
+
+    await act(async () => {
+      fireEvent.click(getByTestId('sidecar-download-button'));
+    });
+
+    await waitFor(() => {
+      expect(emitWithResponseMock).toHaveBeenCalledWith('translation:ensure-ready', {});
+    });
+  });
 });
