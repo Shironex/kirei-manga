@@ -1,4 +1,4 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
 import { spawn, type ChildProcess } from 'child_process';
 import { createLogger, type OcrResult } from '@kireimanga/shared';
 import { OcrSidecarDownloader } from './ocr-sidecar-downloader';
@@ -81,9 +81,13 @@ export class OcrSidecarService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly downloader: OcrSidecarDownloader,
-    spawnFn: SpawnFn = spawn
+    // Test-only seam. Nest's reflection would try to resolve this from the DI
+    // container (TS emits `Function` metadata even with a default value), so
+    // mark it Optional to skip injection at boot. Specs construct via `new`
+    // and pass an explicit mock.
+    @Optional() spawnFn: SpawnFn = spawn
   ) {
-    this.spawnFn = spawnFn;
+    this.spawnFn = spawnFn ?? spawn;
   }
 
   /**

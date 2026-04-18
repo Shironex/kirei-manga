@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { createLogger, type TranslationProviderStatus } from '@kireimanga/shared';
 import { SettingsService } from '../../settings';
 import { getFetch, type FetchLike } from '../../shared/net-fetch';
@@ -115,7 +115,7 @@ export class GoogleTranslateProvider implements TranslationProvider {
 
   constructor(
     private readonly settings: SettingsService,
-    fetchFn?: FetchLike,
+    @Optional() fetchFn?: FetchLike,
   ) {
     // Optional `fetchFn` mirrors the `OcrSidecarService.spawnFn` seam: prod
     // uses the auto-resolved Electron / global fetch; specs inject a jest mock.

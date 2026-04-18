@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { createLogger, type TranslationProviderStatus } from '@kireimanga/shared';
 import { SettingsService } from '../../settings';
 import { getFetch, type FetchLike } from '../../shared/net-fetch';
@@ -171,7 +171,7 @@ export class OllamaProvider implements TranslationProvider {
 
   constructor(
     private readonly settings: SettingsService,
-    fetchFn?: FetchLike
+    @Optional() fetchFn?: FetchLike
   ) {
     // Optional `fetchFn` mirrors the seam used by DeepL / Google specs; prod
     // uses Electron's `net.fetch` (or global fetch in non-Electron builds),
