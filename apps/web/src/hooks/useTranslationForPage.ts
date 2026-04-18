@@ -176,10 +176,15 @@ export function useTranslationForPage(
         targetLang: targetLangRef.current,
         ...(providerHintRef.current ? { providerHint: providerHintRef.current } : {}),
       };
+      // The default 15s socket budget is calibrated for one-shot lookups; a
+      // full pipeline run is bubble-detect + per-bubble OCR (sidecar 60s
+      // per page or Tesseract worker cold-start + per-box) + provider call
+      // (Ollama 7B cold-load can be 30-60s). 120s leaves headroom for a
+      // bubble-dense page on the slowest backend without false-failing.
       const response = await emitWithResponse<
         TranslationRunPipelinePayload,
         TranslationRunPipelineResponse
-      >(TranslationEvents.RUN_PIPELINE, payload);
+      >(TranslationEvents.RUN_PIPELINE, payload, 120_000);
 
       if (!mountedRef.current || rid !== requestIdRef.current) return;
 

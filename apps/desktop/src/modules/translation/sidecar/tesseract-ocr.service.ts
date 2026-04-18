@@ -180,6 +180,13 @@ export class TesseractOcrService implements OcrBackend {
         );
         const worker = await createWorker(TESSERACT_LANGS, 1, {
           langPath: this.langPath,
+          // We ship uncompressed `.traineddata` (jpn + jpn_vert) under
+          // `resources/tesseract/`. tesseract.js v7 defaults to gzip-on-disk
+          // and would otherwise look for `jpn_vert.traineddata.gz` and crash
+          // the worker with ENOENT. Keep the bundle uncompressed for byte
+          // alignment with the upstream Slice K.1 fetch script and turn the
+          // gzip expectation off here.
+          gzip: false,
         });
         this.worker = worker;
         this.workerInitError = undefined;
