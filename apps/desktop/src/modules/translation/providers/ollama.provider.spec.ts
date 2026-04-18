@@ -329,9 +329,11 @@ describe('OllamaProvider', () => {
       });
     });
 
-    it('returns model not installed when /api/tags omits the configured model', async () => {
+    it('returns model not installed (with installed list) when /api/tags omits the configured model', async () => {
       // Daemon up but the requested tag isn't pulled -> the second of the two
       // distinct local-setup failure modes the settings UI needs to surface.
+      // The reason includes the available models so the user can fix the
+      // mismatch from settings without dropping into a terminal.
       const fetchMock = jest.fn(() =>
         jsonResponse({ models: [{ name: 'llama3:8b' }] })
       );
@@ -340,7 +342,7 @@ describe('OllamaProvider', () => {
       await expect(provider.status()).resolves.toEqual({
         id: 'ollama',
         ok: false,
-        reason: 'model not installed',
+        reason: 'model "qwen2:7b" not installed (have: llama3:8b)',
       });
     });
   });

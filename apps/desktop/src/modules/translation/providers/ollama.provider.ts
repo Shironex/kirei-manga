@@ -250,7 +250,18 @@ export class OllamaProvider implements TranslationProvider {
 
     const installed = json.models.some(m => m.name === model);
     if (!installed) {
-      return { id: this.id, ok: false, reason: 'model not installed' };
+      // Surface the available model names so the user can fix the mismatch
+      // without having to drop into a terminal. Cap at 5 to avoid blowing
+      // the status pill out of the settings panel.
+      const available = json.models
+        .map(m => m.name)
+        .slice(0, 5)
+        .join(', ');
+      const reason =
+        available.length > 0
+          ? `model "${model}" not installed (have: ${available})`
+          : `model "${model}" not installed`;
+      return { id: this.id, ok: false, reason };
     }
 
     // Local has no quota — `remainingChars` is intentionally omitted.
