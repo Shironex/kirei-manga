@@ -109,6 +109,20 @@ if ($NeedConfigure) {
     '-DBUILD_WEBP=OFF',
     '-DBUILD_OPENJPEG=OFF',
     '-DBUILD_OPENEXR=OFF',
+    # `BUILD_*=OFF` only stops OpenCV from compiling the bundled 3rd-party
+    # source — the format remains enabled and imgcodecs will reference its
+    # symbols. Pair each with `WITH_*=OFF` so imgcodecs is actually linked
+    # without these formats. PNG + JPEG are the only formats we need for
+    # manga page images.
+    '-DWITH_TIFF=OFF',
+    '-DWITH_WEBP=OFF',
+    '-DWITH_OPENJPEG=OFF',
+    '-DWITH_OPENEXR=OFF',
+    '-DWITH_JASPER=OFF',
+    '-DWITH_IMGCODEC_HDR=OFF',
+    '-DWITH_IMGCODEC_SUNRASTER=OFF',
+    '-DWITH_IMGCODEC_PXM=OFF',
+    '-DWITH_IMGCODEC_PFM=OFF',
     '-DWITH_FFMPEG=OFF',
     '-DWITH_GTK=OFF',
     '-DWITH_QT=OFF',
@@ -152,6 +166,22 @@ foreach ($candidate in $LibCandidates) {
 }
 if (-not $LibDir) {
   throw "Could not locate OpenCV lib dir under $InstallDir"
+}
+
+# OpenCV's Windows static-lib build appends the version (e.g. `4110`) to the
+# library file names: `opencv_imgcodecs4110.lib`. binding.gyp passes the libs
+# as `-lopencv_imgcodecs` (no version) to keep the gyp config OpenCV-version
+# agnostic. Bridge the gap by copying each versioned lib to a versionless
+# alias next to it. POSIX builds don't have this issue (libs are
+# `libopencv_imgcodecs.a`).
+Get-ChildItem $LibDir -Filter 'opencv_*.lib' | ForEach-Object {
+  if ($_.Name -match '^(opencv_[a-z0-9]+?)\d+\.lib$') {
+    $alias = Join-Path $LibDir ($Matches[1] + '.lib')
+    if (-not (Test-Path $alias) -or ((Get-Item $alias).LastWriteTimeUtc -lt $_.LastWriteTimeUtc)) {
+      Copy-Item -Path $_.FullName -Destination $alias -Force
+      Write-Host "==> Aliased $($_.Name) -> $($Matches[1]).lib"
+    }
+  }
 }
 
 $ThirdPartyCandidates = @(
