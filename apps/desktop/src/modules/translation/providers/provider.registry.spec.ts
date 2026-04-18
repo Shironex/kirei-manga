@@ -2,14 +2,16 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { TranslationProviderId, TranslationProviderStatus } from '@kireimanga/shared';
 import { TranslationProviderRegistry } from './provider.registry';
 import { DeepLProvider } from './deepl.provider';
+import { GoogleTranslateProvider } from './google-translate.provider';
 import { SettingsService } from '../../settings';
 import type { TranslationProvider } from './provider.interface';
 
 /**
- * Selection coverage for `pickProvider`. The registry currently wires only
- * DeepL via Nest DI, but `pickProvider` walks `this.providers` generically —
- * so we replace `this.providers` with a small fake array for each test to
- * exercise the multi-provider selection paths Slices I / J will rely on.
+ * Selection coverage for `pickProvider`. Slice I.1 added Google alongside
+ * DeepL, so the Nest test module wires both real providers as DI fakes; the
+ * tests below replace `this.providers` with bespoke arrays per case to
+ * exercise the multi-provider selection paths (Slice J will append Ollama
+ * the same way).
  */
 function makeFakeProvider(
   id: Exclude<TranslationProviderId, 'tesseract-only'>,
@@ -37,6 +39,7 @@ describe('TranslationProviderRegistry', () => {
   let registry: TranslationProviderRegistry;
   let settings: { get: jest.Mock };
   let deepl: { id: 'deepl'; translate: jest.Mock; status: jest.Mock };
+  let google: { id: 'google'; translate: jest.Mock; status: jest.Mock };
 
   beforeEach(async () => {
     settings = {
@@ -45,12 +48,14 @@ describe('TranslationProviderRegistry', () => {
       }),
     };
     deepl = { id: 'deepl', translate: jest.fn(), status: jest.fn() };
+    google = { id: 'google', translate: jest.fn(), status: jest.fn() };
 
     module = await Test.createTestingModule({
       providers: [
         TranslationProviderRegistry,
         { provide: SettingsService, useValue: settings },
         { provide: DeepLProvider, useValue: deepl },
+        { provide: GoogleTranslateProvider, useValue: google },
       ],
     }).compile();
 

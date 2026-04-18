@@ -7,6 +7,7 @@ import {
 import { SettingsService } from '../../settings';
 import type { TranslationProvider } from './provider.interface';
 import { DeepLProvider } from './deepl.provider';
+import { GoogleTranslateProvider } from './google-translate.provider';
 
 const logger = createLogger('TranslationProviderRegistry');
 
@@ -25,12 +26,12 @@ export class TranslationProviderRegistry {
 
   constructor(
     private readonly settings: SettingsService,
-    deepl: DeepLProvider
-    // I/J phases inject GoogleProvider, OllamaProvider here:
-    // google: GoogleProvider,
+    deepl: DeepLProvider,
+    google: GoogleTranslateProvider
+    // J phase injects OllamaProvider here:
     // ollama: OllamaProvider,
   ) {
-    this.providers = [deepl];
+    this.providers = [deepl, google];
   }
 
   /**
