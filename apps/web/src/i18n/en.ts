@@ -588,6 +588,18 @@ export const en = {
   'reader.toast.sessionTitle': 'Reader session',
   'reader.toast.prefsTitle': 'Reader preferences',
 
+  // Reader — Bubble flag (Slice L.2). Lives inside the original-text
+  // popover; sends translation:report-bad to the desktop service.
+  'reader.bubble.flag.label': 'Flag',
+  'reader.bubble.flag.openAria': 'Flag this translation',
+  'reader.bubble.flag.notePlaceholder': 'What looks wrong? (optional)',
+  'reader.bubble.flag.submit': 'Send',
+  'reader.bubble.flag.cancel': 'Cancel',
+  'reader.bubble.flag.submitting': 'Sending…',
+  'reader.bubble.flag.toast.successTitle': 'Flag submitted',
+  'reader.bubble.flag.toast.successBody': 'Saved locally — thanks for the report.',
+  'reader.bubble.flag.toast.errorTitle': 'Flag failed',
+
   // Toast
   'toast.eyebrow.error': 'ERROR',
   'toast.eyebrow.notice': 'NOTICE',

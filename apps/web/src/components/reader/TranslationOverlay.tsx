@@ -7,7 +7,17 @@ import {
   type ForwardedRef,
   type MouseEvent,
 } from 'react';
-import type { BoundingBox, PageTranslation } from '@kireimanga/shared';
+import { Flag } from 'lucide-react';
+import {
+  TranslationEvents,
+  type BoundingBox,
+  type PageTranslation,
+  type TranslationReportBadPayload,
+  type TranslationReportBadResponse,
+} from '@kireimanga/shared';
+import { emitWithResponse } from '@/lib/socket';
+import { useT } from '@/hooks/useT';
+import { useToast } from '@/hooks/useToast';
 import { FittedText } from './FittedText';
 import { DEFAULT_OVERLAY_MODE, type OverlayMode } from './overlay-mode';
 
@@ -185,6 +195,8 @@ export function TranslationOverlay({
           original={activeBubble.original}
           scale={scale}
           originalFont={originalFont}
+          pageHash={page.pageHash}
+          bubbleIndex={activeBubbleIndex!}
           onClose={() => setActiveBubbleIndex(null)}
         />
       )}
@@ -311,20 +323,33 @@ interface OriginalTextPopoverProps {
   original: string;
   scale: number;
   originalFont: string;
+  /** Page hash this bubble belongs to — used to key the bad-translation flag. */
+  pageHash: string;
+  /** Bubble's index inside `page.bubbles` — used to key the bad-translation flag. */
+  bubbleIndex: number;
   onClose: () => void;
 }
 
 /**
  * Small anchored popover that surfaces the bubble's untranslated JP text
- * (Slice G.4). Positioned in the same coordinate system as the bubble it
- * came from — placed above by default, or below if the bubble sits near
- * the top of the page so the popover would otherwise clip off-screen.
+ * (Slice G.4) and hosts the bad-translation flag form (Slice L.2).
+ * Positioned in the same coordinate system as the bubble it came from —
+ * placed above by default, or below if the bubble sits near the top of
+ * the page so the popover would otherwise clip off-screen.
  *
  * Wrapped in `forwardRef` so the overlay's outside-click handler can
  * compare `event.target` against the popover's DOM node.
  */
 const OriginalTextPopover = forwardRef(function OriginalTextPopover(
-  { box, original, scale, originalFont, onClose }: OriginalTextPopoverProps,
+  {
+    box,
+    original,
+    scale,
+    originalFont,
+    pageHash,
+    bubbleIndex,
+    onClose,
+  }: OriginalTextPopoverProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
   const POPOVER_OFFSET = 8;
@@ -378,6 +403,7 @@ const OriginalTextPopover = forwardRef(function OriginalTextPopover(
       </p>
       <div className="mt-3 flex items-center justify-end gap-2">
         <CopyButton text={original} />
+        <FlagButton pageHash={pageHash} bubbleIndex={bubbleIndex} onSubmitted={onClose} />
         <button
           type="button"
           data-testid="original-text-popover-close"
@@ -429,5 +455,119 @@ function CopyButton({ text }: CopyButtonProps) {
     >
       {copied ? 'Copied!' : 'Copy'}
     </button>
+  );
+}
+
+interface FlagButtonProps {
+  pageHash: string;
+  bubbleIndex: number;
+  /** Called after a successful submit so the popover can close itself. */
+  onSubmitted: () => void;
+}
+
+/**
+ * Slice L.2 — opens an inline form inside the popover for reporting a bad
+ * translation. The form holds an optional free-form note; the `reason`
+ * sent over the wire is hard-coded to `'user-flagged'` for v0.3 (a reason
+ * picker is a v0.5 follow-up).
+ */
+function FlagButton({ pageHash, bubbleIndex, onSubmitted }: FlagButtonProps) {
+  const t = useT();
+  const toast = useToast();
+  const [flagOpen, setFlagOpen] = useState(false);
+  const [note, setNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const closeForm = useCallback(() => {
+    setFlagOpen(false);
+    setNote('');
+  }, []);
+
+  const onSubmit = useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    const trimmed = note.trim();
+    try {
+      const response = await emitWithResponse<
+        TranslationReportBadPayload,
+        TranslationReportBadResponse
+      >(TranslationEvents.REPORT_BAD, {
+        pageHash,
+        bubbleIndex,
+        reason: 'user-flagged',
+        userNote: trimmed.length > 0 ? trimmed : undefined,
+      });
+
+      if (!response.success) {
+        toast.error(response.error ?? t('reader.bubble.flag.toast.errorTitle'), {
+          title: t('reader.bubble.flag.toast.errorTitle'),
+        });
+        return;
+      }
+
+      toast.success(t('reader.bubble.flag.toast.successBody'), {
+        title: t('reader.bubble.flag.toast.successTitle'),
+      });
+      closeForm();
+      onSubmitted();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err), {
+        title: t('reader.bubble.flag.toast.errorTitle'),
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [bubbleIndex, closeForm, note, onSubmitted, pageHash, submitting, t, toast]);
+
+  if (!flagOpen) {
+    return (
+      <button
+        type="button"
+        data-testid="bubble-flag-button"
+        aria-label={t('reader.bubble.flag.openAria')}
+        onClick={() => setFlagOpen(true)}
+        className="inline-flex h-7 items-center gap-1.5 rounded-[2px] border border-border px-3 font-mono text-[10.5px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+      >
+        <Flag aria-hidden className="h-3 w-3" />
+        {t('reader.bubble.flag.label')}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-1 w-full border border-border bg-[var(--color-ink-raised)] p-3">
+      <p className="mb-2 font-mono text-[10px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase">
+        {t('reader.bubble.flag.label')}
+      </p>
+      <textarea
+        data-testid="bubble-flag-textarea"
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        placeholder={t('reader.bubble.flag.notePlaceholder')}
+        rows={3}
+        disabled={submitting}
+        className="w-full resize-none border border-border bg-[var(--color-ink)] p-2 text-[12px] text-[var(--color-bone)] placeholder:text-[var(--color-bone-muted)] focus:border-[var(--color-accent)] focus:outline-none"
+      />
+      <div className="mt-2 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          data-testid="bubble-flag-cancel"
+          onClick={closeForm}
+          disabled={submitting}
+          className="font-mono text-[10px] tracking-[0.22em] text-[var(--color-bone-muted)] uppercase transition-colors hover:text-foreground disabled:opacity-50"
+        >
+          {t('reader.bubble.flag.cancel')}
+        </button>
+        <button
+          type="button"
+          data-testid="bubble-flag-submit"
+          onClick={() => void onSubmit()}
+          disabled={submitting}
+          className="inline-flex h-7 items-center rounded-[2px] border border-border px-3 font-mono text-[10.5px] tracking-[0.22em] text-foreground uppercase transition-colors hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] disabled:opacity-50 disabled:hover:border-border disabled:hover:text-foreground"
+        >
+          {submitting ? t('reader.bubble.flag.submitting') : t('reader.bubble.flag.submit')}
+        </button>
+      </div>
+    </div>
   );
 }

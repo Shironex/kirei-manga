@@ -1,6 +1,15 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import type { PageTranslation } from '@kireimanga/shared';
+
+// L.2 — the FlagButton inside the overlay calls emitWithResponse against the
+// translation:report-bad channel. Mock the socket layer so the test never
+// touches a real WebSocket. Hoisted by Vitest above any other imports.
+const emitWithResponseMock = vi.fn();
+vi.mock('@/lib/socket', () => ({
+  emitWithResponse: (event: string, payload: unknown) => emitWithResponseMock(event, payload),
+}));
+
 import { TranslationOverlay } from './TranslationOverlay';
 
 // jsdom doesn't lay anything out — the FittedText useLayoutEffect runs but
@@ -440,5 +449,127 @@ describe('TranslationOverlay — original-text popover (G.4)', () => {
     // Default `originalFont` resolves to the project's kanji token, which
     // declares Shippori Mincho first in its stack.
     expect(text.style.fontFamily).toBe('var(--font-kanji)');
+  });
+});
+
+describe('OriginalTextPopover — flag flow (Slice L.2)', () => {
+  beforeEach(() => {
+    emitWithResponseMock.mockReset();
+  });
+
+  it('opens the form, sends translation:report-bad with the typed note, and closes on success', async () => {
+    emitWithResponseMock.mockResolvedValue({ success: true });
+    const page = makePage(
+      [makeBubble({ original: 'こんにちは', translated: 'Hello' })],
+      'page-hash-flag'
+    );
+
+    const { getByTestId, queryByTestId } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+      />
+    );
+
+    // Open the popover, then the flag form.
+    fireEvent.click(getByTestId('translation-bubble'));
+    fireEvent.click(getByTestId('bubble-flag-button'));
+
+    const textarea = getByTestId('bubble-flag-textarea') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: '  Translation reads backwards.  ' } });
+
+    await act(async () => {
+      fireEvent.click(getByTestId('bubble-flag-submit'));
+    });
+
+    expect(emitWithResponseMock).toHaveBeenCalledTimes(1);
+    expect(emitWithResponseMock).toHaveBeenCalledWith('translation:report-bad', {
+      pageHash: 'page-hash-flag',
+      bubbleIndex: 0,
+      reason: 'user-flagged',
+      userNote: 'Translation reads backwards.',
+    });
+
+    // Successful submit closes both the form and the popover itself.
+    await waitFor(() => {
+      expect(queryByTestId('original-text-popover')).toBeNull();
+    });
+  });
+
+  it('omits userNote when the textarea is empty / whitespace-only', async () => {
+    emitWithResponseMock.mockResolvedValue({ success: true });
+    const page = makePage([makeBubble({ original: 'こんにちは' })], 'page-hash-empty');
+
+    const { getByTestId } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+      />
+    );
+
+    fireEvent.click(getByTestId('translation-bubble'));
+    fireEvent.click(getByTestId('bubble-flag-button'));
+    fireEvent.change(getByTestId('bubble-flag-textarea'), { target: { value: '   ' } });
+
+    await act(async () => {
+      fireEvent.click(getByTestId('bubble-flag-submit'));
+    });
+
+    expect(emitWithResponseMock).toHaveBeenCalledTimes(1);
+    expect(emitWithResponseMock).toHaveBeenCalledWith('translation:report-bad', {
+      pageHash: 'page-hash-empty',
+      bubbleIndex: 0,
+      reason: 'user-flagged',
+      userNote: undefined,
+    });
+  });
+
+  it('keeps the form open when the response reports an error', async () => {
+    emitWithResponseMock.mockResolvedValue({ success: false, error: 'db locked' });
+    const page = makePage([makeBubble({ original: 'こんにちは' })]);
+
+    const { getByTestId, queryByTestId } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+      />
+    );
+
+    fireEvent.click(getByTestId('translation-bubble'));
+    fireEvent.click(getByTestId('bubble-flag-button'));
+
+    await act(async () => {
+      fireEvent.click(getByTestId('bubble-flag-submit'));
+    });
+
+    // Popover and form both stay open so the user can retry / cancel.
+    expect(queryByTestId('original-text-popover')).not.toBeNull();
+    expect(queryByTestId('bubble-flag-textarea')).not.toBeNull();
+  });
+
+  it('Cancel closes the form without firing the IPC', () => {
+    const page = makePage([makeBubble({ original: 'こんにちは' })]);
+
+    const { getByTestId, queryByTestId } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+      />
+    );
+
+    fireEvent.click(getByTestId('translation-bubble'));
+    fireEvent.click(getByTestId('bubble-flag-button'));
+    expect(queryByTestId('bubble-flag-textarea')).not.toBeNull();
+
+    fireEvent.click(getByTestId('bubble-flag-cancel'));
+
+    expect(emitWithResponseMock).not.toHaveBeenCalled();
+    expect(queryByTestId('bubble-flag-textarea')).toBeNull();
+    // Popover itself stays open — only the form collapsed.
+    expect(queryByTestId('original-text-popover')).not.toBeNull();
   });
 });
