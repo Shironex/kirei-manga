@@ -9,20 +9,70 @@ import type { OcrRequestBox } from './ocr-sidecar.types';
 const logger = createLogger('TesseractOcrService');
 
 /**
- * Languages loaded into the worker. `jpn` covers horizontal text (yokogaki);
- * `jpn_vert` covers vertical text (tategaki) — most manga speech bubbles. We
- * keep both warm so a single worker handles either orientation; per-box PSM
- * tuning happens in the call options if/when it becomes worth it.
+ * Tesseract language pack identifiers — must match `<lang>.traineddata` files
+ * present in `langPath`. The `+` syntax loads multiple traineddata into one
+ * worker; for Japanese we keep both orientations warm because manga mixes
+ * yokogaki + tategaki. Order matters: tesseract honours the listed sequence
+ * when assembling its character set.
  */
-const TESSERACT_LANGS = 'jpn+jpn_vert';
+type TesseractLang = 'jpn+jpn_vert' | 'eng' | 'kor+kor_vert' | 'chi_sim' | 'chi_tra';
 
 /**
- * Required traineddata files in `langPath`. The presence check below is the
- * hard gate for `getStatus().healthy`: if either is missing, the bundled
- * worker init would download them from upstream — which is the exact runtime
- * network call we are avoiding by shipping `_fast` traineddata locally.
+ * BCP-47 → Tesseract lang routing. Manga-OCR is Japanese-only, so any
+ * non-`'ja'` source falls through to Tesseract — `sourceLang` here is
+ * whatever the orchestrator forwards from settings / per-page payload.
+ *
+ * Korean / Chinese entries are best-effort: the bundled `extraResources`
+ * filter only ships `jpn*` + `eng` traineddata today (see
+ * `apps/desktop/resources/tesseract/`). Selecting one of the unbundled
+ * codes flips `getStatus().healthy` to false so the user sees a clear
+ * "traineddata not found" reason rather than tesseract.js trying to
+ * download it from upstream.
+ */
+const LANG_BY_BCP47: Record<string, TesseractLang> = {
+  ja: 'jpn+jpn_vert',
+  jp: 'jpn+jpn_vert',
+  jpn: 'jpn+jpn_vert',
+  en: 'eng',
+  eng: 'eng',
+  ko: 'kor+kor_vert',
+  kor: 'kor+kor_vert',
+  zh: 'chi_sim',
+  'zh-cn': 'chi_sim',
+  'zh-hans': 'chi_sim',
+  'zh-tw': 'chi_tra',
+  'zh-hant': 'chi_tra',
+};
+
+const FALLBACK_LANG: TesseractLang = 'eng';
+
+function resolveTesseractLang(sourceLang: string | undefined): TesseractLang {
+  const key = (sourceLang ?? 'ja').toLowerCase();
+  const mapped = LANG_BY_BCP47[key];
+  if (mapped) return mapped;
+  logger.warn(
+    `unmapped sourceLang "${sourceLang}" — falling back to ${FALLBACK_LANG}`,
+  );
+  return FALLBACK_LANG;
+}
+
+/**
+ * Required traineddata files keyed by Tesseract lang. The presence check
+ * below is the hard gate for `getStatus().healthy`: if any are missing, the
+ * bundled worker init would download them from upstream — the exact runtime
+ * network call we avoid by shipping `_fast` traineddata locally.
+ *
+ * The status reflects only the **default** Japanese pair so the K.3 settings
+ * UI shows a stable health pill regardless of which sourceLang the user
+ * picks. Worker init for an unbundled lang fails at use-time with a clear
+ * "traineddata not found" reason via the workerInitError path.
  */
 const REQUIRED_TRAINEDDATA = ['jpn.traineddata', 'jpn_vert.traineddata'] as const;
+
+/** Files that must be on disk for a given Tesseract lang to spin up a worker. */
+function trainedDataFilesFor(lang: TesseractLang): string[] {
+  return lang.split('+').map(part => `${part}.traineddata`);
+}
 
 /**
  * Resolve the directory containing the bundled `*.traineddata` files. Two
@@ -84,8 +134,14 @@ function resolveLangPath(): string {
 @Injectable()
 export class TesseractOcrService implements OcrBackend {
   private readonly langPath: string;
-  private worker: Worker | null = null;
-  private workerInitPromise: Promise<Worker> | null = null;
+  /**
+   * Per-lang worker cache. The first OCR call for a given Tesseract lang
+   * pays the ~1-2s init cost; subsequent calls for the same lang reuse the
+   * warm worker. Mid-session lang switches keep the previous worker alive
+   * (so flipping back is free) — process exit reclaims the WASM modules.
+   */
+  private readonly workers = new Map<TesseractLang, Worker>();
+  private readonly workerInitPromises = new Map<TesseractLang, Promise<Worker>>();
   private workerInitError: string | undefined;
 
   constructor() {
@@ -93,10 +149,15 @@ export class TesseractOcrService implements OcrBackend {
   }
 
   /**
-   * Pick a backend? Healthy iff both traineddata files exist on disk and the
-   * lazy worker init didn't already fail. The presence check is synchronous
-   * + cached on every call, but `existsSync` against two small filenames is
-   * fast enough not to bother memoising.
+   * Pick a backend? Healthy iff the default Japanese traineddata pair exists
+   * on disk and the most recent worker init didn't fail. The presence check
+   * is synchronous + cached on every call, but `existsSync` against two
+   * small filenames is fast enough not to bother memoising.
+   *
+   * The status only checks the default Japanese pack: an unbundled
+   * sourceLang (Korean/Chinese) surfaces its missing traineddata at use-time
+   * via the workerInitError path so the K.3 status pill stays stable for
+   * the dominant case.
    */
   getStatus(): OcrBackendStatus {
     const missing = REQUIRED_TRAINEDDATA.filter(
@@ -117,18 +178,24 @@ export class TesseractOcrService implements OcrBackend {
   }
 
   /**
-   * OCR every box in turn. Per-box failures encapsulate: one box throwing
-   * surfaces as `text: ''` (matches the sidecar's contract — the
-   * orchestrator detects empty originals and skips the translate batch
-   * entry) so a single corrupted bubble doesn't poison the whole page.
+   * OCR every box in turn against the worker matching `sourceLang`.
+   * Per-box failures encapsulate: one box throwing surfaces as `text: ''`
+   * (matches the sidecar's contract — the orchestrator detects empty
+   * originals and skips the translate batch entry) so a single corrupted
+   * bubble doesn't poison the whole page.
    *
-   * Boxes are processed sequentially, not in parallel: tesseract.js owns a
-   * single WASM module + worker thread, so concurrent `recognize()` calls
-   * just queue inside the worker anyway — the cost of starting them in
-   * parallel is wasted task scheduling, not wall-clock speedup.
+   * Boxes are processed sequentially: tesseract.js owns a single WASM
+   * module + worker thread per language, so concurrent `recognize()` calls
+   * just queue inside the worker anyway — parallel scheduling is wasted
+   * task switching, not wall-clock speedup.
    */
-  async ocr(imagePath: string, boxes: OcrRequestBox[]): Promise<OcrResult[]> {
-    const worker = await this.ensureWorker();
+  async ocr(
+    imagePath: string,
+    boxes: OcrRequestBox[],
+    sourceLang?: string,
+  ): Promise<OcrResult[]> {
+    const lang = resolveTesseractLang(sourceLang);
+    const worker = await this.ensureWorker(lang);
     const results: OcrResult[] = [];
     for (let boxIndex = 0; boxIndex < boxes.length; boxIndex++) {
       const box = boxes[boxIndex];
@@ -150,45 +217,62 @@ export class TesseractOcrService implements OcrBackend {
     return results;
   }
 
-  /** Test seam — clear the cached worker so re-init can be exercised. */
+  /** Test seam — terminate every cached worker so re-init can be exercised. */
   async terminate(): Promise<void> {
-    if (this.worker) {
-      const w = this.worker;
-      this.worker = null;
-      this.workerInitPromise = null;
-      try {
-        await w.terminate();
-      } catch (err) {
-        logger.warn(`tesseract worker terminate failed: ${(err as Error).message}`);
-      }
-    }
+    const workers = Array.from(this.workers.values());
+    this.workers.clear();
+    this.workerInitPromises.clear();
+    await Promise.all(
+      workers.map(async w => {
+        try {
+          await w.terminate();
+        } catch (err) {
+          logger.warn(`tesseract worker terminate failed: ${(err as Error).message}`);
+        }
+      }),
+    );
   }
 
   /**
-   * Lazy worker init. Concurrent first calls share the same in-flight
-   * `workerInitPromise` so we never spawn two workers — both would compete
-   * for the same WASM module load and one would silently win.
+   * Lazy worker init keyed by Tesseract lang. Concurrent first calls for the
+   * same lang share an in-flight init promise so we never spawn two workers
+   * for one lang — both would compete for the same WASM module load and one
+   * would silently win. Different langs get their own slot in the cache.
    */
-  private ensureWorker(): Promise<Worker> {
-    if (this.worker) return Promise.resolve(this.worker);
-    if (this.workerInitPromise) return this.workerInitPromise;
+  private ensureWorker(lang: TesseractLang): Promise<Worker> {
+    const existing = this.workers.get(lang);
+    if (existing) return Promise.resolve(existing);
+    const inflight = this.workerInitPromises.get(lang);
+    if (inflight) return inflight;
 
-    this.workerInitPromise = (async () => {
+    // Pre-flight the traineddata files for this specific lang so an
+    // unbundled lang fails fast with a useful path rather than tesseract.js
+    // attempting to fetch from upstream and ENOENT'ing on the .gz suffix.
+    const required = trainedDataFilesFor(lang);
+    const missing = required.filter(
+      f => !fsSync.existsSync(path.join(this.langPath, f)),
+    );
+    if (missing.length > 0) {
+      this.workerInitError = `traineddata not found for "${lang}" at ${this.langPath} (missing: ${missing.join(', ')})`;
+      logger.warn(this.workerInitError);
+      return Promise.reject(new Error(this.workerInitError));
+    }
+
+    const promise = (async () => {
       try {
         logger.info(
-          `Initializing Tesseract worker (langs=${TESSERACT_LANGS}, langPath=${this.langPath})`,
+          `Initializing Tesseract worker (langs=${lang}, langPath=${this.langPath})`,
         );
-        const worker = await createWorker(TESSERACT_LANGS, 1, {
+        const worker = await createWorker(lang, 1, {
           langPath: this.langPath,
-          // We ship uncompressed `.traineddata` (jpn + jpn_vert) under
-          // `resources/tesseract/`. tesseract.js v7 defaults to gzip-on-disk
-          // and would otherwise look for `jpn_vert.traineddata.gz` and crash
-          // the worker with ENOENT. Keep the bundle uncompressed for byte
-          // alignment with the upstream Slice K.1 fetch script and turn the
-          // gzip expectation off here.
+          // We ship uncompressed `.traineddata` under `resources/tesseract/`.
+          // tesseract.js v7 defaults to gzip-on-disk and would otherwise look
+          // for `<lang>.traineddata.gz` and crash the worker with ENOENT.
+          // Keep the bundle uncompressed for byte alignment with the upstream
+          // Slice K.1 fetch script and turn the gzip expectation off here.
           gzip: false,
         });
-        this.worker = worker;
+        this.workers.set(lang, worker);
         this.workerInitError = undefined;
         return worker;
       } catch (err) {
@@ -197,13 +281,13 @@ export class TesseractOcrService implements OcrBackend {
         // Drop the cached promise so a future call can retry — the failure
         // is sticky in `getStatus()` until then, which is what the
         // settings UI wants to display.
-        this.workerInitPromise = null;
+        this.workerInitPromises.delete(lang);
         logger.warn(this.workerInitError);
         throw new Error(this.workerInitError);
       }
     })();
-
-    return this.workerInitPromise;
+    this.workerInitPromises.set(lang, promise);
+    return promise;
   }
 }
 

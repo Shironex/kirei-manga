@@ -97,6 +97,47 @@ describe('OcrBackendRegistry', () => {
       expect(() => registry.pickBackend()).toThrow(/sidecar: crashed 3x/);
       expect(() => registry.pickBackend()).toThrow(/tesseract: traineddata missing/);
     });
+
+    // ===== Phase 2 — sourceLang routing =====
+
+    it('skips the sidecar when sourceLang is non-Japanese (manga-OCR is JP-only)', async () => {
+      const { registry, sidecar, tesseract } = buildRegistry({
+        sidecarStatus: { state: 'ready', modelLoaded: true },
+        tesseractStatus: { healthy: true },
+      });
+
+      const backend = registry.pickBackend('en');
+      await backend.ocr('/img.jpg', [{ x: 0, y: 0, w: 1, h: 1 }], 'en');
+
+      expect(tesseract.ocr).toHaveBeenCalledTimes(1);
+      // Critical: even though the sidecar is `ready`, the registry must skip
+      // it for English — manga-OCR would emit garbage on Latin script.
+      expect(sidecar.ocr).not.toHaveBeenCalled();
+    });
+
+    it('uses the sidecar for sourceLang=ja when both backends are healthy', () => {
+      const { registry, sidecar } = buildRegistry({
+        sidecarStatus: { state: 'ready', modelLoaded: true },
+        tesseractStatus: { healthy: true },
+      });
+
+      const backend = registry.pickBackend('ja');
+      expect(backend.getStatus().healthy).toBe(true);
+      // Sanity: the picked backend's getStatus matches the sidecar's adapter
+      // (always reports `{healthy: true}` for `ready`).
+      expect(sidecar.getStatus).toHaveBeenCalled();
+    });
+
+    it('skip-sidecar message names the sourceLang when no Tesseract traineddata is available', () => {
+      const { registry } = buildRegistry({
+        sidecarStatus: { state: 'ready', modelLoaded: true },
+        tesseractStatus: { healthy: false, reason: 'traineddata not found for "eng"' },
+      });
+
+      expect(() => registry.pickBackend('en')).toThrow(/sourceLang=en/);
+      expect(() => registry.pickBackend('en')).toThrow(/Japanese-only/);
+      expect(() => registry.pickBackend('en')).toThrow(/traineddata not found for "eng"/);
+    });
   });
 
   describe('getFallbackStatus()', () => {

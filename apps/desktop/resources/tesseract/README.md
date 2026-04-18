@@ -1,8 +1,9 @@
 # Tesseract Traineddata (Slice K.1)
 
-`tesseract.js` looks here for the Japanese language models used as the OCR
-fallback when the manga-ocr Python sidecar (Slice D) is unavailable
-(download not completed, crashed, or user opted out).
+`tesseract.js` looks here for the language models used as the OCR fallback
+when the manga-ocr Python sidecar (Slice D) is unavailable (download not
+completed, crashed, or user opted out) — and as the **only** OCR backend
+for non-Japanese sources, because manga-OCR is Japanese-only.
 
 ## Files
 
@@ -10,9 +11,18 @@ fallback when the manga-ocr Python sidecar (Slice D) is unavailable
 | ---------------------- | ------------- | ------------------------------ |
 | `jpn.traineddata`      | 2.4 MB        | Horizontal Japanese (yokogaki) |
 | `jpn_vert.traineddata` | 2.9 MB        | Vertical Japanese (tategaki)   |
+| `eng.traineddata`      | 3.9 MB        | English (sourceLang routing)   |
 
-Total bundled overhead: ~5.5 MB. Much smaller than the ~450 MB sidecar
+Total bundled overhead: ~9.2 MB. Much smaller than the ~450 MB sidecar
 (Slice D), so worth the disk cost for a zero-config offline fallback.
+
+`eng.traineddata` lets users translate from already-translated scanlations
+(English → Polish, etc.) when the `sourceLang` setting is flipped to `'en'`
+— `OcrBackendRegistry.pickBackend()` skips the Japanese-only sidecar in
+that case. Korean / Chinese traineddata is **not** bundled to keep the
+installer trim; users with those sources can drop their own
+`kor*.traineddata` / `chi_*.traineddata` into this directory and the
+worker init will discover them via the existing `langPath` lookup.
 
 ## Source
 
@@ -21,6 +31,7 @@ on GitHub, raw URLs:
 
 - https://github.com/tesseract-ocr/tessdata_fast/raw/main/jpn.traineddata
 - https://github.com/tesseract-ocr/tessdata_fast/raw/main/jpn_vert.traineddata
+- https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata
 
 ## Why `_fast` and not `_best` or `tessdata`?
 

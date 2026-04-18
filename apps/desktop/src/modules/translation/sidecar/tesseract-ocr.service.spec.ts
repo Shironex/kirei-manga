@@ -29,11 +29,13 @@ import { TesseractOcrService } from './tesseract-ocr.service';
 function makeTrainedDataDir(opts: {
   withJpn?: boolean;
   withJpnVert?: boolean;
+  withEng?: boolean;
 } = {}): string {
-  const { withJpn = true, withJpnVert = true } = opts;
+  const { withJpn = true, withJpnVert = true, withEng = false } = opts;
   const dir = fsSync.mkdtempSync(path.join(require('os').tmpdir(), 'tess-spec-'));
   if (withJpn) fsSync.writeFileSync(path.join(dir, 'jpn.traineddata'), 'fake');
   if (withJpnVert) fsSync.writeFileSync(path.join(dir, 'jpn_vert.traineddata'), 'fake');
+  if (withEng) fsSync.writeFileSync(path.join(dir, 'eng.traineddata'), 'fake');
   return dir;
 }
 
@@ -198,6 +200,82 @@ describe('TesseractOcrService', () => {
       // box loop) — that's fine, the assertion here is just that the
       // recognize() seam was never called for an empty box list.
       expect(mockRecognize).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('sourceLang routing', () => {
+    it('defaults to jpn+jpn_vert when sourceLang is omitted', async () => {
+      const service = new TesseractOcrService();
+      pinLangPath(service, makeTrainedDataDir());
+      mockRecognize.mockResolvedValue({ data: { text: 'こんにちは', blocks: [] } });
+
+      await service.ocr('/img.jpg', [{ x: 0, y: 0, w: 1, h: 1 }]);
+
+      const [langs] = mockCreateWorker.mock.calls[0];
+      expect(langs).toBe('jpn+jpn_vert');
+    });
+
+    it('routes sourceLang=ja to jpn+jpn_vert', async () => {
+      const service = new TesseractOcrService();
+      pinLangPath(service, makeTrainedDataDir());
+      mockRecognize.mockResolvedValue({ data: { text: 'こんにちは', blocks: [] } });
+
+      await service.ocr('/img.jpg', [{ x: 0, y: 0, w: 1, h: 1 }], 'ja');
+
+      const [langs] = mockCreateWorker.mock.calls[0];
+      expect(langs).toBe('jpn+jpn_vert');
+    });
+
+    it('routes sourceLang=en to eng and spawns a separate worker', async () => {
+      const service = new TesseractOcrService();
+      pinLangPath(service, makeTrainedDataDir({ withEng: true }));
+      mockRecognize.mockResolvedValue({ data: { text: 'hello', blocks: [] } });
+
+      await service.ocr('/img.jpg', [{ x: 0, y: 0, w: 1, h: 1 }], 'en');
+
+      expect(mockCreateWorker).toHaveBeenCalledTimes(1);
+      const [langs] = mockCreateWorker.mock.calls[0];
+      expect(langs).toBe('eng');
+    });
+
+    it('caches one worker per lang and reuses on subsequent same-lang calls', async () => {
+      const service = new TesseractOcrService();
+      pinLangPath(service, makeTrainedDataDir({ withEng: true }));
+      mockRecognize.mockResolvedValue({ data: { text: 'x', blocks: [] } });
+
+      await service.ocr('/img.jpg', [{ x: 0, y: 0, w: 1, h: 1 }], 'ja');
+      await service.ocr('/img.jpg', [{ x: 0, y: 0, w: 1, h: 1 }], 'en');
+      // Same-lang re-call must not re-init.
+      await service.ocr('/img.jpg', [{ x: 0, y: 0, w: 1, h: 1 }], 'ja');
+      await service.ocr('/img.jpg', [{ x: 0, y: 0, w: 1, h: 1 }], 'en');
+
+      // Two distinct langs → exactly two worker inits.
+      expect(mockCreateWorker).toHaveBeenCalledTimes(2);
+      const langs = mockCreateWorker.mock.calls.map(call => call[0]);
+      expect(new Set(langs)).toEqual(new Set(['jpn+jpn_vert', 'eng']));
+    });
+
+    it('falls back to eng with a warning for an unmapped sourceLang', async () => {
+      const service = new TesseractOcrService();
+      pinLangPath(service, makeTrainedDataDir({ withEng: true }));
+      mockRecognize.mockResolvedValue({ data: { text: 'x', blocks: [] } });
+
+      await service.ocr('/img.jpg', [{ x: 0, y: 0, w: 1, h: 1 }], 'xx-YY');
+
+      const [langs] = mockCreateWorker.mock.calls[0];
+      expect(langs).toBe('eng');
+    });
+
+    it('rejects with a clear reason when traineddata is missing for the requested lang', async () => {
+      const service = new TesseractOcrService();
+      // jpn pair only — no eng.traineddata on disk.
+      pinLangPath(service, makeTrainedDataDir({ withEng: false }));
+
+      await expect(
+        service.ocr('/img.jpg', [{ x: 0, y: 0, w: 1, h: 1 }], 'en'),
+      ).rejects.toThrow(/traineddata not found for "eng"/);
+      // Worker init never fired — the pre-flight existsSync gate caught it.
+      expect(mockCreateWorker).not.toHaveBeenCalled();
     });
   });
 

@@ -26,6 +26,17 @@ export interface OcrBackendStatus {
  * to the pipeline.
  */
 export interface OcrBackend {
-  ocr(imagePath: string, boxes: OcrRequestBox[]): Promise<OcrResult[]>;
+  /**
+   * `sourceLang` is BCP-47 (`ja`, `en`, `ko`, `zh-cn`, …). Optional with a
+   * Japanese implicit default to preserve the v0.3 contract. The sidecar
+   * backend (manga-OCR) ignores the parameter — it's Japanese-only and the
+   * registry never routes a non-`'ja'` request to it; Tesseract reads it to
+   * pick the right traineddata.
+   */
+  ocr(
+    imagePath: string,
+    boxes: OcrRequestBox[],
+    sourceLang?: string,
+  ): Promise<OcrResult[]>;
   getStatus(): OcrBackendStatus;
 }

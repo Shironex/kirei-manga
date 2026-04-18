@@ -35,6 +35,14 @@ const targetDir = resolve(repoRoot, 'apps', 'desktop', 'resources', 'tesseract')
 // releases — so `main` is the correct ref. `expectedBytes` is recorded
 // from upstream HEAD at the time this script lands; a non-matching size
 // means upstream changed and we should re-record + bump the script.
+//
+// `eng.traineddata` lands with the Phase 2 sourceLang work — Tesseract is
+// the only viable backend for non-Japanese sources (manga-OCR is JP-only),
+// and English-translated scanlations are the most common other source.
+// Korean / Chinese traineddata is *not* bundled by default to keep the
+// installer trim; users with those sources can drop their own
+// `kor*.traineddata` / `chi_*.traineddata` into `resources/tesseract/`
+// and the worker init will pick them up via the existing langPath glob.
 const FILES = [
   {
     name: 'jpn.traineddata',
@@ -45,6 +53,11 @@ const FILES = [
     name: 'jpn_vert.traineddata',
     url: 'https://github.com/tesseract-ocr/tessdata_fast/raw/main/jpn_vert.traineddata',
     expectedBytes: 3_037_480,
+  },
+  {
+    name: 'eng.traineddata',
+    url: 'https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata',
+    expectedBytes: 4_113_088,
   },
 ];
 

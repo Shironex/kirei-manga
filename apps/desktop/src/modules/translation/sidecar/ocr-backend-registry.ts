@@ -21,7 +21,11 @@ const logger = createLogger('OcrBackendRegistry');
  */
 function sidecarAsBackend(service: OcrSidecarService): OcrBackend {
   return {
-    ocr: (imagePath, boxes) => service.ocr(imagePath, boxes),
+    // The sidecar's underlying ocr() ignores sourceLang because manga-OCR is
+    // Japanese-only — the registry's pickBackend() never hands the sidecar a
+    // non-Japanese request. Drop the parameter rather than rejecting at this
+    // layer so the OcrBackend contract stays uniform.
+    ocr: (imagePath, boxes, _sourceLang) => service.ocr(imagePath, boxes),
     getStatus: (): OcrBackendStatus => {
       const s = service.getStatus();
       if (s.state === 'ready') return { healthy: true };
@@ -56,18 +60,27 @@ export class OcrBackendRegistry {
   }
 
   /**
-   * Pick the first healthy backend.
+   * Pick the first healthy backend for the given source language.
    *
-   * @throws if every backend is unhealthy — the orchestrator surfaces this
-   *   as a pipeline failure.
+   * - `sourceLang === 'ja'` (the v0.3 default) → try the manga-OCR sidecar
+   *   first; fall through to Tesseract on any non-ready state.
+   * - `sourceLang !== 'ja'` → skip the sidecar entirely. manga-OCR is
+   *   Japanese-only and would emit garbage for Latin / Korean / Chinese
+   *   bubbles. Tesseract is the only option.
+   *
+   * @throws if no candidate is healthy — the orchestrator surfaces this as a
+   *   pipeline failure.
    */
-  pickBackend(): OcrBackend {
-    const candidates: OcrBackend[] = [this.sidecarBackend, this.tesseract];
+  pickBackend(sourceLang: string = 'ja'): OcrBackend {
+    const isJapanese = sourceLang.toLowerCase().startsWith('ja');
+    const candidates: OcrBackend[] = isJapanese
+      ? [this.sidecarBackend, this.tesseract]
+      : [this.tesseract];
     const reasons: string[] = [];
     for (const backend of candidates) {
       const status = backend.getStatus();
       if (status.healthy) {
-        if (backend === this.tesseract && reasons.length > 0) {
+        if (backend === this.tesseract && isJapanese && reasons.length > 0) {
           logger.info(
             `Sidecar unavailable (${reasons[0]}); falling back to Tesseract`,
           );
@@ -75,6 +88,12 @@ export class OcrBackendRegistry {
         return backend;
       }
       reasons.push(status.reason ?? 'unhealthy');
+    }
+    if (!isJapanese) {
+      throw new Error(
+        `No healthy OCR backend for sourceLang=${sourceLang} ` +
+          `(sidecar skipped — Japanese-only). tesseract: ${reasons[0]}`,
+      );
     }
     throw new Error(
       'No healthy OCR backend (sidecar + tesseract both unavailable). ' +
