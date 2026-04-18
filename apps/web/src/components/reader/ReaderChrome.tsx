@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Settings } from 'lucide-react';
 import type { FitMode, ReaderDirection, ReaderMode } from '@kireimanga/shared';
 import { ReaderSettingsPopover } from './ReaderSettingsPopover';
+import { TranslationStatusPill } from './TranslationStatusPill';
+import type { TranslationStatus } from '@/hooks/useTranslationForPage';
 import { useT } from '@/hooks/useT';
 
 interface Props {
@@ -17,6 +19,10 @@ interface Props {
     direction?: ReaderDirection;
     fit?: FitMode;
   }) => void;
+  /** Slice G.5 — current translation pipeline state for the active page. */
+  translationStatus?: TranslationStatus;
+  /** Slice G.5 — failure reason surfaced via the pill's title attribute. */
+  translationError?: string | null;
 }
 
 export function ReaderChrome({
@@ -27,6 +33,8 @@ export function ReaderChrome({
   direction,
   fit,
   onPrefsChange,
+  translationStatus,
+  translationError,
 }: Props) {
   const t = useT();
   const navigate = useNavigate();
@@ -113,6 +121,24 @@ export function ReaderChrome({
             direction={direction}
             fit={fit}
             onChange={onPrefsChange}
+          />
+        </div>
+      )}
+
+      {/*
+       * Slice G.5 — translation pipeline status pill. Anchored under the
+       * chrome header so it doesn't fight the settings popover for space.
+       * Renders nothing when the pipeline is `'idle'` or `'ready'`, so the
+       * chrome stays quiet for cached / no-op pages — including the dormant
+       * wiring case where `pageImagePath` is `null` until URL → path
+       * resolution lands.
+       */}
+      {translationStatus && (
+        <div className="mt-2 flex justify-center">
+          <TranslationStatusPill
+            status={translationStatus}
+            pageNumber={pageNumber}
+            error={translationError}
           />
         </div>
       )}

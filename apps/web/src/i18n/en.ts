@@ -471,6 +471,10 @@ export const en = {
   // Reader — per-page overlays (shared across Single/Double/Webtoon views)
   'reader.page.bookmarked': 'Bookmarked',
 
+  // Reader — translation pipeline status pill (Slice G.5)
+  'reader.translation.translating': 'Translating page {page}…',
+  'reader.translation.failed': 'Translation failed',
+
   // Reader — toast titles emitted from reader hooks
   'reader.toast.progressTitle': 'Reader progress',
   'reader.toast.sessionTitle': 'Reader session',

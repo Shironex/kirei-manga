@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import type { FitMode, ReaderDirection } from '@kireimanga/shared';
 import { useT } from '@/hooks/useT';
 
@@ -10,6 +10,15 @@ interface Props {
   direction: ReaderDirection;
   /** Whether the page at the given index is currently bookmarked. */
   isBookmarked?: (pageIndex: number) => boolean;
+  /**
+   * Slice G.5 — translation overlay slot for the primary page of the spread.
+   * Anchored next to the primary `<img>` in a `position: relative` wrapper.
+   * The secondary page in a spread is intentionally not overlaid in v0.3
+   * (single hook call drives the active page only) — Slice G later can
+   * extend this to a two-overlay setup once the pipeline supports
+   * overlapping concurrent runs.
+   */
+  overlay?: ReactNode;
 }
 
 function fitClass(fit: FitMode): string {
@@ -25,7 +34,14 @@ function fitClass(fit: FitMode): string {
   }
 }
 
-export function DoublePageView({ pages, primaryIndex, fit, direction, isBookmarked }: Props) {
+export function DoublePageView({
+  pages,
+  primaryIndex,
+  fit,
+  direction,
+  isBookmarked,
+  overlay,
+}: Props) {
   const t = useT();
   // Spreads: [0] alone (cover), then [1,2], [3,4], ...
   const spreads = useMemo<number[][]>(() => {
@@ -49,13 +65,18 @@ export function DoublePageView({ pages, primaryIndex, fit, direction, isBookmark
     <div className="relative flex h-full w-full items-center justify-center overflow-auto bg-[var(--color-ink-sunken)]">
       <div className={`flex ${dirClass} items-center gap-0`}>
         {current.map(i => (
-          <img
-            key={`${pages[i]}-${i}`}
-            src={pages[i]}
-            alt={`Page ${i + 1} of ${pages.length}`}
-            draggable={false}
-            className={`select-none ${fitClass(fit)}`}
-          />
+          // Wrap each spread page so we can hang the overlay off the primary
+          // one without depending on the parent flex container's coordinate
+          // system (different `direction` values would otherwise mirror it).
+          <div key={`${pages[i]}-${i}`} className="relative">
+            <img
+              src={pages[i]}
+              alt={`Page ${i + 1} of ${pages.length}`}
+              draggable={false}
+              className={`block select-none ${fitClass(fit)}`}
+            />
+            {i === primaryIndex && overlay}
+          </div>
         ))}
       </div>
       {showBookmarkDot && (

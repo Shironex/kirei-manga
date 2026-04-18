@@ -482,6 +482,10 @@ export const pl = {
   // Reader — per-page overlays (shared across Single/Double/Webtoon views)
   'reader.page.bookmarked': 'Zakładka dodana',
 
+  // Reader — translation pipeline status pill (Slice G.5)
+  'reader.translation.translating': 'Tłumaczenie strony {page}…',
+  'reader.translation.failed': 'Tłumaczenie nieudane',
+
   // Reader — toast titles emitted from reader hooks
   'reader.toast.progressTitle': 'Postęp czytania',
   'reader.toast.sessionTitle': 'Sesja czytania',

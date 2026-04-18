@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useReaderStore } from '@/stores/reader-store';
 import { useT } from '@/hooks/useT';
 
@@ -6,6 +6,18 @@ interface Props {
   pages: string[];
   /** Whether the page at the given index is currently bookmarked. */
   isBookmarked?: (pageIndex: number) => boolean;
+  /**
+   * Slice G.5 — translation overlay slot, anchored to the page the store
+   * currently treats as active (the topmost-visible page in the scroll
+   * column). Other pages stay untranslated; a follow-up can iterate the
+   * pipeline across the visible window if quota allows.
+   */
+  overlay?: ReactNode;
+  /**
+   * Index of the page the `overlay` belongs to. Mirrors `useReaderStore.pageIndex`
+   * — passed in explicitly so this component stays a pure renderer.
+   */
+  overlayPageIndex?: number;
 }
 
 /**
@@ -13,7 +25,7 @@ interface Props {
  * `pageIndex` is updated to the topmost-visible page via IntersectionObserver
  * so chrome indicators stay accurate as the user scrolls.
  */
-export function WebtoonView({ pages, isBookmarked }: Props) {
+export function WebtoonView({ pages, isBookmarked, overlay, overlayPageIndex }: Props) {
   const t = useT();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const goto = useReaderStore(s => s.goto);
@@ -58,6 +70,7 @@ export function WebtoonView({ pages, isBookmarked }: Props) {
               draggable={false}
               className="block w-full select-none"
             />
+            {i === overlayPageIndex && overlay}
             {isBookmarked?.(i) && (
               <span
                 aria-label={t('reader.page.bookmarked')}

@@ -8,11 +8,13 @@ import { useReaderKeyboard } from '@/hooks/useReaderKeyboard';
 import { useReaderPrefs } from '@/hooks/useReaderPrefs';
 import { useReaderProgress } from '@/hooks/useReaderProgress';
 import { useLocalReaderProgress } from '@/hooks/useLocalReaderProgress';
+import { useTranslationForPage } from '@/hooks/useTranslationForPage';
 import { useReaderStore } from '@/stores/reader-store';
 import { SinglePageView } from '@/components/reader/SinglePageView';
 import { DoublePageView } from '@/components/reader/DoublePageView';
 import { WebtoonView } from '@/components/reader/WebtoonView';
 import { ReaderChrome } from '@/components/reader/ReaderChrome';
+import { TranslationOverlay } from '@/components/reader/TranslationOverlay';
 import { useT } from '@/hooks/useT';
 
 const CHROME_HOTZONE_PX = 72;
@@ -67,6 +69,7 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
   const showChrome = useReaderStore(s => s.showChrome);
   const hideChrome = useReaderStore(s => s.hideChrome);
   const cycleOverlayMode = useReaderStore(s => s.cycleOverlayMode);
+  const overlayMode = useReaderStore(s => s.overlayMode);
 
   // Hydrates store from desktop-persisted prefs and exposes a debounced
   // setter that writes back through the socket bridge. Local reader prefs
@@ -263,6 +266,42 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
 
   const safeIndex = Math.min(pageIndex, pages.length - 1);
 
+  // Slice G.5 — drive the translation overlay + status pill from the
+  // active page. `pageImagePath` is intentionally `null` for now: the
+  // renderer only has `kirei-page://` URLs and the desktop's pipeline
+  // requires a real filesystem path. Wiring + slot ship in this slice;
+  // the URL → path resolution is a follow-up that extends the orchestrator
+  // (or a small renderer-side resolver gateway message) without touching
+  // these mount points. Until then the hook stays `idle`, the pill stays
+  // hidden, and the overlay never renders — but every view component
+  // already accepts an `overlay` slot ready for that wire-up.
+  const {
+    page: translationPage,
+    status: translationStatus,
+    error: translationError,
+  } = useTranslationForPage({ pageImagePath: null });
+
+  // Build the overlay node once and hand it to whichever view is active.
+  // We render nothing while the pipeline hasn't produced a page yet — the
+  // overlay component itself bails on empty bubbles, but skipping its
+  // render entirely also avoids a stray ResizeObserver subscription per
+  // page navigation while the wiring is dormant.
+  const translationOverlayNode = translationPage ? (
+    <TranslationOverlay
+      page={translationPage}
+      // Source-image pixel space is what the orchestrator returns. Until
+      // the pipeline + protocol expose natural dimensions through the
+      // payload (or we resolve the rendered `<img>` ref into the hook),
+      // the overlay's scale falls back to 1:1 — which is correct for
+      // `fit: 'original'` and a known-bad-but-visible state for the
+      // other fit modes. Acceptable for the dormant wiring this slice
+      // ships; revisit when URL → path resolution lands.
+      imageNaturalWidth={0}
+      imageNaturalHeight={0}
+      mode={overlayMode}
+    />
+  ) : null;
+
   return (
     <div className="relative h-full w-full overflow-hidden bg-[var(--color-ink-sunken)]">
       {mode === 'single' && (
@@ -272,6 +311,7 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
           totalPages={pages.length}
           fit={fit}
           isBookmarked={isPageBookmarked}
+          overlay={translationOverlayNode}
         />
       )}
       {mode === 'double' && (
@@ -281,9 +321,17 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
           fit={fit}
           direction={direction}
           isBookmarked={isPageBookmarked}
+          overlay={translationOverlayNode}
         />
       )}
-      {mode === 'webtoon' && <WebtoonView pages={pages} isBookmarked={isPageBookmarked} />}
+      {mode === 'webtoon' && (
+        <WebtoonView
+          pages={pages}
+          isBookmarked={isPageBookmarked}
+          overlay={translationOverlayNode}
+          overlayPageIndex={safeIndex}
+        />
+      )}
 
       <ReaderChrome
         pageNumber={safeIndex + 1}
@@ -293,6 +341,8 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
         direction={direction}
         fit={fit}
         onPrefsChange={setPrefs}
+        translationStatus={translationStatus}
+        translationError={translationError}
       />
     </div>
   );
