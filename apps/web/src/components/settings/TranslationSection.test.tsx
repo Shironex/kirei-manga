@@ -147,7 +147,7 @@ describe('TranslationSection — persistence', () => {
     expect(setSpy).toHaveBeenCalledWith({ translation: { enabled: true } });
   });
 
-  it('typing in the DeepL key field persists via providerKeys.deepl', async () => {
+  it('typing in the DeepL key field persists via providerKeys.deepl (debounced)', async () => {
     primeSettings({ enabled: true });
 
     const setSpy = vi.spyOn(useSettingsStore.getState(), 'set').mockResolvedValue(undefined);
@@ -159,8 +159,11 @@ describe('TranslationSection — persistence', () => {
       fireEvent.change(input, { target: { value: 'sk-deepl-test-token' } });
     });
 
-    expect(setSpy).toHaveBeenCalledWith({
-      translation: { providerKeys: { deepl: 'sk-deepl-test-token' } },
+    // Inputs are now debounced (~300ms) — `setSpy` fires once typing settles.
+    await waitFor(() => {
+      expect(setSpy).toHaveBeenCalledWith({
+        translation: { providerKeys: { deepl: 'sk-deepl-test-token' } },
+      });
     });
   });
 
@@ -180,8 +183,10 @@ describe('TranslationSection — persistence', () => {
       fireEvent.change(input, { target: { value: 'aya' } });
     });
 
-    expect(setSpy).toHaveBeenCalledWith({
-      translation: { providerKeys: { ollamaModel: 'aya' } },
+    await waitFor(() => {
+      expect(setSpy).toHaveBeenCalledWith({
+        translation: { providerKeys: { ollamaModel: 'aya' } },
+      });
     });
   });
 
@@ -197,8 +202,10 @@ describe('TranslationSection — persistence', () => {
       fireEvent.change(input, { target: { value: '   ' } });
     });
 
-    expect(setSpy).toHaveBeenCalledWith({
-      translation: { providerKeys: { ollamaModel: undefined } },
+    await waitFor(() => {
+      expect(setSpy).toHaveBeenCalledWith({
+        translation: { providerKeys: { ollamaModel: undefined } },
+      });
     });
   });
 
@@ -214,8 +221,10 @@ describe('TranslationSection — persistence', () => {
       fireEvent.change(input, { target: { value: '' } });
     });
 
-    expect(setSpy).toHaveBeenCalledWith({
-      translation: { providerKeys: { deepl: undefined } },
+    await waitFor(() => {
+      expect(setSpy).toHaveBeenCalledWith({
+        translation: { providerKeys: { deepl: undefined } },
+      });
     });
   });
 });

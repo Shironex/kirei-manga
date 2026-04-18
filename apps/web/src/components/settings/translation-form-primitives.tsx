@@ -1,7 +1,46 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Eye, EyeOff } from 'lucide-react';
 import type { TranslationProviderId } from '@kireimanga/shared';
 import { useT } from '@/hooks/useT';
+
+/**
+ * Debounce wrapper for free-text settings inputs. Local state mirrors the
+ * keystroke stream so the UI feels instant; `onCommit` only fires once
+ * typing settles. External value changes (e.g. settings re-hydrate, server
+ * echo) overwrite the local buffer so the user always sees the canonical
+ * value when nothing's in flight.
+ *
+ * Without this, every keystroke in the Ollama endpoint / DeepL key /
+ * overlay font fields would round-trip a `settings:set` IPC call and write
+ * to electron-store on disk.
+ */
+function useDebouncedTextCommit(
+  value: string,
+  onCommit: (next: string) => void,
+  debounceMs = 300
+): readonly [string, (next: string) => void] {
+  const [local, setLocal] = useState(value);
+  const lastSyncedRef = useRef(value);
+  const onCommitRef = useRef(onCommit);
+  useEffect(() => {
+    onCommitRef.current = onCommit;
+  }, [onCommit]);
+  useEffect(() => {
+    if (value !== lastSyncedRef.current) {
+      lastSyncedRef.current = value;
+      setLocal(value);
+    }
+  }, [value]);
+  useEffect(() => {
+    if (local === lastSyncedRef.current) return;
+    const id = window.setTimeout(() => {
+      lastSyncedRef.current = local;
+      onCommitRef.current(local);
+    }, debounceMs);
+    return () => window.clearTimeout(id);
+  }, [local, debounceMs]);
+  return [local, setLocal] as const;
+}
 
 /**
  * Form primitives shared between the global Translation settings panel
@@ -116,6 +155,7 @@ export function TextInput({
   disabled,
   ariaLabel,
   widthClass = 'w-40',
+  debounceMs = 300,
   ...rest
 }: {
   value: string;
@@ -124,16 +164,19 @@ export function TextInput({
   disabled?: boolean;
   ariaLabel: string;
   widthClass?: string;
+  /** Override the commit debounce. Pass `0` to commit synchronously. */
+  debounceMs?: number;
   [key: `data-${string}`]: string;
 }) {
+  const [local, setLocal] = useDebouncedTextCommit(value, onChange, debounceMs);
   return (
     <input
       type="text"
-      value={value}
+      value={local}
       placeholder={placeholder}
       disabled={disabled}
       aria-label={ariaLabel}
-      onChange={e => onChange(e.target.value)}
+      onChange={e => setLocal(e.target.value)}
       spellCheck={false}
       autoComplete="off"
       className={[
@@ -151,6 +194,7 @@ export function PasswordInput({
   placeholder,
   disabled,
   ariaLabel,
+  debounceMs = 300,
   ...rest
 }: {
   value: string;
@@ -158,18 +202,21 @@ export function PasswordInput({
   placeholder?: string;
   disabled?: boolean;
   ariaLabel: string;
+  /** Override the commit debounce. Pass `0` to commit synchronously. */
+  debounceMs?: number;
   [key: `data-${string}`]: string;
 }) {
   const [revealed, setRevealed] = useState(false);
+  const [local, setLocal] = useDebouncedTextCommit(value, onChange, debounceMs);
   return (
     <div className="relative inline-flex">
       <input
         type={revealed ? 'text' : 'password'}
-        value={value}
+        value={local}
         placeholder={placeholder}
         disabled={disabled}
         aria-label={ariaLabel}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => setLocal(e.target.value)}
         spellCheck={false}
         autoComplete="off"
         className="h-8 w-72 rounded-sm border border-border bg-[var(--color-ink-sunken)] px-2.5 pr-9 font-mono text-[11px] tracking-[0.06em] text-foreground placeholder:text-[var(--color-bone-faint)] disabled:cursor-not-allowed disabled:opacity-50"

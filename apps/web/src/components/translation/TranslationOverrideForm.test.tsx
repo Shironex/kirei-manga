@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { DEFAULT_APP_SETTINGS, type TranslationSettings } from '@kireimanga/shared';
 import { useSettingsStore } from '@/stores/settings-store';
 import { TranslationOverrideForm } from './TranslationOverrideForm';
@@ -56,7 +56,7 @@ describe('TranslationOverrideForm', () => {
     expect(onChange).toHaveBeenCalledWith(undefined);
   });
 
-  it('editing the target language merges the new value into the existing override', () => {
+  it('editing the target language merges the new value into the existing override', async () => {
     const onChange = vi.fn();
     const override: Partial<TranslationSettings> = { autoTranslate: true };
     render(<TranslationOverrideForm override={override} onChange={onChange} />);
@@ -65,8 +65,12 @@ describe('TranslationOverrideForm', () => {
       target: { value: 'pl' },
     });
 
+    // TextInput now debounces commits (~300ms) so a single keystroke
+    // doesn't burst-fire `settings:set`. Wait for the timer to flush.
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith({ autoTranslate: true, targetLang: 'pl' });
+    });
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenCalledWith({ autoTranslate: true, targetLang: 'pl' });
   });
 
   it('changing the provider replaces only the defaultProvider key on the override', () => {
