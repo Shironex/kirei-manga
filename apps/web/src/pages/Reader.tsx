@@ -9,7 +9,10 @@ import { useReaderPrefs } from '@/hooks/useReaderPrefs';
 import { useReaderProgress } from '@/hooks/useReaderProgress';
 import { useLocalReaderProgress } from '@/hooks/useLocalReaderProgress';
 import { useTranslationForPage } from '@/hooks/useTranslationForPage';
+import { useLibraryStore } from '@/stores/library-store';
 import { useReaderStore } from '@/stores/reader-store';
+import { useSettingsStore } from '@/stores/settings-store';
+import { resolveTranslationSettings } from '@/lib/resolve-translation-settings';
 import { SinglePageView } from '@/components/reader/SinglePageView';
 import { DoublePageView } from '@/components/reader/DoublePageView';
 import { WebtoonView } from '@/components/reader/WebtoonView';
@@ -274,12 +277,48 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
   // A null URL — pages still loading, or no chapter open — leaves the hook
   // in `idle`.
   const activePageUrl = pages[safeIndex] ?? null;
+
+  // Resolve the local series row so we can layer its `translationOverride`
+  // on top of the global settings (Slice H.3). For mangadex-source series the
+  // route param is the upstream MangaDex id, which `mangadexIndex` maps to
+  // the local row; for local-source series the route param is already the
+  // local id. Either way, a missing row (not yet followed / not yet imported)
+  // resolves to `null` and the hook falls back to global-only behaviour.
+  const librarySeries = useLibraryStore(s => s.series);
+  const mangadexIndex = useLibraryStore(s => s.mangadexIndex);
+  const seriesTranslationOverride = useMemo(() => {
+    let localId: string | null = null;
+    if (source === 'mangadex') {
+      localId = mangadexSeriesId ? (mangadexIndex[mangadexSeriesId] ?? null) : null;
+    } else {
+      localId = seriesId ?? null;
+    }
+    if (!localId || localId.startsWith('pending:')) return null;
+    const row = librarySeries.find(entry => entry.id === localId);
+    return row?.translationOverride ?? null;
+  }, [source, mangadexSeriesId, seriesId, librarySeries, mangadexIndex]);
+
+  // Effective translation settings — the same merge the hook performs, but
+  // recomputed at the Reader level so the overlay's font + opacity follow
+  // any per-series override too. Cheap and pure; no extra subscriptions.
+  const globalTranslationSettings = useSettingsStore(s => s.settings?.translation);
+  const effectiveTranslationSettings = useMemo(
+    () =>
+      globalTranslationSettings
+        ? resolveTranslationSettings(globalTranslationSettings, seriesTranslationOverride)
+        : null,
+    [globalTranslationSettings, seriesTranslationOverride],
+  );
+
   const {
     page: translationPage,
     status: translationStatus,
     error: translationError,
     runNow: runTranslationNow,
-  } = useTranslationForPage({ pageUrl: activePageUrl });
+  } = useTranslationForPage({
+    pageUrl: activePageUrl,
+    seriesOverride: seriesTranslationOverride,
+  });
 
   // Slice G.6 — error banner dismissal state. The user can dismiss the
   // banner without retrying; the next page navigation or a fresh error
@@ -296,6 +335,10 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
   // overlay component itself bails on empty bubbles, but skipping its
   // render entirely also avoids a stray ResizeObserver subscription per
   // page navigation while the wiring is dormant.
+  //
+  // Font + opacity follow the **effective** settings (Slice H.3) so a
+  // series with a custom overlay font / opacity renders with those values
+  // even when the global settings panel is left at its defaults.
   const translationOverlayNode = translationPage ? (
     <TranslationOverlay
       page={translationPage}
@@ -309,6 +352,12 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
       imageNaturalWidth={0}
       imageNaturalHeight={0}
       mode={overlayMode}
+      {...(effectiveTranslationSettings?.overlayFont
+        ? { font: effectiveTranslationSettings.overlayFont }
+        : {})}
+      {...(typeof effectiveTranslationSettings?.overlayOpacity === 'number'
+        ? { opacity: effectiveTranslationSettings.overlayOpacity }
+        : {})}
     />
   ) : null;
 

@@ -108,14 +108,25 @@ describe('TranslationSection — enabled gating', () => {
     expect((getByTestId('translation-status-test') as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('shows the per-series override hint when global is disabled (Slice H.3)', () => {
+    primeSettings({ enabled: false });
+
+    const { getByTestId } = render(<TranslationSection />);
+
+    expect(getByTestId('translation-disabled-override-hint')).toBeDefined();
+  });
+
   it('un-mutes downstream fields when enabled is true', () => {
     primeSettings({ enabled: true });
 
-    const { getByTestId } = render(<TranslationSection />);
+    const { getByTestId, queryByTestId } = render(<TranslationSection />);
 
     const fieldset = getByTestId('translation-fieldset') as HTMLDivElement;
     expect(fieldset.getAttribute('data-disabled')).toBe('false');
     expect((getByTestId('translation-default-provider') as HTMLSelectElement).disabled).toBe(false);
+    // Override hint is hidden when global is enabled — it's only useful as a
+    // discovery aid in the disabled state.
+    expect(queryByTestId('translation-disabled-override-hint')).toBeNull();
   });
 });
 

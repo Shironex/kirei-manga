@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   TranslationEvents,
   type PageTranslation,
   type TranslationProviderId,
   type TranslationRunPipelinePayload,
   type TranslationRunPipelineResponse,
+  type TranslationSettings,
 } from '@kireimanga/shared';
 import { emitWithResponse } from '@/lib/socket';
+import { resolveTranslationSettings } from '@/lib/resolve-translation-settings';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useSocketStore } from '@/stores/socket-store';
 
@@ -37,6 +39,17 @@ export interface UseTranslationForPageArgs {
   targetLang?: string;
   /** Override the user's default `settings.translation.defaultProvider`. */
   providerHint?: TranslationProviderId;
+  /**
+   * Per-series translation override (Slice H). When supplied, the global
+   * `AppSettings.translation` is shallow-merged with this override before
+   * driving the pipeline — so a series with `autoTranslate: true` will
+   * auto-fire even if the global default is off, and a series can pin a
+   * different `defaultProvider` / `targetLang` / overlay rendering knobs
+   * without touching the global settings.
+   *
+   * `null` / `undefined` = no override; the hook reads global as-is.
+   */
+  seriesOverride?: Partial<TranslationSettings> | null;
 }
 
 export interface UseTranslationForPageState {
@@ -62,10 +75,12 @@ export interface UseTranslationForPageState {
  * cached page short-circuits inside the desktop without a separate
  * `translation:get-page` round-trip from the renderer.
  *
- * Auto-fires when `settings.translation.enabled` AND
- * `settings.translation.autoTranslate` are both on; otherwise stays `idle`
- * and waits for `runNow()`. A new page key (URL or path) resets the state
- * and, if auto-translate is on, fires the pipeline again.
+ * Auto-fires when the **effective** `enabled` AND `autoTranslate` are both on
+ * (Slice H.3 — global settings shallow-merged with the optional `seriesOverride`
+ * so a series can opt in to auto-translate even when the global default is off,
+ * or vice-versa); otherwise stays `idle` and waits for `runNow()`. A new page
+ * key (URL or path) resets the state and, if auto-translate is on, fires the
+ * pipeline again.
  */
 export function useTranslationForPage(
   args: UseTranslationForPageArgs
@@ -75,6 +90,7 @@ export function useTranslationForPage(
     pageImagePath = null,
     targetLang: targetLangOverride,
     providerHint: providerHintOverride,
+    seriesOverride,
   } = args;
 
   const translationSettings = useSettingsStore(s => s.settings?.translation);
@@ -94,10 +110,21 @@ export function useTranslationForPage(
     };
   }, []);
 
-  const enabled = translationSettings?.enabled ?? false;
-  const autoTranslate = translationSettings?.autoTranslate ?? false;
-  const settingsTargetLang = translationSettings?.targetLang;
-  const settingsDefaultProvider = translationSettings?.defaultProvider;
+  // Slice H.3 — `effective = global ∪ override`. When the global settings
+  // haven't loaded yet we have nothing to merge against, so the hook stays in
+  // its idle state until they do (`enabled` falls through to `false`).
+  const effective = useMemo(
+    () =>
+      translationSettings
+        ? resolveTranslationSettings(translationSettings, seriesOverride ?? undefined)
+        : null,
+    [translationSettings, seriesOverride],
+  );
+
+  const enabled = effective?.enabled ?? false;
+  const autoTranslate = effective?.autoTranslate ?? false;
+  const settingsTargetLang = effective?.targetLang;
+  const settingsDefaultProvider = effective?.defaultProvider;
 
   const targetLang = targetLangOverride ?? settingsTargetLang ?? 'en';
   const providerHint = providerHintOverride ?? settingsDefaultProvider;

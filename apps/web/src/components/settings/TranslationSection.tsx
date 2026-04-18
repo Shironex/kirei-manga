@@ -116,6 +116,15 @@ export function TranslationSection() {
         />
       </SettingRow>
 
+      {!enabled && (
+        <p
+          data-testid="translation-disabled-override-hint"
+          className="text-[12px] leading-relaxed text-[var(--color-bone-faint)]"
+        >
+          {t('settings.translation.disabled.overrideHint')}
+        </p>
+      )}
+
       <DisabledFieldset disabled={!enabled}>
         <SettingRow
           label={t('settings.translation.autoTranslate.label')}

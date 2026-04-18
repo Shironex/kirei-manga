@@ -182,6 +182,8 @@ export const pl = {
   'settings.translation.enabled.label': 'Włączone',
   'settings.translation.enabled.hint':
     'Główny przełącznik. Gdy wyłączony, potok nie startuje, a czytnik pokazuje stronę bez nakładki.',
+  'settings.translation.disabled.overrideHint':
+    'Pojedyncze serie mogą nadal włączać tłumaczenie przez własne nadpisanie — otwórz stronę serii i rozwiń panel „Nadpisanie tłumaczenia”.',
   'settings.translation.autoTranslate.label': 'Tłumacz automatycznie',
   'settings.translation.autoTranslate.hint':
     'Gdy włączone, otwarcie strony od razu uruchamia potok. Gdy wyłączone, naciśnij T (lub dotknij dymka), aby przetłumaczyć.',

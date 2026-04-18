@@ -239,6 +239,122 @@ describe('useTranslationForPage — error propagation', () => {
   });
 });
 
+describe('useTranslationForPage — per-series override (Slice H.3)', () => {
+  it('uses override.targetLang and override.defaultProvider over the global defaults', async () => {
+    primeSettings({
+      enabled: true,
+      autoTranslate: true,
+      targetLang: 'en',
+      defaultProvider: 'deepl',
+    });
+    emitWithResponseMock.mockResolvedValueOnce({ page: makePageTranslation('h-override') });
+
+    renderHook(() =>
+      useTranslationForPage({
+        pageUrl: URL_1,
+        seriesOverride: { targetLang: 'pl', defaultProvider: 'ollama' },
+      })
+    );
+
+    await waitFor(() => expect(emitWithResponseMock).toHaveBeenCalledTimes(1));
+    expect(emitWithResponseMock).toHaveBeenCalledWith('translation:run-pipeline', {
+      pageUrl: URL_1,
+      targetLang: 'pl',
+      providerHint: 'ollama',
+    });
+  });
+
+  it('auto-fires when override.autoTranslate=true even though the global default is off', async () => {
+    primeSettings({ enabled: true, autoTranslate: false, defaultProvider: 'deepl' });
+    emitWithResponseMock.mockResolvedValueOnce({ page: makePageTranslation('h-auto-on') });
+
+    const { result } = renderHook(() =>
+      useTranslationForPage({
+        pageUrl: URL_1,
+        seriesOverride: { autoTranslate: true },
+      })
+    );
+
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(emitWithResponseMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays idle when override.autoTranslate=false even though the global default is on', async () => {
+    primeSettings({ enabled: true, autoTranslate: true, defaultProvider: 'deepl' });
+
+    const { result } = renderHook(() =>
+      useTranslationForPage({
+        pageUrl: URL_1,
+        seriesOverride: { autoTranslate: false },
+      })
+    );
+
+    expect(result.current.status).toBe('idle');
+    await Promise.resolve();
+    expect(emitWithResponseMock).not.toHaveBeenCalled();
+  });
+
+  it('respects override.enabled=false even when the global toggle is on', async () => {
+    primeSettings({ enabled: true, autoTranslate: true, defaultProvider: 'deepl' });
+
+    const { result } = renderHook(() =>
+      useTranslationForPage({
+        pageUrl: URL_1,
+        seriesOverride: { enabled: false },
+      })
+    );
+
+    expect(result.current.status).toBe('idle');
+    await Promise.resolve();
+    expect(emitWithResponseMock).not.toHaveBeenCalled();
+  });
+
+  it('treats null seriesOverride as no-override (uses global as-is)', async () => {
+    primeSettings({
+      enabled: true,
+      autoTranslate: true,
+      targetLang: 'en',
+      defaultProvider: 'deepl',
+    });
+    emitWithResponseMock.mockResolvedValueOnce({ page: makePageTranslation('h-null') });
+
+    renderHook(() =>
+      useTranslationForPage({
+        pageUrl: URL_1,
+        seriesOverride: null,
+      })
+    );
+
+    await waitFor(() => expect(emitWithResponseMock).toHaveBeenCalledTimes(1));
+    expect(emitWithResponseMock).toHaveBeenCalledWith('translation:run-pipeline', {
+      pageUrl: URL_1,
+      targetLang: 'en',
+      providerHint: 'deepl',
+    });
+  });
+
+  it('explicit targetLang/providerHint args still beat the resolved override', async () => {
+    primeSettings({ enabled: true, autoTranslate: true, defaultProvider: 'deepl' });
+    emitWithResponseMock.mockResolvedValueOnce({ page: makePageTranslation('h-arg-wins') });
+
+    renderHook(() =>
+      useTranslationForPage({
+        pageUrl: URL_1,
+        targetLang: 'es',
+        providerHint: 'google',
+        seriesOverride: { targetLang: 'pl', defaultProvider: 'ollama' },
+      })
+    );
+
+    await waitFor(() => expect(emitWithResponseMock).toHaveBeenCalledTimes(1));
+    expect(emitWithResponseMock).toHaveBeenCalledWith('translation:run-pipeline', {
+      pageUrl: URL_1,
+      targetLang: 'es',
+      providerHint: 'google',
+    });
+  });
+});
+
 describe('useTranslationForPage — page-change reset', () => {
   it('resets state and re-fires the pipeline when pageUrl changes', async () => {
     primeSettings({ enabled: true, autoTranslate: true });

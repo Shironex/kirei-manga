@@ -178,6 +178,8 @@ export const en = {
   'settings.translation.enabled.label': 'Enabled',
   'settings.translation.enabled.hint':
     'Master switch. When off, the pipeline never runs and the reader shows the page untouched.',
+  'settings.translation.disabled.overrideHint':
+    'Per-series overrides can still enable translation for individual series — open the series detail page and expand the Translation override panel.',
   'settings.translation.autoTranslate.label': 'Auto-translate on page open',
   'settings.translation.autoTranslate.hint':
     'When on, opening a page kicks the pipeline immediately. Off means you press T (or tap the bubble) to translate.',
