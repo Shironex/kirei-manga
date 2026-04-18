@@ -212,6 +212,72 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
   // can scroll quickly; single/double only need the immediate next few.
   useImagePreload(pages, pageIndex, mode === 'webtoon' ? 5 : 3);
 
+  // ---------------------------------------------------------------------------
+  // All hooks below must run on every render — the early-return branches that
+  // follow (loading / error / empty) would otherwise skip these hook calls and
+  // React would crash with "Rendered more hooks than during the previous
+  // render" the moment one of those branches resolved into the happy path.
+  //
+  // Inputs are defensive: `safeIndex` collapses to -1 when `pages.length === 0`
+  // (so `pages[-1]` → `undefined` → `activePageUrl = null`), and the
+  // translation hook's contract is to idle on a null URL. The rendering path
+  // below the early returns reuses these locals directly.
+  // ---------------------------------------------------------------------------
+  const safeIndex = Math.min(pageIndex, pages.length - 1);
+  const activePageUrl = pages[safeIndex] ?? null;
+
+  // Resolve the local series row so we can layer its `translationOverride`
+  // on top of the global settings (Slice H.3). For mangadex-source series the
+  // route param is the upstream MangaDex id, which `mangadexIndex` maps to
+  // the local row; for local-source series the route param is already the
+  // local id. Either way, a missing row (not yet followed / not yet imported)
+  // resolves to `null` and the hook falls back to global-only behaviour.
+  const librarySeries = useLibraryStore(s => s.series);
+  const mangadexIndex = useLibraryStore(s => s.mangadexIndex);
+  const seriesTranslationOverride = useMemo(() => {
+    let localId: string | null = null;
+    if (source === 'mangadex') {
+      localId = mangadexSeriesId ? (mangadexIndex[mangadexSeriesId] ?? null) : null;
+    } else {
+      localId = seriesId ?? null;
+    }
+    if (!localId || localId.startsWith('pending:')) return null;
+    const row = librarySeries.find(entry => entry.id === localId);
+    return row?.translationOverride ?? null;
+  }, [source, mangadexSeriesId, seriesId, librarySeries, mangadexIndex]);
+
+  // Effective translation settings — the same merge the hook performs, but
+  // recomputed at the Reader level so the overlay's font + opacity follow
+  // any per-series override too. Cheap and pure; no extra subscriptions.
+  const globalTranslationSettings = useSettingsStore(s => s.settings?.translation);
+  const effectiveTranslationSettings = useMemo(
+    () =>
+      globalTranslationSettings
+        ? resolveTranslationSettings(globalTranslationSettings, seriesTranslationOverride)
+        : null,
+    [globalTranslationSettings, seriesTranslationOverride],
+  );
+
+  const {
+    page: translationPage,
+    status: translationStatus,
+    error: translationError,
+    runNow: runTranslationNow,
+  } = useTranslationForPage({
+    pageUrl: activePageUrl,
+    seriesOverride: seriesTranslationOverride,
+  });
+
+  // Slice G.6 — error banner dismissal state. The user can dismiss the
+  // banner without retrying; the next page navigation or a fresh error
+  // resets the dismissal so a new failure can re-surface it. Retry simply
+  // re-fires the pipeline — `runNow` flips the hook back into `loading`
+  // which hides the banner via the `status === 'error'` gate below.
+  const [translationBannerDismissed, setTranslationBannerDismissed] = useState(false);
+  useEffect(() => {
+    setTranslationBannerDismissed(false);
+  }, [pageIndex, translationError]);
+
   if (loading) {
     return (
       <ReaderShell onBack={() => navigate(-1)} indicator={t('reader.loading')}>
@@ -267,68 +333,6 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
       </ReaderShell>
     );
   }
-
-  const safeIndex = Math.min(pageIndex, pages.length - 1);
-
-  // Drive the translation overlay + status pill from the active page. The
-  // renderer only ever holds the `kirei-page://...` proxy URL; the desktop's
-  // `PageUrlResolverService` maps that URL to the on-disk file the pipeline
-  // needs (cached mangadex page or extracted-on-demand local archive entry).
-  // A null URL — pages still loading, or no chapter open — leaves the hook
-  // in `idle`.
-  const activePageUrl = pages[safeIndex] ?? null;
-
-  // Resolve the local series row so we can layer its `translationOverride`
-  // on top of the global settings (Slice H.3). For mangadex-source series the
-  // route param is the upstream MangaDex id, which `mangadexIndex` maps to
-  // the local row; for local-source series the route param is already the
-  // local id. Either way, a missing row (not yet followed / not yet imported)
-  // resolves to `null` and the hook falls back to global-only behaviour.
-  const librarySeries = useLibraryStore(s => s.series);
-  const mangadexIndex = useLibraryStore(s => s.mangadexIndex);
-  const seriesTranslationOverride = useMemo(() => {
-    let localId: string | null = null;
-    if (source === 'mangadex') {
-      localId = mangadexSeriesId ? (mangadexIndex[mangadexSeriesId] ?? null) : null;
-    } else {
-      localId = seriesId ?? null;
-    }
-    if (!localId || localId.startsWith('pending:')) return null;
-    const row = librarySeries.find(entry => entry.id === localId);
-    return row?.translationOverride ?? null;
-  }, [source, mangadexSeriesId, seriesId, librarySeries, mangadexIndex]);
-
-  // Effective translation settings — the same merge the hook performs, but
-  // recomputed at the Reader level so the overlay's font + opacity follow
-  // any per-series override too. Cheap and pure; no extra subscriptions.
-  const globalTranslationSettings = useSettingsStore(s => s.settings?.translation);
-  const effectiveTranslationSettings = useMemo(
-    () =>
-      globalTranslationSettings
-        ? resolveTranslationSettings(globalTranslationSettings, seriesTranslationOverride)
-        : null,
-    [globalTranslationSettings, seriesTranslationOverride],
-  );
-
-  const {
-    page: translationPage,
-    status: translationStatus,
-    error: translationError,
-    runNow: runTranslationNow,
-  } = useTranslationForPage({
-    pageUrl: activePageUrl,
-    seriesOverride: seriesTranslationOverride,
-  });
-
-  // Slice G.6 — error banner dismissal state. The user can dismiss the
-  // banner without retrying; the next page navigation or a fresh error
-  // resets the dismissal so a new failure can re-surface it. Retry simply
-  // re-fires the pipeline — `runNow` flips the hook back into `loading`
-  // which hides the banner via the `status === 'error'` gate below.
-  const [translationBannerDismissed, setTranslationBannerDismissed] = useState(false);
-  useEffect(() => {
-    setTranslationBannerDismissed(false);
-  }, [pageIndex, translationError]);
 
   // Build the overlay node once and hand it to whichever view is active.
   // We render nothing while the pipeline hasn't produced a page yet — the
