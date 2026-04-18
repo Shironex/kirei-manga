@@ -232,7 +232,7 @@ jobs:
           path: sidecar/manga-ocr/release/${{ matrix.platform }}-${{ matrix.arch }}/
           if-no-files-found: error
           retention-days: 30
-          compression-level: 0  # binary is already PyInstaller-compressed; double-zip wastes time
+          compression-level: 0 # binary is already PyInstaller-compressed; double-zip wastes time
 
   build:
     needs: [lint, typecheck, test, native-prebuild]
@@ -300,6 +300,13 @@ jobs:
 
       - name: Build desktop app
         run: pnpm --filter @kireimanga/desktop build
+
+      # Slice K.1: traineddata blobs are .gitignored and fetched here so
+      # electron-builder's extraResources step can pack them into the
+      # installer. Runs on every build matrix entry — both Windows and
+      # macOS installers ship the same files.
+      - name: Fetch Tesseract traineddata
+        run: pnpm fetch-tesseract
 
       - name: Package (macOS)
         if: matrix.platform == 'mac'

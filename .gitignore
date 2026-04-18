@@ -54,3 +54,8 @@ docs/release-announcement.md
 # NVIDIA driver UMD log droppings
 NVIDIA Corporation/
 *.umdlog
+
+# Tesseract traineddata — fetched at build time by
+# scripts/fetch-tesseract-traineddata.mjs (Slice K.1). Not committed to keep
+# git history free of multi-megabyte binaries; the README in that folder is.
+apps/desktop/resources/tesseract/*.traineddata

@@ -32,6 +32,11 @@
     {
       "from": "resources/licenses",
       "to": "licenses"
+    },
+    {
+      "from": "resources/tesseract",
+      "to": "tesseract",
+      "filter": ["*.traineddata"]
     }
   ],
   "asarUnpack": [
