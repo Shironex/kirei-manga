@@ -8,7 +8,7 @@
   "scripts": {
     "install": "node-gyp-build || true",
     "build": "node-gyp rebuild",
-    "prebuild": "prebuildify --napi --strip",
+    "prebuild": "prebuildify --napi --strip && node scripts/rename-prebuild.mjs",
     "build:opencv:posix": "bash scripts/build-opencv.sh",
     "build:opencv:win": "pwsh scripts/build-opencv.ps1"
   },
