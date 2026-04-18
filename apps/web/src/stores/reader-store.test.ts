@@ -12,6 +12,7 @@ function resetStore(overrides: Partial<ReturnType<typeof useReaderStore.getState
     fit: 'width',
     chromeVisible: true,
     zoom: 1,
+    overlayMode: 'translated',
     ...overrides,
   });
 }
@@ -165,5 +166,30 @@ describe('useReaderStore — last/first/setMode', () => {
     resetStore({ totalPages: 10, pageIndex: 4, mode: 'single' });
     useReaderStore.getState().setMode('double');
     expect(useReaderStore.getState().pageIndex).toBe(3);
+  });
+});
+
+describe('useReaderStore — translation overlay mode', () => {
+  beforeEach(() => resetStore());
+
+  it("defaults overlayMode to 'translated'", () => {
+    expect(useReaderStore.getState().overlayMode).toBe('translated');
+  });
+
+  it('cycleOverlayMode walks translated → original → both → translated', () => {
+    const { cycleOverlayMode } = useReaderStore.getState();
+    cycleOverlayMode();
+    expect(useReaderStore.getState().overlayMode).toBe('original');
+    cycleOverlayMode();
+    expect(useReaderStore.getState().overlayMode).toBe('both');
+    cycleOverlayMode();
+    expect(useReaderStore.getState().overlayMode).toBe('translated');
+  });
+
+  it('setOverlayMode jumps directly to a given mode', () => {
+    useReaderStore.getState().setOverlayMode('both');
+    expect(useReaderStore.getState().overlayMode).toBe('both');
+    useReaderStore.getState().setOverlayMode('original');
+    expect(useReaderStore.getState().overlayMode).toBe('original');
   });
 });

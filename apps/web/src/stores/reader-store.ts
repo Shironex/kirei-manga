@@ -6,6 +6,11 @@ import {
   type ReaderDirection,
   type ReaderMode,
 } from '@kireimanga/shared';
+import {
+  DEFAULT_OVERLAY_MODE,
+  nextOverlayMode,
+  type OverlayMode,
+} from '@/components/reader/overlay-mode';
 
 const logger = createLogger('ReaderStore');
 
@@ -24,6 +29,8 @@ interface ReaderState {
   chromeVisible: boolean;
   /** Single-page only. 1 = fit, clamp [0.5, 4]. */
   zoom: number;
+  /** Translation overlay rendering mode (Slice G.3). */
+  overlayMode: OverlayMode;
 }
 
 interface ReaderActions {
@@ -40,6 +47,8 @@ interface ReaderActions {
   setZoom(z: number): void;
   showChrome(): void;
   hideChrome(): void;
+  setOverlayMode(mode: OverlayMode): void;
+  cycleOverlayMode(): void;
 }
 
 type ReaderStore = ReaderState & ReaderActions;
@@ -65,6 +74,7 @@ export const useReaderStore = create<ReaderStore>()((set, get) => ({
   fit: DEFAULT_READER_SETTINGS.fit,
   chromeVisible: true,
   zoom: 1,
+  overlayMode: DEFAULT_OVERLAY_MODE,
 
   reset: ({ chapterId, seriesId }) => {
     logger.debug('reset', { chapterId, seriesId });
@@ -136,6 +146,9 @@ export const useReaderStore = create<ReaderStore>()((set, get) => ({
 
   showChrome: () => set({ chromeVisible: true }),
   hideChrome: () => set({ chromeVisible: false }),
+
+  setOverlayMode: mode => set({ overlayMode: mode }),
+  cycleOverlayMode: () => set({ overlayMode: nextOverlayMode(get().overlayMode) }),
 }));
 
 export const READER_ZOOM_MIN = ZOOM_MIN;

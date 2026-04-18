@@ -223,6 +223,8 @@ export const en = {
   'settings.keyboard.action.fitHeight': 'Fit to height',
   'settings.keyboard.action.fitOriginal': 'Fit original',
   'settings.keyboard.action.bookmark': 'Toggle bookmark',
+  'settings.keyboard.action.cycleOverlay': 'Cycle translation overlay',
+  'settings.keyboard.hint.cycleOverlay': 'translated → original → both',
 
   // Browse page
   'browse.eyebrow': 'MangaDex',

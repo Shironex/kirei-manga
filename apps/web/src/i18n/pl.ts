@@ -229,6 +229,8 @@ export const pl = {
   'settings.keyboard.action.fitHeight': 'Dopasuj do wysokości',
   'settings.keyboard.action.fitOriginal': 'Oryginalny rozmiar',
   'settings.keyboard.action.bookmark': 'Przełącz zakładkę',
+  'settings.keyboard.action.cycleOverlay': 'Przełącz nakładkę tłumaczenia',
+  'settings.keyboard.hint.cycleOverlay': 'tłumaczenie → oryginał → oba',
 
   // Browse page
   'browse.eyebrow': 'MangaDex',

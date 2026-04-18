@@ -9,6 +9,8 @@ interface Handlers {
   onSetFit: (fit: FitMode) => void;
   onToggleFullscreen: () => void;
   onToggleBookmark?: () => void;
+  /** Cycles the translation overlay mode (Slice G.3) — no-op when omitted. */
+  onCycleOverlayMode?: () => void;
   direction: ReaderDirection;
   mode: ReaderMode;
 }
@@ -30,6 +32,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
  * - f / F: toggle fullscreen.
  * - 1 / 2 / 3: fit width / height / original.
  * - b / B: toggle a bookmark on the current page (no-op when handler missing).
+ * - t / T: cycle the translation overlay mode (translated → original → both).
  *
  * TODO(post-v0.1): consume settings.shortcuts so users can rebind these from
  * Settings → Keyboard. The schema is already keyed and persisted; the UI just
@@ -44,6 +47,7 @@ export function useReaderKeyboard(handlers: Handlers): void {
     onSetFit,
     onToggleFullscreen,
     onToggleBookmark,
+    onCycleOverlayMode,
     direction,
     mode,
   } = handlers;
@@ -122,6 +126,13 @@ export function useReaderKeyboard(handlers: Handlers): void {
           onToggleBookmark();
           return;
         }
+        case 't':
+        case 'T': {
+          if (!onCycleOverlayMode) return;
+          e.preventDefault();
+          onCycleOverlayMode();
+          return;
+        }
         default:
           return;
       }
@@ -137,6 +148,7 @@ export function useReaderKeyboard(handlers: Handlers): void {
     onSetFit,
     onToggleFullscreen,
     onToggleBookmark,
+    onCycleOverlayMode,
     direction,
     mode,
   ]);

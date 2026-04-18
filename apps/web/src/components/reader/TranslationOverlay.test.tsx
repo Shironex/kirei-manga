@@ -199,3 +199,97 @@ describe('TranslationOverlay — opacity and font propagation', () => {
     );
   });
 });
+
+describe('TranslationOverlay — overlay mode', () => {
+  it("mode='translated' (default) renders translated text only", () => {
+    const page = makePage([
+      makeBubble({ translated: 'Hello translated', original: 'こんにちは' }),
+    ]);
+
+    const { getByTestId, queryByTestId, getByText, queryByText } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+      />
+    );
+
+    expect(getByTestId('translation-bubble').getAttribute('data-mode')).toBe('translated');
+    expect(getByText('Hello translated')).toBeDefined();
+    expect(queryByText('こんにちは')).toBeNull();
+    expect(getByTestId('translation-text')).toBeDefined();
+    expect(queryByTestId('original-text')).toBeNull();
+    expect(queryByTestId('bubble-separator')).toBeNull();
+  });
+
+  it("mode='original' renders original JP text in the kanji font (Shippori Mincho)", () => {
+    const page = makePage([
+      makeBubble({ translated: 'Hello translated', original: 'こんにちは' }),
+    ]);
+
+    const { getByTestId, queryByTestId, getByText, queryByText } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+        mode="original"
+      />
+    );
+
+    expect(getByTestId('translation-bubble').getAttribute('data-mode')).toBe('original');
+    expect(getByText('こんにちは')).toBeDefined();
+    expect(queryByText('Hello translated')).toBeNull();
+    expect(getByTestId('original-text')).toBeDefined();
+    expect(queryByTestId('translation-text')).toBeNull();
+    expect(queryByTestId('bubble-separator')).toBeNull();
+
+    // Default original font resolves to the project's kanji token, which
+    // declares Shippori Mincho first in its stack.
+    const span = getByText('こんにちは') as HTMLSpanElement;
+    expect(span.style.fontFamily).toBe('var(--font-kanji)');
+  });
+
+  it("mode='both' renders both texts split with a separator inside one bubble", () => {
+    const page = makePage([
+      makeBubble({ translated: 'Hello translated', original: 'こんにちは' }),
+    ]);
+
+    const { getAllByTestId, getByTestId, getByText } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+        mode="both"
+      />
+    );
+
+    // Exactly one bubble, with both regions and a separator inside it.
+    expect(getAllByTestId('translation-bubble')).toHaveLength(1);
+    expect(getByTestId('translation-bubble').getAttribute('data-mode')).toBe('both');
+    expect(getByTestId('original-text')).toBeDefined();
+    expect(getByTestId('translation-text')).toBeDefined();
+    expect(getByTestId('bubble-separator')).toBeDefined();
+    expect(getByText('こんにちは')).toBeDefined();
+    expect(getByText('Hello translated')).toBeDefined();
+  });
+
+  it("mode='both' stacks original on top 40%, translated on bottom 60%", () => {
+    const page = makePage([
+      makeBubble({ translated: 'Translated', original: 'オリジナル' }),
+    ]);
+
+    const { getByTestId } = render(
+      <TranslationOverlay
+        page={page}
+        imageNaturalWidth={1000}
+        imageNaturalHeight={1500}
+        mode="both"
+      />
+    );
+
+    const original = getByTestId('original-text') as HTMLDivElement;
+    const translated = getByTestId('translation-text') as HTMLDivElement;
+    expect(original.style.flex).toContain('40%');
+    expect(translated.style.flex).toContain('60%');
+  });
+});

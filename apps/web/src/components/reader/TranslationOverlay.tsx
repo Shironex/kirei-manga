@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { BoundingBox, PageTranslation } from '@kireimanga/shared';
 import { FittedText } from './FittedText';
+import { DEFAULT_OVERLAY_MODE, type OverlayMode } from './overlay-mode';
 
 interface TranslationOverlayProps {
   /** Bubbles to render — usually the value from `useTranslationForPage`. */
@@ -17,8 +18,12 @@ interface TranslationOverlayProps {
   imageElement?: HTMLImageElement | null;
   /** Bubble background opacity, `0`–`1` (default `1`). */
   opacity?: number;
-  /** CSS font-family applied to bubble text (default `var(--font-fraunces)`). */
+  /** CSS font-family applied to translated bubble text (default `var(--font-fraunces)`). */
   font?: string;
+  /** CSS font-family applied to original JP text (default `var(--font-kanji)`). */
+  originalFont?: string;
+  /** Which text(s) to render per bubble — see `OverlayMode` (default `'translated'`). */
+  mode?: OverlayMode;
 }
 
 interface BubbleBoxProps {
@@ -28,9 +33,12 @@ interface BubbleBoxProps {
   scale: number;
   opacity: number;
   font: string;
+  originalFont: string;
+  mode: OverlayMode;
 }
 
 const DEFAULT_FONT = 'var(--font-fraunces)';
+const DEFAULT_ORIGINAL_FONT = 'var(--font-kanji)';
 
 /**
  * Absolutely-positioned overlay layer that paints translated text on top of
@@ -45,6 +53,8 @@ export function TranslationOverlay({
   imageElement,
   opacity = 1,
   font = DEFAULT_FONT,
+  originalFont = DEFAULT_ORIGINAL_FONT,
+  mode = DEFAULT_OVERLAY_MODE,
 }: TranslationOverlayProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -100,6 +110,8 @@ export function TranslationOverlay({
           scale={scale}
           opacity={opacity}
           font={font}
+          originalFont={originalFont}
+          mode={mode}
         />
       ))}
     </div>
@@ -110,12 +122,22 @@ export function TranslationOverlay({
  * A single translated bubble. Painted in the kinari/sumi palette so the
  * layer reads as ink-on-paper rather than a generic white rectangle.
  */
-function BubbleBox({ box, translated, scale, opacity, font }: BubbleBoxProps) {
+function BubbleBox({
+  box,
+  translated,
+  original,
+  scale,
+  opacity,
+  font,
+  originalFont,
+  mode,
+}: BubbleBoxProps) {
   const clampedOpacity = Math.max(0, Math.min(1, opacity));
   const padding = Math.max(2, 4 * scale);
   return (
     <div
       data-testid="translation-bubble"
+      data-mode={mode}
       className="translation-bubble"
       style={{
         position: 'absolute',
@@ -133,14 +155,72 @@ function BubbleBox({ box, translated, scale, opacity, font }: BubbleBoxProps) {
         // (added in a later phase) can hit-test against each box.
         pointerEvents: 'auto',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        justifyContent: 'stretch',
         padding: `${padding}px`,
         boxSizing: 'border-box',
         overflow: 'hidden',
       }}
     >
-      <FittedText text={translated} font={font} />
+      {mode === 'translated' && (
+        <BubbleRegion text={translated} font={font} testId="translation-text" />
+      )}
+      {mode === 'original' && (
+        <BubbleRegion text={original} font={originalFont} testId="original-text" />
+      )}
+      {mode === 'both' && (
+        <>
+          <BubbleRegion
+            text={original}
+            font={originalFont}
+            flexBasis="40%"
+            testId="original-text"
+          />
+          <div
+            data-testid="bubble-separator"
+            aria-hidden
+            style={{
+              flex: '0 0 1px',
+              backgroundColor:
+                'color-mix(in oklch, var(--color-ink) 30%, transparent)',
+            }}
+          />
+          <BubbleRegion
+            text={translated}
+            font={font}
+            flexBasis="60%"
+            testId="translation-text"
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+interface BubbleRegionProps {
+  text: string;
+  font: string;
+  /** Flex-basis for the `'both'` mode split (defaults to filling the bubble). */
+  flexBasis?: string;
+  testId: string;
+}
+
+/** Single text region inside a bubble — wraps `FittedText` with the flex slot it needs. */
+function BubbleRegion({ text, font, flexBasis, testId }: BubbleRegionProps) {
+  return (
+    <div
+      data-testid={testId}
+      style={{
+        flex: flexBasis ? `0 0 ${flexBasis}` : '1 1 auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 0,
+        overflow: 'hidden',
+      }}
+    >
+      <FittedText text={text} font={font} />
     </div>
   );
 }

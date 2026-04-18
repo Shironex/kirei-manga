@@ -66,6 +66,7 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
   const chromeVisible = useReaderStore(s => s.chromeVisible);
   const showChrome = useReaderStore(s => s.showChrome);
   const hideChrome = useReaderStore(s => s.hideChrome);
+  const cycleOverlayMode = useReaderStore(s => s.cycleOverlayMode);
 
   // Hydrates store from desktop-persisted prefs and exposes a debounced
   // setter that writes back through the socket bridge. Local reader prefs
@@ -108,6 +109,7 @@ export function ReaderPage({ source = 'mangadex' }: ReaderPageProps = {}) {
     onSetFit: fit => setPrefs({ fit }),
     onToggleFullscreen: () => void toggleFullscreen(),
     onToggleBookmark: () => void toggleBookmark(pageIndex),
+    onCycleOverlayMode: cycleOverlayMode,
     direction,
     mode,
   });

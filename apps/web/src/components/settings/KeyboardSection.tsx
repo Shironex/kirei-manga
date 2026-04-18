@@ -31,6 +31,11 @@ const SHORTCUTS: ReadonlyArray<Shortcut> = [
   { actionKey: 'settings.keyboard.action.fitHeight', keys: ['2'] },
   { actionKey: 'settings.keyboard.action.fitOriginal', keys: ['3'] },
   { actionKey: 'settings.keyboard.action.bookmark', keys: ['B'] },
+  {
+    actionKey: 'settings.keyboard.action.cycleOverlay',
+    keys: ['T'],
+    hintKey: 'settings.keyboard.hint.cycleOverlay',
+  },
 ];
 
 export function KeyboardSection() {
