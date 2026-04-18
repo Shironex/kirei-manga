@@ -78,6 +78,7 @@ describe('TranslationSection — rendering', () => {
     expect(getByTestId('translation-key-deepl')).toBeDefined();
     expect(getByTestId('translation-key-google')).toBeDefined();
     expect(getByTestId('translation-key-ollama')).toBeDefined();
+    expect(getByTestId('translation-key-ollama-model')).toBeDefined();
     expect(getByTestId('translation-status-test')).toBeDefined();
   });
 
@@ -105,6 +106,7 @@ describe('TranslationSection — enabled gating', () => {
     expect((getByTestId('translation-key-deepl') as HTMLInputElement).disabled).toBe(true);
     expect((getByTestId('translation-key-google') as HTMLInputElement).disabled).toBe(true);
     expect((getByTestId('translation-key-ollama') as HTMLInputElement).disabled).toBe(true);
+    expect((getByTestId('translation-key-ollama-model') as HTMLInputElement).disabled).toBe(true);
     expect((getByTestId('translation-status-test') as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -159,6 +161,44 @@ describe('TranslationSection — persistence', () => {
 
     expect(setSpy).toHaveBeenCalledWith({
       translation: { providerKeys: { deepl: 'sk-deepl-test-token' } },
+    });
+  });
+
+  it('Ollama model field renders the seeded default and persists on change (Slice J.2)', async () => {
+    primeSettings({ enabled: true });
+
+    const setSpy = vi.spyOn(useSettingsStore.getState(), 'set').mockResolvedValue(undefined);
+
+    const { getByTestId } = render(<TranslationSection />);
+
+    // Default seeded by DEFAULT_APP_SETTINGS (J.1) — `qwen2:7b` is visible up
+    // front so the user knows what the provider will hit on first translation.
+    const input = getByTestId('translation-key-ollama-model') as HTMLInputElement;
+    expect(input.value).toBe('qwen2:7b');
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'aya' } });
+    });
+
+    expect(setSpy).toHaveBeenCalledWith({
+      translation: { providerKeys: { ollamaModel: 'aya' } },
+    });
+  });
+
+  it('clearing the Ollama model field persists `undefined` so the provider falls back (Slice J.2)', async () => {
+    primeSettings({ enabled: true, providerKeys: { ollamaModel: 'aya' } });
+
+    const setSpy = vi.spyOn(useSettingsStore.getState(), 'set').mockResolvedValue(undefined);
+
+    const { getByTestId } = render(<TranslationSection />);
+
+    const input = getByTestId('translation-key-ollama-model') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(input, { target: { value: '   ' } });
+    });
+
+    expect(setSpy).toHaveBeenCalledWith({
+      translation: { providerKeys: { ollamaModel: undefined } },
     });
   });
 

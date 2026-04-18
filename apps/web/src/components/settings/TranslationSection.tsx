@@ -233,6 +233,22 @@ export function TranslationSection() {
                 widthClass="w-72"
               />
             </SettingRow>
+            <SettingRow
+              label={t('settings.translation.keys.ollamaModel.label')}
+              hint={t('settings.translation.keys.ollamaModel.hint')}
+            >
+              <TextInput
+                value={translation.providerKeys.ollamaModel ?? ''}
+                onChange={value =>
+                  patchKey({ ollamaModel: value.trim() === '' ? undefined : value })
+                }
+                disabled={!enabled}
+                ariaLabel={t('settings.translation.keys.ollamaModel.label')}
+                placeholder="qwen2:7b"
+                data-testid="translation-key-ollama-model"
+                widthClass="w-44"
+              />
+            </SettingRow>
           </div>
         </div>
 

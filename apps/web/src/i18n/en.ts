@@ -208,6 +208,9 @@ export const en = {
   'settings.translation.keys.google.label': 'Google API key',
   'settings.translation.keys.ollama.label': 'Ollama endpoint',
   'settings.translation.keys.ollama.hint': 'URL of your local Ollama server.',
+  'settings.translation.keys.ollamaModel.label': 'Ollama model',
+  'settings.translation.keys.ollamaModel.hint':
+    'Model tag served by Ollama (e.g. `qwen2:7b`, `aya`). Leave empty to use the default.',
 
   // Settings — Translation · Provider status
   'settings.translation.status.eyebrow': 'Provider status',

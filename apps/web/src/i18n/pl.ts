@@ -212,6 +212,9 @@ export const pl = {
   'settings.translation.keys.google.label': 'Klucz API Google',
   'settings.translation.keys.ollama.label': 'Adres Ollama',
   'settings.translation.keys.ollama.hint': 'URL twojego lokalnego serwera Ollama.',
+  'settings.translation.keys.ollamaModel.label': 'Model Ollama',
+  'settings.translation.keys.ollamaModel.hint':
+    'Tag modelu udostępnianego przez Ollama (np. `qwen2:7b`, `aya`). Pozostaw puste, aby użyć domyślnego.',
 
   // Settings — Translation · Provider status
   'settings.translation.status.eyebrow': 'Status dostawców',
