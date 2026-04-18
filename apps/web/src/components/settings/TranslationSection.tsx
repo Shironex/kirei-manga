@@ -154,6 +154,21 @@ export function TranslationSection() {
         </SettingRow>
 
         <SettingRow
+          label={t('settings.translation.sourceLang.label')}
+          hint={t('settings.translation.sourceLang.hint')}
+        >
+          <TextInput
+            value={translation.sourceLang}
+            onChange={value => patch({ sourceLang: value.trim() === '' ? 'ja' : value })}
+            placeholder="ja"
+            disabled={!enabled}
+            ariaLabel={t('settings.translation.sourceLang.label')}
+            data-testid="translation-source-lang"
+            widthClass="w-24"
+          />
+        </SettingRow>
+
+        <SettingRow
           label={t('settings.translation.targetLang.label')}
           hint={t('settings.translation.targetLang.hint')}
         >

@@ -62,10 +62,16 @@ export function TranslationOverrideForm({ override, onChange }: TranslationOverr
   const effective: Required<
     Pick<
       TranslationSettings,
-      'defaultProvider' | 'targetLang' | 'autoTranslate' | 'overlayFont' | 'overlayOpacity'
+      | 'defaultProvider'
+      | 'sourceLang'
+      | 'targetLang'
+      | 'autoTranslate'
+      | 'overlayFont'
+      | 'overlayOpacity'
     >
   > = {
     defaultProvider: override?.defaultProvider ?? globalTranslation?.defaultProvider ?? 'deepl',
+    sourceLang: override?.sourceLang ?? globalTranslation?.sourceLang ?? 'ja',
     targetLang: override?.targetLang ?? globalTranslation?.targetLang ?? 'en',
     autoTranslate: override?.autoTranslate ?? globalTranslation?.autoTranslate ?? false,
     overlayFont: override?.overlayFont ?? globalTranslation?.overlayFont ?? 'Fraunces',
@@ -119,6 +125,20 @@ export function TranslationOverrideForm({ override, onChange }: TranslationOverr
               onChange={(value: DisplayProviderId) => patch({ defaultProvider: value })}
               t={t}
               testId="translation-override-provider"
+            />
+          </SettingRow>
+
+          <SettingRow
+            label={t('settings.translation.sourceLang.label')}
+            hint={t('settings.translation.sourceLang.hint')}
+          >
+            <TextInput
+              value={effective.sourceLang}
+              onChange={value => patch({ sourceLang: value.trim() === '' ? 'ja' : value })}
+              placeholder={globalTranslation?.sourceLang ?? 'ja'}
+              ariaLabel={t('settings.translation.sourceLang.label')}
+              data-testid="translation-override-source-lang"
+              widthClass="w-24"
             />
           </SettingRow>
 

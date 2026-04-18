@@ -72,6 +72,7 @@ describe('TranslationSection — rendering', () => {
     expect(getByLabelText('Enabled')).toBeDefined();
     expect(getByLabelText('Auto-translate on page open')).toBeDefined();
     expect(getByTestId('translation-default-provider')).toBeDefined();
+    expect(getByTestId('translation-source-lang')).toBeDefined();
     expect(getByTestId('translation-target-lang')).toBeDefined();
     expect(getByTestId('translation-overlay-font')).toBeDefined();
     expect(getByTestId('translation-overlay-opacity')).toBeDefined();
@@ -100,6 +101,7 @@ describe('TranslationSection — enabled gating', () => {
     expect(fieldset.getAttribute('aria-disabled')).toBe('true');
 
     expect((getByTestId('translation-default-provider') as HTMLSelectElement).disabled).toBe(true);
+    expect((getByTestId('translation-source-lang') as HTMLInputElement).disabled).toBe(true);
     expect((getByTestId('translation-target-lang') as HTMLInputElement).disabled).toBe(true);
     expect((getByTestId('translation-overlay-font') as HTMLInputElement).disabled).toBe(true);
     expect((getByTestId('translation-overlay-opacity') as HTMLInputElement).disabled).toBe(true);
@@ -145,6 +147,48 @@ describe('TranslationSection — persistence', () => {
     });
 
     expect(setSpy).toHaveBeenCalledWith({ translation: { enabled: true } });
+  });
+
+  it('renders the seeded sourceLang default and persists on change (Phase 2)', async () => {
+    primeSettings({ enabled: true });
+
+    const setSpy = vi.spyOn(useSettingsStore.getState(), 'set').mockResolvedValue(undefined);
+
+    const { getByTestId } = render(<TranslationSection />);
+
+    // Default seeded by DEFAULT_APP_SETTINGS — `ja` is the v0.3 baseline so
+    // existing installs read the same Japanese-source pipeline as before.
+    const input = getByTestId('translation-source-lang') as HTMLInputElement;
+    expect(input.value).toBe('ja');
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'en' } });
+    });
+
+    await waitFor(() => {
+      expect(setSpy).toHaveBeenCalledWith({
+        translation: { sourceLang: 'en' },
+      });
+    });
+  });
+
+  it('clearing sourceLang resets to ja so the pipeline always has a routable source', async () => {
+    primeSettings({ enabled: true, sourceLang: 'en' });
+
+    const setSpy = vi.spyOn(useSettingsStore.getState(), 'set').mockResolvedValue(undefined);
+
+    const { getByTestId } = render(<TranslationSection />);
+
+    const input = getByTestId('translation-source-lang') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(input, { target: { value: '   ' } });
+    });
+
+    await waitFor(() => {
+      expect(setSpy).toHaveBeenCalledWith({
+        translation: { sourceLang: 'ja' },
+      });
+    });
   });
 
   it('typing in the DeepL key field persists via providerKeys.deepl (debounced)', async () => {

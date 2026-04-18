@@ -85,4 +85,19 @@ describe('TranslationOverrideForm', () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith({ targetLang: 'pl', defaultProvider: 'ollama' });
   });
+
+  it('editing sourceLang merges into the override (Phase 2)', async () => {
+    const onChange = vi.fn();
+    const override: Partial<TranslationSettings> = { targetLang: 'pl' };
+    render(<TranslationOverrideForm override={override} onChange={onChange} />);
+
+    fireEvent.change(screen.getByTestId('translation-override-source-lang'), {
+      target: { value: 'en' },
+    });
+
+    // Same debounce as targetLang — wait for the commit timer.
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith({ targetLang: 'pl', sourceLang: 'en' });
+    });
+  });
 });

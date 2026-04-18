@@ -193,6 +193,9 @@ export const pl = {
   'settings.translation.provider.deepl': 'DeepL',
   'settings.translation.provider.google': 'Google',
   'settings.translation.provider.ollama': 'Ollama (lokalnie)',
+  'settings.translation.sourceLang.label': 'Język źródłowy',
+  'settings.translation.sourceLang.hint':
+    'Tag BCP-47 — `ja` (manga-OCR), `en` (angielskie skanlacje) itd. Inne języki niż japoński używają Tesseracta; dane treningowe `ja` i `en` są w pakiecie, pozostałe dorzuć ręcznie do katalogu zasobów.',
   'settings.translation.targetLang.label': 'Język docelowy',
   'settings.translation.targetLang.hint':
     'Tag BCP-47 — `en`, `pl`, `es-la` itd. Używany jako domyślny dla nowych serii.',

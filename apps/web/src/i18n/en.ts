@@ -189,6 +189,9 @@ export const en = {
   'settings.translation.provider.deepl': 'DeepL',
   'settings.translation.provider.google': 'Google',
   'settings.translation.provider.ollama': 'Ollama (local)',
+  'settings.translation.sourceLang.label': 'Source language',
+  'settings.translation.sourceLang.hint':
+    'BCP-47 tag — `ja` (manga-OCR), `en` (English scanlations), etc. Non-Japanese sources route through Tesseract; the right traineddata is bundled for `ja` + `en` and discovered from disk for others.',
   'settings.translation.targetLang.label': 'Target language',
   'settings.translation.targetLang.hint':
     'BCP-47 tag — `en`, `pl`, `es-la`, etc. Used as the default for new series.',

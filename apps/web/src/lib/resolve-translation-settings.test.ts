@@ -65,6 +65,17 @@ describe('resolveTranslationSettings', () => {
     });
   });
 
+  it('overrides sourceLang from the per-series override (Phase 2)', () => {
+    // sourceLang is a top-level scalar, so the shallow spread picks it up
+    // automatically. Verify the merge so a future regression that excludes
+    // unknown keys would fail loudly.
+    const global = baseGlobal();
+    expect(global.sourceLang).toBe('ja');
+    const effective = resolveTranslationSettings(global, { sourceLang: 'en' });
+    expect(effective.sourceLang).toBe('en');
+    expect(effective.targetLang).toBe(global.targetLang);
+  });
+
   it('combines scalar + providerKeys overrides without dropping unrelated provider keys', () => {
     const global = baseGlobal();
     const effective = resolveTranslationSettings(global, {
