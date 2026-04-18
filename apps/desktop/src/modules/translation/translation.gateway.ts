@@ -20,7 +20,7 @@ import { DatabaseService } from '../database';
 import { BubbleDetectorService } from './bubble-detector.service';
 import { TranslationCacheService } from './cache';
 import { TranslationProviderRegistry } from './providers';
-import { OcrSidecarService } from './sidecar';
+import { OcrBackendRegistry, OcrSidecarService } from './sidecar';
 import { TranslationService } from './translation.service';
 
 const logger = createLogger('TranslationGateway');
@@ -48,11 +48,11 @@ export class TranslationGateway {
   constructor(
     private readonly bubbleDetector: BubbleDetectorService,
     private readonly ocrSidecar: OcrSidecarService,
+    private readonly ocrBackends: OcrBackendRegistry,
     private readonly registry: TranslationProviderRegistry,
     private readonly translationService: TranslationService,
     private readonly cacheService: TranslationCacheService,
     private readonly database: DatabaseService
-    // Future: google / ollama land in the registry directly (Slices I / J / K).
   ) {
     logger.info('TranslationGateway initialized');
   }
@@ -68,10 +68,11 @@ export class TranslationGateway {
         pipeline: DEFAULT_PIPELINE,
       } satisfies Pick<TranslationProviderStatusResponse, 'providers' | 'pipeline'>,
       handler: async (): Promise<TranslationProviderStatusResponse> => {
-        const [providers, bd, oc] = await Promise.all([
+        const [providers, bd, oc, fallback] = await Promise.all([
           this.registry.getAllStatuses(),
           Promise.resolve(this.bubbleDetector.getStatus()),
           Promise.resolve(this.ocrSidecar.getStatus()),
+          Promise.resolve(this.ocrBackends.getFallbackStatus()),
         ]);
         return {
           providers,
@@ -83,6 +84,7 @@ export class TranslationGateway {
               modelLoaded: oc.modelLoaded,
               downloadProgress: oc.downloadProgress,
             },
+            ocrFallback: fallback,
           },
         };
       },

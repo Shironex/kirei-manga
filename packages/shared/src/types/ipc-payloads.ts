@@ -595,6 +595,15 @@ export interface TranslationProviderStatusResponse {
       modelLoaded?: boolean;
       downloadProgress?: { bytes: number; total: number };
     };
+    /**
+     * Slice K.2 — Tesseract OCR fallback used when the manga-ocr sidecar is
+     * unhealthy. Optional for backward compatibility (older desktop builds
+     * never populate it). The K.3 settings UI surfaces this as a secondary
+     * row beneath `ocrSidecar` so the user can see when they're running on
+     * the fallback. `name` is hard-coded for now; adding more fallback
+     * backends would widen this to a discriminated union.
+     */
+    ocrFallback?: { name: 'tesseract'; healthy: boolean; reason?: string };
   };
   error?: string;
 }

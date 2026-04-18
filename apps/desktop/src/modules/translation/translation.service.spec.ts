@@ -21,7 +21,7 @@ import type {
 import type { BubbleDetectorService } from './bubble-detector.service';
 import type { TranslationCacheService } from './cache';
 import type { TranslationProvider, TranslationProviderRegistry } from './providers';
-import type { OcrSidecarService } from './sidecar';
+import type { OcrBackend, OcrBackendRegistry } from './sidecar';
 import type { PageUrlResolverService } from '../shared/page-url-resolver';
 import { TranslationService } from './translation.service';
 
@@ -46,6 +46,7 @@ function makeOcr(texts: string[]): OcrResult[] {
 interface Collaborators {
   detector: { detect: jest.Mock };
   sidecar: { ocr: jest.Mock };
+  ocrBackends: { pickBackend: jest.Mock };
   registry: { pickProvider: jest.Mock };
   cache: { getForPage: jest.Mock; putBubble: jest.Mock };
   resolver: { resolveToFilesystemPath: jest.Mock };
@@ -71,13 +72,21 @@ function buildService(
   };
   const detector = { detect: jest.fn() };
   const sidecar = { ocr: jest.fn() };
+  // Default backend selection always hands the orchestrator an `OcrBackend`
+  // shape that proxies straight to the sidecar mock — keeps every existing
+  // assertion against `collab.sidecar.ocr` valid post-K.2.
+  const sidecarBackend: OcrBackend = {
+    ocr: (...args) => sidecar.ocr(...args),
+    getStatus: () => ({ healthy: true }),
+  };
+  const ocrBackends = { pickBackend: jest.fn().mockReturnValue(sidecarBackend) };
   const registry = { pickProvider: jest.fn().mockResolvedValue(provider) };
   const cache = { getForPage: jest.fn().mockReturnValue(null), putBubble: jest.fn() };
   const resolver = { resolveToFilesystemPath: jest.fn() };
 
   const service = new TranslationService(
     detector as unknown as BubbleDetectorService,
-    sidecar as unknown as OcrSidecarService,
+    ocrBackends as unknown as OcrBackendRegistry,
     registry as unknown as TranslationProviderRegistry,
     cache as unknown as TranslationCacheService,
     resolver as unknown as PageUrlResolverService,
@@ -88,6 +97,7 @@ function buildService(
     collab: {
       detector,
       sidecar,
+      ocrBackends,
       registry,
       cache,
       resolver,

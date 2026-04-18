@@ -8,7 +8,7 @@ import { PageUrlResolverService } from '../shared/page-url-resolver';
 import { BubbleDetectorService } from './bubble-detector.service';
 import { TranslationCacheService, pageHash } from './cache';
 import { TranslationProviderRegistry } from './providers';
-import { OcrSidecarService } from './sidecar';
+import { OcrBackendRegistry } from './sidecar';
 
 /**
  * Slice F.3 — orchestrates the full per-page translation pipeline:
@@ -24,7 +24,7 @@ export class TranslationService {
 
   constructor(
     private readonly bubbleDetector: BubbleDetectorService,
-    private readonly ocrSidecar: OcrSidecarService,
+    private readonly ocrBackends: OcrBackendRegistry,
     private readonly registry: TranslationProviderRegistry,
     private readonly cache: TranslationCacheService,
     private readonly resolver: PageUrlResolverService,
@@ -82,8 +82,11 @@ export class TranslationService {
       return { pageHash: pageHashValue, bubbles: [] };
     }
 
-    // 5. OCR every detected bubble in a single sidecar IPC round-trip.
-    const ocrResults = await this.ocrSidecar.ocr(
+    // 5. OCR every detected bubble. The registry hands us the first healthy
+    //    backend — sidecar (manga-ocr) when available, Tesseract otherwise.
+    //    Same call shape either way; the orchestrator never branches on which.
+    const ocrBackend = this.ocrBackends.pickBackend();
+    const ocrResults = await ocrBackend.ocr(
       resolvedPath,
       detection.boxes.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h })),
     );

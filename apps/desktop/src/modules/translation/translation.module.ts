@@ -10,7 +10,12 @@ import {
   OllamaProvider,
   TranslationProviderRegistry,
 } from './providers';
-import { OcrSidecarDownloader, OcrSidecarService } from './sidecar';
+import {
+  OcrBackendRegistry,
+  OcrSidecarDownloader,
+  OcrSidecarService,
+  TesseractOcrService,
+} from './sidecar';
 import { TranslationGateway } from './translation.gateway';
 import { TranslationService } from './translation.service';
 
@@ -22,7 +27,9 @@ import { TranslationService } from './translation.service';
  * translation cache; Slice F.3 wires the `TranslationService` orchestrator
  * that ties hash → provider pick → cache → detect → OCR → translate → cache
  * writes for one page; Slice I.1 adds the Google Translate v2 provider;
- * Slice J.1 adds the Ollama local-model provider.
+ * Slice J.1 adds the Ollama local-model provider; Slice K.2 adds the
+ * Tesseract OCR fallback (`TesseractOcrService`) and the `OcrBackendRegistry`
+ * the orchestrator routes through.
  *
  * `DatabaseModule` is `@Global` so we don't import it explicitly here —
  * `TranslationCacheService` resolves `DatabaseService` from the global scope.
@@ -33,6 +40,8 @@ import { TranslationService } from './translation.service';
     BubbleDetectorService,
     OcrSidecarDownloader,
     OcrSidecarService,
+    TesseractOcrService,
+    OcrBackendRegistry,
     DeepLProvider,
     GoogleTranslateProvider,
     OllamaProvider,
@@ -46,6 +55,8 @@ import { TranslationService } from './translation.service';
     BubbleDetectorService,
     OcrSidecarDownloader,
     OcrSidecarService,
+    TesseractOcrService,
+    OcrBackendRegistry,
     DeepLProvider,
     GoogleTranslateProvider,
     OllamaProvider,

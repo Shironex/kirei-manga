@@ -4,7 +4,7 @@ import { TranslationGateway } from './translation.gateway';
 import { BubbleDetectorService } from './bubble-detector.service';
 import { TranslationCacheService } from './cache';
 import { TranslationProviderRegistry } from './providers';
-import { OcrSidecarService } from './sidecar';
+import { OcrBackendRegistry, OcrSidecarService } from './sidecar';
 import { TranslationService } from './translation.service';
 import { DatabaseService } from '../database';
 import { WsThrottlerGuard } from '../shared/ws-throttler.guard';
@@ -22,6 +22,7 @@ describe('TranslationGateway', () => {
   let gateway: TranslationGateway;
   let bubbleDetector: { getStatus: jest.Mock };
   let ocrSidecar: { getStatus: jest.Mock };
+  let ocrBackends: { getFallbackStatus: jest.Mock; pickBackend: jest.Mock };
   let registry: { getAllStatuses: jest.Mock };
   let translationService: { runPipeline: jest.Mock };
   let cacheService: { getForPage: jest.Mock };
@@ -40,6 +41,12 @@ describe('TranslationGateway', () => {
   beforeEach(async () => {
     bubbleDetector = { getStatus: jest.fn() };
     ocrSidecar = { getStatus: jest.fn() };
+    ocrBackends = {
+      getFallbackStatus: jest
+        .fn()
+        .mockReturnValue({ name: 'tesseract', healthy: true }),
+      pickBackend: jest.fn(),
+    };
     registry = { getAllStatuses: jest.fn().mockResolvedValue([]) };
     translationService = { runPipeline: jest.fn() };
     cacheService = { getForPage: jest.fn() };
@@ -59,6 +66,7 @@ describe('TranslationGateway', () => {
         TranslationGateway,
         { provide: BubbleDetectorService, useValue: bubbleDetector },
         { provide: OcrSidecarService, useValue: ocrSidecar },
+        { provide: OcrBackendRegistry, useValue: ocrBackends },
         { provide: TranslationProviderRegistry, useValue: registry },
         { provide: TranslationService, useValue: translationService },
         { provide: TranslationCacheService, useValue: cacheService },
@@ -92,9 +100,31 @@ describe('TranslationGateway', () => {
           modelLoaded: true,
           downloadProgress: undefined,
         },
+        ocrFallback: { name: 'tesseract', healthy: true },
       },
     });
     expect(result).not.toHaveProperty('error');
+  });
+
+  // ===== K.2 — Tesseract fallback row =====
+
+  it('surfaces the Tesseract fallback status under pipeline.ocrFallback', async () => {
+    bubbleDetector.getStatus.mockReturnValue({ healthy: true });
+    ocrSidecar.getStatus.mockReturnValue({ state: 'ready', modelLoaded: true });
+    ocrBackends.getFallbackStatus.mockReturnValue({
+      name: 'tesseract',
+      healthy: false,
+      reason: 'traineddata not found',
+    });
+
+    const result = await gateway.handleProviderStatus();
+
+    expect(ocrBackends.getFallbackStatus).toHaveBeenCalledTimes(1);
+    expect(result.pipeline.ocrFallback).toEqual({
+      name: 'tesseract',
+      healthy: false,
+      reason: 'traineddata not found',
+    });
   });
 
   it('surfaces the bubble detector failure reason in the pipeline block', async () => {

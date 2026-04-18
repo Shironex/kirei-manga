@@ -22,7 +22,7 @@ import type {
 } from '@kireimanga/shared';
 import type { BubbleDetectorService } from './bubble-detector.service';
 import type { TranslationProviderRegistry } from './providers';
-import type { OcrSidecarService } from './sidecar';
+import type { OcrBackend, OcrBackendRegistry } from './sidecar';
 import type { PageUrlResolverService } from '../shared/page-url-resolver';
 import { createTestDatabase, type CompatDatabase } from '../database/__test__/sqljs-adapter';
 import type { DatabaseService } from '../database';
@@ -50,6 +50,7 @@ function makeOcr(texts: string[]): OcrResult[] {
 interface Mocks {
   detector: { detect: jest.Mock };
   sidecar: { ocr: jest.Mock };
+  ocrBackends: { pickBackend: jest.Mock };
   registry: { pickProvider: jest.Mock };
   provider: {
     id: Exclude<TranslationProviderId, 'tesseract-only'>;
@@ -66,9 +67,18 @@ function buildMocks(
     translate: jest.fn(),
     status: jest.fn(),
   };
+  const sidecar = { ocr: jest.fn() };
+  // Same wrapping pattern as F.3's unit spec: hand the orchestrator a
+  // sidecar-flavoured backend so existing assertions on `mocks.sidecar.ocr`
+  // continue to fire, post-K.2.
+  const sidecarBackend: OcrBackend = {
+    ocr: (...args) => sidecar.ocr(...args),
+    getStatus: () => ({ healthy: true }),
+  };
   return {
     detector: { detect: jest.fn() },
-    sidecar: { ocr: jest.fn() },
+    sidecar,
+    ocrBackends: { pickBackend: jest.fn().mockReturnValue(sidecarBackend) },
     registry: { pickProvider: jest.fn().mockResolvedValue(provider) },
     provider,
   };
@@ -110,7 +120,7 @@ describe('TranslationService pipeline integration', () => {
     } as unknown as PageUrlResolverService;
     service = new TranslationService(
       mocks.detector as unknown as BubbleDetectorService,
-      mocks.sidecar as unknown as OcrSidecarService,
+      mocks.ocrBackends as unknown as OcrBackendRegistry,
       mocks.registry as unknown as TranslationProviderRegistry,
       cache,
       resolver,
