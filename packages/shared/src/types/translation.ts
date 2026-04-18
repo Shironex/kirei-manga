@@ -66,5 +66,13 @@ export interface TranslationSettings {
     deepl?: string;
     google?: string;
     ollamaEndpoint?: string;
+    /**
+     * Ollama model tag (e.g. `qwen2:7b`, `aya`). `providerKeys` is the
+     * keys-only bucket today, but the model name lives alongside the
+     * endpoint to keep all Ollama config in one nested object — matching
+     * the shape consumed by the J.2 settings UI. Defaults to `'qwen2:7b'`
+     * via `DEFAULT_APP_SETTINGS` when unset.
+     */
+    ollamaModel?: string;
   };
 }

@@ -111,7 +111,12 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
     autoTranslate: false,
     overlayFont: 'Fraunces',
     overlayOpacity: 1,
-    providerKeys: {},
+    providerKeys: {
+      // Ollama's default model. Surfaced here (rather than as a fallback inside
+      // the provider) so the J.2 settings UI can render a populated input field
+      // on first boot, and so users see exactly what the provider will request.
+      ollamaModel: 'qwen2:7b',
+    },
   },
 };
 

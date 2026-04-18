@@ -7,6 +7,7 @@ import { TranslationCacheService } from './cache';
 import {
   DeepLProvider,
   GoogleTranslateProvider,
+  OllamaProvider,
   TranslationProviderRegistry,
 } from './providers';
 import { OcrSidecarDownloader, OcrSidecarService } from './sidecar';
@@ -20,7 +21,8 @@ import { TranslationService } from './translation.service';
  * provider; Slice E.3 introduces the registry; Slice F.2 adds the SQLite
  * translation cache; Slice F.3 wires the `TranslationService` orchestrator
  * that ties hash → provider pick → cache → detect → OCR → translate → cache
- * writes for one page; Slice I.1 adds the Google Translate v2 provider.
+ * writes for one page; Slice I.1 adds the Google Translate v2 provider;
+ * Slice J.1 adds the Ollama local-model provider.
  *
  * `DatabaseModule` is `@Global` so we don't import it explicitly here —
  * `TranslationCacheService` resolves `DatabaseService` from the global scope.
@@ -33,6 +35,7 @@ import { TranslationService } from './translation.service';
     OcrSidecarService,
     DeepLProvider,
     GoogleTranslateProvider,
+    OllamaProvider,
     TranslationProviderRegistry,
     TranslationCacheService,
     PageUrlResolverService,
@@ -45,6 +48,7 @@ import { TranslationService } from './translation.service';
     OcrSidecarService,
     DeepLProvider,
     GoogleTranslateProvider,
+    OllamaProvider,
     TranslationProviderRegistry,
     TranslationCacheService,
     PageUrlResolverService,

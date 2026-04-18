@@ -39,6 +39,26 @@ function mergeWithDefaults(stored: unknown): { merged: AppSettings; mutated: boo
         mutated = true;
       }
     }
+    // `translation.providerKeys` is the only nested object on a section: merge
+    // one level so a stored payload from before a new key was added (e.g.
+    // `ollamaModel` in J.1) still inherits its default on next boot instead of
+    // overwriting the whole bucket with the older shape.
+    if (key === 'translation') {
+      const defKeys = (def.providerKeys ?? {}) as Record<string, unknown>;
+      const inKeys = (inSection.providerKeys ?? {}) as Record<string, unknown>;
+      const mergedKeys: Record<string, unknown> = { ...defKeys };
+      for (const k of Object.keys(inKeys)) {
+        if (inKeys[k] !== undefined) {
+          mergedKeys[k] = inKeys[k];
+        }
+      }
+      for (const k of Object.keys(defKeys)) {
+        if (!(k in inKeys) || inKeys[k] === undefined) {
+          mutated = true;
+        }
+      }
+      next.providerKeys = mergedKeys;
+    }
     (merged as unknown as Record<string, unknown>)[key] = next;
   }
 

@@ -3,15 +3,15 @@ import type { TranslationProviderId, TranslationProviderStatus } from '@kireiman
 import { TranslationProviderRegistry } from './provider.registry';
 import { DeepLProvider } from './deepl.provider';
 import { GoogleTranslateProvider } from './google-translate.provider';
+import { OllamaProvider } from './ollama.provider';
 import { SettingsService } from '../../settings';
 import type { TranslationProvider } from './provider.interface';
 
 /**
  * Selection coverage for `pickProvider`. Slice I.1 added Google alongside
- * DeepL, so the Nest test module wires both real providers as DI fakes; the
- * tests below replace `this.providers` with bespoke arrays per case to
- * exercise the multi-provider selection paths (Slice J will append Ollama
- * the same way).
+ * DeepL and Slice J.1 added Ollama, so the Nest test module wires all three
+ * real providers as DI fakes; the tests below replace `this.providers` with
+ * bespoke arrays per case to exercise the multi-provider selection paths.
  */
 function makeFakeProvider(
   id: Exclude<TranslationProviderId, 'tesseract-only'>,
@@ -40,6 +40,7 @@ describe('TranslationProviderRegistry', () => {
   let settings: { get: jest.Mock };
   let deepl: { id: 'deepl'; translate: jest.Mock; status: jest.Mock };
   let google: { id: 'google'; translate: jest.Mock; status: jest.Mock };
+  let ollama: { id: 'ollama'; translate: jest.Mock; status: jest.Mock };
 
   beforeEach(async () => {
     settings = {
@@ -49,6 +50,7 @@ describe('TranslationProviderRegistry', () => {
     };
     deepl = { id: 'deepl', translate: jest.fn(), status: jest.fn() };
     google = { id: 'google', translate: jest.fn(), status: jest.fn() };
+    ollama = { id: 'ollama', translate: jest.fn(), status: jest.fn() };
 
     module = await Test.createTestingModule({
       providers: [
@@ -56,6 +58,7 @@ describe('TranslationProviderRegistry', () => {
         { provide: SettingsService, useValue: settings },
         { provide: DeepLProvider, useValue: deepl },
         { provide: GoogleTranslateProvider, useValue: google },
+        { provide: OllamaProvider, useValue: ollama },
       ],
     }).compile();
 
@@ -132,5 +135,23 @@ describe('TranslationProviderRegistry', () => {
     const picked = await registry.pickProvider('tesseract-only');
 
     expect(picked).toBe(deeplFake);
+  });
+
+  it('selects the ollama provider when it is the settings default and healthy', async () => {
+    // Slice J.1 wiring sanity check: the registry must surface Ollama like
+    // any other provider once the user pins it as their default. Ensures the
+    // ID flows through `pickProvider` without special-casing.
+    const deeplFake = makeFakeProvider('deepl', {
+      id: 'deepl',
+      ok: false,
+      reason: 'no-api-key',
+    });
+    const ollamaFake = makeFakeProvider('ollama', { id: 'ollama', ok: true });
+    injectFakeProviders(registry, [deeplFake, ollamaFake]);
+    settings.get.mockReturnValue({ translation: { defaultProvider: 'ollama' } });
+
+    const picked = await registry.pickProvider();
+
+    expect(picked).toBe(ollamaFake);
   });
 });
