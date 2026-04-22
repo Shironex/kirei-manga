@@ -358,15 +358,105 @@ describe('LibraryService (integration)', () => {
       expect(states).toEqual({});
     });
 
-    it('updateProgress throws when the series is not in the library', async () => {
-      await expect(
+    it('updateProgress auto-follows the series when it is not yet in the library', async () => {
+      // Library starts empty — the MangaDex fixture matches `mxid-1`.
+      expect(await service.getAll()).toHaveLength(0);
+
+      const result = await service.updateProgress({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 2,
+        pageCount: 10,
+      });
+
+      // Service signals the auto-follow to callers (gateway broadcasts it).
+      expect(result.autoFollowed).not.toBeNull();
+      expect(result.autoFollowed!.mangadexId).toBe('mxid-1');
+      expect(result.localSeriesId).toBe(result.autoFollowed!.id);
+      expect(mangadex.getSeries).toHaveBeenCalledWith('mxid-1');
+
+      // Series row exists, and progress was written through the normal path.
+      const all = await service.getAll();
+      expect(all).toHaveLength(1);
+      expect(all[0].mangadexId).toBe('mxid-1');
+
+      const chapter = db
+        .prepare('SELECT last_read_page, is_read FROM chapters WHERE mangadex_chapter_id = ?')
+        .get('ch-1') as { last_read_page: number; is_read: number } | undefined;
+      expect(chapter).toBeDefined();
+      expect(chapter!.last_read_page).toBe(2);
+      expect(chapter!.is_read).toBe(0);
+
+      const seriesRow = db
+        .prepare('SELECT last_read_at, last_chapter_id FROM series WHERE mangadex_id = ?')
+        .get('mxid-1') as { last_read_at: string | null; last_chapter_id: string | null };
+      expect(seriesRow.last_read_at).not.toBeNull();
+      expect(seriesRow.last_chapter_id).toBe('ch-1');
+    });
+
+    it('updateProgress does not re-fetch MangaDex when the series is already followed', async () => {
+      await service.follow('mxid-1');
+      expect(mangadex.getSeries).toHaveBeenCalledTimes(1);
+
+      const result = await service.updateProgress({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+        page: 2,
+        pageCount: 10,
+      });
+
+      // No second fetch, and autoFollowed is null so the gateway doesn't
+      // broadcast a spurious `followed` event.
+      expect(mangadex.getSeries).toHaveBeenCalledTimes(1);
+      expect(result.autoFollowed).toBeNull();
+    });
+
+    it('markChapterRead auto-follows when the series is not yet in the library', async () => {
+      expect(await service.getAll()).toHaveLength(0);
+
+      const result = await service.markChapterRead({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-2',
+        pageCount: 5,
+      });
+
+      expect(result.autoFollowed).not.toBeNull();
+      expect(result.autoFollowed!.mangadexId).toBe('mxid-1');
+      expect(result.chapter.isRead).toBe(true);
+      expect(result.chapter.lastReadPage).toBe(4);
+
+      const all = await service.getAll();
+      expect(all).toHaveLength(1);
+      const chapter = db
+        .prepare('SELECT is_read, last_read_page FROM chapters WHERE mangadex_chapter_id = ?')
+        .get('ch-2') as { is_read: number; last_read_page: number };
+      expect(chapter.is_read).toBe(1);
+      expect(chapter.last_read_page).toBe(4);
+    });
+
+    it('concurrent updateProgress calls on the same unfollowed series both succeed', async () => {
+      // Race check: the first-to-win inserts, the second-to-arrive should not
+      // hit a UNIQUE violation and should resolve to the same local id.
+      expect(await service.getAll()).toHaveLength(0);
+
+      const [a, b] = await Promise.all([
         service.updateProgress({
-          mangadexSeriesId: 'nope',
+          mangadexSeriesId: 'mxid-1',
           mangadexChapterId: 'ch-1',
-          page: 0,
-          pageCount: 5,
-        })
-      ).rejects.toThrow(/series not in library/);
+          page: 1,
+          pageCount: 10,
+        }),
+        service.updateProgress({
+          mangadexSeriesId: 'mxid-1',
+          mangadexChapterId: 'ch-1',
+          page: 2,
+          pageCount: 10,
+        }),
+      ]);
+
+      expect(a.localSeriesId).toBe(b.localSeriesId);
+      const all = await service.getAll();
+      expect(all).toHaveLength(1);
     });
   });
 
@@ -450,6 +540,36 @@ describe('LibraryService (integration)', () => {
       expect(chapter).toBeDefined();
       expect(chapter!.last_read_page).toBe(0);
       expect(chapter!.is_read).toBe(0);
+    });
+
+    it('startSession auto-follows the series when it is not yet in the library', async () => {
+      expect(await service.getAll()).toHaveLength(0);
+
+      const result = await service.startSession({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-fresh',
+      });
+
+      expect(result.autoFollowed).not.toBeNull();
+      expect(result.autoFollowed!.mangadexId).toBe('mxid-1');
+      expect(result.startPage).toBe(0);
+
+      expect(await service.getAll()).toHaveLength(1);
+      const chapter = db
+        .prepare('SELECT last_read_page FROM chapters WHERE mangadex_chapter_id = ?')
+        .get('ch-fresh') as { last_read_page: number } | undefined;
+      expect(chapter).toBeDefined();
+    });
+
+    it('startSession returns autoFollowed=null when the series is already followed', async () => {
+      await service.follow('mxid-1');
+
+      const result = await service.startSession({
+        mangadexSeriesId: 'mxid-1',
+        mangadexChapterId: 'ch-1',
+      });
+
+      expect(result.autoFollowed).toBeNull();
     });
   });
 
@@ -562,6 +682,21 @@ describe('LibraryService (integration)', () => {
     it('remove returns success=false for an unknown id without throwing', async () => {
       const result = await bookmarkService.remove('does-not-exist');
       expect(result.success).toBe(false);
+    });
+
+    it('add throws when the series is not in the library (no auto-follow for bookmarks)', async () => {
+      // Bookmarks are an explicit user action — if the series row is missing,
+      // that's a real error, unlike the reader-progress paths which now
+      // auto-follow. Guards against the auto-follow refactor leaking into
+      // BookmarkService.
+      await expect(
+        bookmarkService.add({
+          mangadexSeriesId: 'not-followed',
+          mangadexChapterId: 'ch-1',
+          page: 0,
+          chapterNumber: 1,
+        })
+      ).rejects.toThrow(/series not in library/);
     });
   });
 });

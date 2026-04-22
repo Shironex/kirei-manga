@@ -145,6 +145,13 @@ export class LibraryGateway {
       defaultResult: { success: false, isRead: false },
       handler: async () => {
         const result = await this.libraryService.updateProgress(payload);
+        if (result.autoFollowed) {
+          this.server.emit(LibraryEvents.UPDATED, {
+            action: 'followed',
+            id: result.autoFollowed.id,
+            series: result.autoFollowed,
+          } satisfies LibraryUpdatedEvent);
+        }
         this.server.emit(LibraryEvents.UPDATED, {
           action: 'progress-changed',
           id: result.localSeriesId,
@@ -163,6 +170,13 @@ export class LibraryGateway {
       defaultResult: { success: false },
       handler: async () => {
         const result = await this.libraryService.markChapterRead(payload);
+        if (result.autoFollowed) {
+          this.server.emit(LibraryEvents.UPDATED, {
+            action: 'followed',
+            id: result.autoFollowed.id,
+            series: result.autoFollowed,
+          } satisfies LibraryUpdatedEvent);
+        }
         this.server.emit(LibraryEvents.UPDATED, {
           action: 'progress-changed',
           id: result.localSeriesId,
@@ -197,7 +211,17 @@ export class LibraryGateway {
       defaultResult: { sessionId: '', startPage: 0 },
       handler: async () => {
         const result = await this.libraryService.startSession(payload);
-        return result;
+        if (result.autoFollowed) {
+          this.server.emit(LibraryEvents.UPDATED, {
+            action: 'followed',
+            id: result.autoFollowed.id,
+            series: result.autoFollowed,
+          } satisfies LibraryUpdatedEvent);
+        }
+        // The on-wire response shape for `reader:session-start` is
+        // `{ sessionId, startPage }` — strip the internal `autoFollowed`
+        // signal so the web client sees the type it expects.
+        return { sessionId: result.sessionId, startPage: result.startPage };
       },
     });
   }

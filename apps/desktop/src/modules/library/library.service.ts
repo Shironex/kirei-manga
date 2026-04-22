@@ -209,6 +209,11 @@ export class LibraryService {
    * Follow a MangaDex series — idempotent on the `mangadex_id` UNIQUE index.
    * If a row already exists, it is returned unchanged; otherwise MangaDex is
    * queried for metadata and a new row is inserted with `status='reading'`.
+   *
+   * Race-safe: two concurrent callers both seeing no existing row will both
+   * reach the INSERT; the second is absorbed by `INSERT OR IGNORE`, and the
+   * post-insert lookup is keyed on `mangadex_id` so both callers resolve to
+   * the same winning row.
    */
   async follow(mangadexId: string): Promise<Series> {
     const existing = this.db.db
@@ -223,12 +228,19 @@ export class LibraryService {
 
     this.db.db
       .prepare(
-        `INSERT INTO series (id, title, title_japanese, cover_path, source, mangadex_id, status, added_at)
+        `INSERT OR IGNORE INTO series (id, title, title_japanese, cover_path, source, mangadex_id, status, added_at)
          VALUES (?, ?, ?, ?, 'mangadex', ?, 'reading', datetime('now'))`
       )
       .run(id, detail.title, detail.titleJapanese ?? null, detail.coverUrl ?? null, mangadexId);
 
-    const inserted = this.db.db.prepare('SELECT * FROM series WHERE id = ?').get(id) as SeriesRow;
+    // Lookup by `mangadex_id` (not `id`) so a racing winner's row is returned
+    // instead of throwing on a missed UUID.
+    const inserted = this.db.db
+      .prepare('SELECT * FROM series WHERE mangadex_id = ?')
+      .get(mangadexId) as SeriesRow | undefined;
+    if (!inserted) {
+      throw new Error(`failed to insert series row (mangadexId=${mangadexId})`);
+    }
     return this.rowToSeries(inserted);
   }
 
@@ -254,8 +266,11 @@ export class LibraryService {
 
   /**
    * Resolve a MangaDex series id to the local `series.id`. Throws when the
-   * user hasn't followed the series yet — the reader never talks to MangaDex
-   * directly for progress updates, so a miss here is a genuine error.
+   * user hasn't followed the series yet — callers that want auto-follow
+   * semantics (reader progress / session start) should use
+   * `resolveOrFollowLocalSeriesId` instead. The strict variant stays put for
+   * callers where a miss is a real error (e.g. bookmarks — an explicit user
+   * action on a series they must already be reading).
    * Public so sibling services (e.g. `BookmarkService`) can share the lookup.
    */
   resolveLocalSeriesId(mangadexSeriesId: string): string {
@@ -266,6 +281,33 @@ export class LibraryService {
       throw new Error(`series not in library (mangadexId=${mangadexSeriesId})`);
     }
     return row.id;
+  }
+
+  /**
+   * Reader-side variant of `resolveLocalSeriesId`: if the MangaDex series
+   * isn't followed yet, auto-follow it (fetching metadata from MangaDex) and
+   * return the freshly inserted row. Used by progress / session / mark-read
+   * paths so opening a chapter from a search result silently adds the series
+   * to the library instead of spamming "series not in library" toasts.
+   *
+   * Returns `{ localSeriesId, autoFollowed }` — `autoFollowed` is the new
+   * series row on a miss-then-follow, or `null` on a cache hit. The gateway
+   * uses `autoFollowed` to fire a `LibraryEvents.UPDATED` broadcast so the
+   * web-side library store picks up the new entry without a full refetch.
+   */
+  async resolveOrFollowLocalSeriesId(
+    mangadexSeriesId: string
+  ): Promise<{ localSeriesId: string; autoFollowed: Series | null }> {
+    const row = this.db.db
+      .prepare('SELECT id FROM series WHERE mangadex_id = ?')
+      .get(mangadexSeriesId) as { id: string } | undefined;
+    if (row) {
+      return { localSeriesId: row.id, autoFollowed: null };
+    }
+
+    logger.info(`auto-follow: ${mangadexSeriesId} not in library — following`);
+    const series = await this.follow(mangadexSeriesId);
+    return { localSeriesId: series.id, autoFollowed: series };
   }
 
   /**
@@ -335,8 +377,9 @@ export class LibraryService {
   /**
    * Record reader progress for a MangaDex chapter. Upserts a chapters row,
    * auto-marks the chapter read when `page >= pageCount - 1`, and bumps both
-   * `series.last_read_at` and `series.last_chapter_id`. Throws if the series
-   * isn't in the library.
+   * `series.last_read_at` and `series.last_chapter_id`. Auto-follows the
+   * series if the user hasn't added it to the library yet; the caller can
+   * key off `autoFollowed` to broadcast a library-updated event.
    */
   async updateProgress(payload: ReaderUpdateProgressPayload): Promise<{
     isRead: boolean;
@@ -347,8 +390,11 @@ export class LibraryService {
       pageCount: number;
     };
     localSeriesId: string;
+    autoFollowed: Series | null;
   }> {
-    const localSeriesId = this.resolveLocalSeriesId(payload.mangadexSeriesId);
+    const { localSeriesId, autoFollowed } = await this.resolveOrFollowLocalSeriesId(
+      payload.mangadexSeriesId
+    );
     const isRead = payload.page >= payload.pageCount - 1;
 
     const tx = this.db.db.transaction(() => {
@@ -379,12 +425,14 @@ export class LibraryService {
         pageCount: payload.pageCount,
       },
       localSeriesId,
+      autoFollowed,
     };
   }
 
   /**
    * Mark a MangaDex chapter read in one shot — same upsert path as
-   * `updateProgress` with `page = pageCount - 1` and `isRead = true`.
+   * `updateProgress` with `page = pageCount - 1` and `isRead = true`. Shares
+   * the reader auto-follow behaviour with `updateProgress`.
    */
   async markChapterRead(payload: ReaderMarkReadPayload): Promise<{
     localSeriesId: string;
@@ -394,8 +442,11 @@ export class LibraryService {
       isRead: boolean;
       pageCount: number;
     };
+    autoFollowed: Series | null;
   }> {
-    const localSeriesId = this.resolveLocalSeriesId(payload.mangadexSeriesId);
+    const { localSeriesId, autoFollowed } = await this.resolveOrFollowLocalSeriesId(
+      payload.mangadexSeriesId
+    );
     const lastReadPage = Math.max(0, payload.pageCount - 1);
 
     const tx = this.db.db.transaction(() => {
@@ -425,6 +476,7 @@ export class LibraryService {
         isRead: true,
         pageCount: payload.pageCount,
       },
+      autoFollowed,
     };
   }
 
@@ -477,8 +529,10 @@ export class LibraryService {
   async startSession(params: {
     mangadexSeriesId: string;
     mangadexChapterId: string;
-  }): Promise<{ sessionId: string; startPage: number }> {
-    const localSeriesId = this.resolveLocalSeriesId(params.mangadexSeriesId);
+  }): Promise<{ sessionId: string; startPage: number; autoFollowed: Series | null }> {
+    const { localSeriesId, autoFollowed } = await this.resolveOrFollowLocalSeriesId(
+      params.mangadexSeriesId
+    );
 
     // Minimal upsert so there's always a chapter row to anchor sessions to.
     // Keeps chapter_number at its NOT NULL fallback of 0; a later
@@ -509,7 +563,7 @@ export class LibraryService {
       )
       .run(sessionId, row.id, row.last_read_page, row.last_read_page);
 
-    return { sessionId, startPage: row.last_read_page };
+    return { sessionId, startPage: row.last_read_page, autoFollowed };
   }
 
   /**
