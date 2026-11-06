@@ -19,7 +19,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "satori": "^0.26.0",
+    "satori": "^0.33.5",
     "sharp": "^0.34.5"
   }
 }
