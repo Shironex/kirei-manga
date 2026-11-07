@@ -6,6 +6,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use kirei_core::DataPaths;
 use kirei_library::{
     Library, LibraryRoot, ReadingProgress, ScanProgress, ScanSummary, SeriesDetail, SeriesSummary,
 };
@@ -14,24 +15,17 @@ use tauri::{AppHandle, Emitter, Manager, Runtime};
 /// Event carrying a [`ScanProgress`] while a scan runs.
 pub(crate) const SCAN_PROGRESS_EVENT: &str = "library:scan-progress";
 
-const DB_FILE: &str = "library.sqlite3";
-const COVER_DIR: &str = "covers";
-
 /// Managed state. Holds the reason instead of the library when the database
 /// could not be opened (a newer schema, a locked or unreadable file), so the
 /// reader keeps working and the library commands report why.
 pub(crate) struct Catalog(Result<Arc<Library>, String>);
 
 impl Catalog {
-    pub(crate) fn open<R: Runtime>(app: &AppHandle<R>) -> Self {
-        let opened = app
-            .path()
-            .app_data_dir()
-            .map_err(|error| error.to_string())
-            .and_then(|dir| {
-                Library::open(&dir.join(DB_FILE), &dir.join(COVER_DIR))
-                    .map_err(|error| error.to_string())
-            });
+    /// Opens the library in the resolved data root (see `data.rs`).
+    pub(crate) fn open(paths: Result<&DataPaths, String>) -> Self {
+        let opened = paths.and_then(|paths| {
+            Library::open(&paths.database(), &paths.covers()).map_err(|error| error.to_string())
+        });
         if let Err(error) = &opened {
             eprintln!("KireiManga library unavailable: {error}");
         }
@@ -43,7 +37,7 @@ impl Catalog {
         Self(Ok(Arc::new(library)))
     }
 
-    fn library(&self) -> Result<Arc<Library>, String> {
+    pub(crate) fn library(&self) -> Result<Arc<Library>, String> {
         self.0.clone()
     }
 }
@@ -163,6 +157,16 @@ mod tests {
             catalog.library().err().as_deref(),
             Some("schema 9 is newer")
         );
+    }
+
+    #[test]
+    fn the_library_opens_in_the_data_root() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = DataPaths::new(kirei_core::DataMode::Portable, dir.path().join("data"));
+        let catalog = Catalog::open(Ok(&paths));
+        assert!(catalog.library().is_ok());
+        assert!(paths.database().is_file());
+        assert!(paths.covers().is_dir());
     }
 
     #[test]
