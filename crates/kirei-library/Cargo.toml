@@ -21,10 +21,12 @@ rusqlite = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+# Backup files. Writing needs the deflate encoder, which the flate2 backend
+# already brings for reading.
+zip = { workspace = true, features = ["deflate-flate2-zlib-rs"] }
 
 [dev-dependencies]
 tempfile = { workspace = true }
-zip = { workspace = true, features = ["deflate-flate2-zlib-rs"] }
 
 [lints]
 workspace = true
