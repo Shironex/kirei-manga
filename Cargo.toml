@@ -22,6 +22,7 @@ publish = false
 # Internal crates.
 kirei-core = { path = "crates/kirei-core" }
 kirei-archive = { path = "crates/kirei-archive" }
+kirei-reader = { path = "crates/kirei-reader" }
 
 # External. Versions live here, never in a leaf crate, so the tree stays unified.
 serde = { version = "1", features = ["derive"] }
@@ -45,6 +46,8 @@ zip = { version = "9.1", default-features = false, features = ["deflate-flate2-z
 unrar = "0.5.8"
 # Pixel size from image headers, without decoding.
 imagesize = "0.15"
+# The page cache's recency order (kirei-reader). MIT.
+lru = "0.19"
 
 # Test-only helpers.
 tempfile = "3"
