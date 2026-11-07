@@ -20,6 +20,7 @@ mod naming;
 mod palette;
 mod scanner;
 mod settings;
+mod watcher;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -46,7 +47,8 @@ pub use palette::{
     FALLBACK_CHROMA, FALLBACK_HUE, MAX_SEED_CHROMA, Oklch, Palette, sample as sample_palette,
     srgb_to_oklch,
 };
-pub use scanner::MAX_DEPTH;
+pub use scanner::{MAX_DEPTH, ScanScope};
+pub use watcher::{LibraryWatcher, WatchConfig, WatchProgress};
 
 use covers::CoverCache;
 
@@ -216,32 +218,68 @@ impl Library {
         root_id: Option<i64>,
         progress: &(dyn Fn(ScanProgress) + Sync),
     ) -> Result<ScanSummary> {
+        self.run_scan(
+            |conn| match root_id {
+                Some(id) => Ok(vec![(
+                    id,
+                    scanner::root_path(conn, id)?
+                        .ok_or(LibraryError::NotFound("library root", id))?,
+                    None,
+                )]),
+                None => {
+                    let mut stmt =
+                        conn.prepare_cached("SELECT id, path FROM library_roots ORDER BY path")?;
+                    let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?, None)))?;
+                    Ok(rows.collect::<rusqlite::Result<_>>()?)
+                }
+            },
+            progress,
+        )
+    }
+
+    /// Rescans only part of a root: the series folders and loose archives
+    /// `scope` names. Same incremental rules, single-flight flag and progress
+    /// events as [`Library::scan`]; chapters outside the scope are left as
+    /// they are. The file watcher calls this for the series that changed.
+    pub fn scan_entries(
+        &self,
+        root_id: i64,
+        scope: &ScanScope,
+        progress: &(dyn Fn(ScanProgress) + Sync),
+    ) -> Result<ScanSummary> {
+        self.run_scan(
+            |conn| {
+                let path = scanner::root_path(conn, root_id)?
+                    .ok_or(LibraryError::NotFound("library root", root_id))?;
+                Ok(vec![(root_id, path, Some(scope.clone()))])
+            },
+            progress,
+        )
+    }
+
+    fn run_scan(
+        &self,
+        roots: impl FnOnce(&Connection) -> Result<Vec<(i64, String, Option<ScanScope>)>>,
+        progress: &(dyn Fn(ScanProgress) + Sync),
+    ) -> Result<ScanSummary> {
         if self.scanning.swap(true, Ordering::AcqRel) {
             return Err(LibraryError::ScanInProgress);
         }
         let _guard = ScanGuard(&self.scanning);
         let start = Instant::now();
-
-        let roots: Vec<(i64, String)> = {
-            let conn = self.conn();
-            match root_id {
-                Some(id) => vec![(
-                    id,
-                    scanner::root_path(&conn, id)?
-                        .ok_or(LibraryError::NotFound("library root", id))?,
-                )],
-                None => {
-                    let mut stmt =
-                        conn.prepare_cached("SELECT id, path FROM library_roots ORDER BY path")?;
-                    let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
-                    rows.collect::<rusqlite::Result<_>>()?
-                }
-            }
-        };
+        let roots = roots(&self.conn())?;
 
         let mut summary = ScanSummary::default();
-        for (id, path) in &roots {
-            scanner::scan_root(&self.conn, &self.covers, *id, path, progress, &mut summary)?;
+        for (id, path, scope) in &roots {
+            scanner::scan_root(
+                &self.conn,
+                &self.covers,
+                *id,
+                path,
+                scope.as_ref(),
+                progress,
+                &mut summary,
+            )?;
             summary.roots += 1;
         }
         summary.elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;
