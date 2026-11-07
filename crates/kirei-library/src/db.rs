@@ -14,7 +14,10 @@ use crate::{LibraryError, Result};
 
 /// Every migration, in order. Append only: never edit or renumber a shipped
 /// entry, add a new one instead.
-pub(crate) const MIGRATIONS: &[(u32, &str)] = &[(1, include_str!("../migrations/0001_init.sql"))];
+pub(crate) const MIGRATIONS: &[(u32, &str)] = &[
+    (1, include_str!("../migrations/0001_init.sql")),
+    (2, include_str!("../migrations/0002_keep_progress.sql")),
+];
 
 /// The schema version this build writes.
 pub const SCHEMA_VERSION: u32 = MIGRATIONS[MIGRATIONS.len() - 1].0;
@@ -26,6 +29,7 @@ pub(crate) fn open_file(path: &Path) -> Result<Connection> {
     let conn = Connection::open(path)?;
     configure(&conn, true)?;
     migrate(&conn)?;
+    crate::identity::backfill(&conn)?;
     Ok(conn)
 }
 
@@ -33,6 +37,7 @@ pub(crate) fn open_memory() -> Result<Connection> {
     let conn = Connection::open_in_memory()?;
     configure(&conn, false)?;
     migrate(&conn)?;
+    crate::identity::backfill(&conn)?;
     Ok(conn)
 }
 

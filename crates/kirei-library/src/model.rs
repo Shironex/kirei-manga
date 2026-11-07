@@ -141,3 +141,11 @@ pub struct ScanSummary {
     pub root_errors: Vec<String>,
     pub elapsed_ms: f64,
 }
+
+/// What [`crate::Library::purge_orphans`] deleted.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrphanPurge {
+    pub progress: usize,
+    pub settings: usize,
+}

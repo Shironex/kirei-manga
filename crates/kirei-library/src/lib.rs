@@ -13,6 +13,7 @@ mod comic_info;
 mod covers;
 mod db;
 mod error;
+mod identity;
 mod model;
 mod naming;
 mod palette;
@@ -31,8 +32,8 @@ pub use covers::{THUMB_MAX_HEIGHT, THUMB_MAX_WIDTH};
 pub use db::SCHEMA_VERSION;
 pub use error::{LibraryError, Result};
 pub use model::{
-    ChapterEntry, CoverRef, LibraryRoot, ReadingProgress, ScanPhase, ScanProgress, ScanSummary,
-    SeriesDetail, SeriesSummary,
+    ChapterEntry, CoverRef, LibraryRoot, OrphanPurge, ReadingProgress, ScanPhase, ScanProgress,
+    ScanSummary, SeriesDetail, SeriesSummary,
 };
 pub use naming::{ParsedName, clean_title, parse_name, title_key};
 pub use palette::{
@@ -128,13 +129,50 @@ impl Library {
             .ok_or(LibraryError::NotFound("library root", id))
     }
 
-    /// Forgets a root and every series, chapter and progress row under it.
-    /// Nothing on disk is touched. Returns false when the id is unknown.
+    /// Forgets a root and every series and chapter row under it. Reading
+    /// progress and series settings are kept as orphans (hidden from every
+    /// list) so adding the folder again, here or under another root, brings
+    /// them back. Nothing on disk is touched. Returns false when the id is
+    /// unknown.
     pub fn remove_root(&self, id: i64) -> Result<bool> {
-        Ok(self
-            .conn()
-            .execute("DELETE FROM library_roots WHERE id = ?1", [id])?
-            > 0)
+        let conn = self.conn();
+        let tx = conn.unchecked_transaction()?;
+        let now = now_ms();
+        tx.execute(
+            "UPDATE reading_progress SET orphaned_at = ?2 WHERE chapter_id IN (
+                 SELECT c.id FROM chapters c JOIN series s ON s.id = c.series_id
+                 WHERE s.root_id = ?1)",
+            params![id, now],
+        )?;
+        tx.execute(
+            "UPDATE series_settings SET orphaned_at = ?2 WHERE series_id IN (
+                 SELECT id FROM series WHERE root_id = ?1)",
+            params![id, now],
+        )?;
+        let removed = tx.execute("DELETE FROM library_roots WHERE id = ?1", [id])? > 0;
+        tx.commit()?;
+        Ok(removed)
+    }
+
+    /// Deletes progress and settings whose chapter or series is gone and has
+    /// been for at least `older_than_days` (0 purges every orphan). Never
+    /// called on its own: it is for an explicit "forget old progress" action.
+    pub fn purge_orphans(&self, older_than_days: u32) -> Result<OrphanPurge> {
+        let cutoff = now_ms() - i64::from(older_than_days) * 86_400_000;
+        let conn = self.conn();
+        let tx = conn.unchecked_transaction()?;
+        let progress = tx.execute(
+            "DELETE FROM reading_progress
+             WHERE chapter_id IS NULL AND coalesce(orphaned_at, updated_at) <= ?1",
+            [cutoff],
+        )?;
+        let settings = tx.execute(
+            "DELETE FROM series_settings
+             WHERE series_id IS NULL AND coalesce(orphaned_at, updated_at) <= ?1",
+            [cutoff],
+        )?;
+        tx.commit()?;
+        Ok(OrphanPurge { progress, settings })
     }
 
     pub fn roots(&self) -> Result<Vec<LibraryRoot>> {
@@ -377,9 +415,12 @@ impl Library {
         let page = page.clamp(0, (page_count - 1).max(0));
         let completed = page_count > 0 && page + 1 >= page_count;
         Ok(conn.query_row(
-            "INSERT INTO reading_progress (chapter_id, page, page_count, completed, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5)
+            "INSERT INTO reading_progress
+                 (chapter_id, ident, file_size, page, page_count, completed, updated_at)
+             SELECT id, ident, file_size, ?2, ?3, ?4, ?5 FROM chapters WHERE id = ?1
              ON CONFLICT (chapter_id) DO UPDATE SET
+                 ident = excluded.ident,
+                 file_size = excluded.file_size,
                  page = excluded.page,
                  page_count = excluded.page_count,
                  completed = max(reading_progress.completed, excluded.completed),
@@ -423,7 +464,8 @@ impl Library {
             return Err(LibraryError::NotFound("series", series_id));
         }
         conn.execute(
-            "INSERT INTO series_settings (series_id, settings, updated_at) VALUES (?1, ?2, ?3)
+            "INSERT INTO series_settings (series_id, ident, settings, updated_at)
+             SELECT id, ident, ?2, ?3 FROM series WHERE id = ?1
              ON CONFLICT (series_id) DO UPDATE SET
                  settings = excluded.settings, updated_at = excluded.updated_at",
             params![series_id, serde_json::to_string(settings)?, now_ms()],
