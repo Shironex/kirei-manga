@@ -20,7 +20,7 @@ Timestamps and file mtimes are `INTEGER` Unix milliseconds (UTC), so there is on
 
 SQL files in `crates/kirei-library/migrations/`, embedded at compile time and listed in `db.rs`. `PRAGMA user_version` records the last one applied. Each migration runs in one transaction with its version bump, so a failure leaves the previous version intact. A database from a newer build is refused rather than guessed at. Migrations are append only: never edit a shipped file, add the next number. `tests/migrations.rs` builds a v1 fixture database and opens it with the current build to prove the forward path, including that progress and settings come through with their identities.
 
-## Schema (v2)
+## Schema (v3)
 
 | Table              | One row per                              | Notes                                                                                                                                                              |
 | ------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -29,6 +29,7 @@ SQL files in `crates/kirei-library/migrations/`, embedded at compile time and li
 | `chapters`         | archive or image folder                  | `path` unique, `kind` (`zip`, `rar`, `folder`), volume and number (`REAL`, so 10.5 works), `sort_order`, `page_count`, `file_size` + `file_mtime`, `missing`, `error`. |
 | `reading_progress` | chapter that has been opened             | `chapter_id` (nullable, `ON DELETE SET NULL`), `ident`, `file_size`, 0 based `page`, `page_count`, `completed` (sticky), `updated_at`, `orphaned_at`.              |
 | `series_settings`  | series with saved reader settings        | `series_id` (nullable, `ON DELETE SET NULL`), `ident`, `orphaned_at`; `settings` is a JSON blob owned by the UI (reader mode, filters, adjustments).               |
+| `app_settings`     | app setting the user changed             | Dotted `key`, JSON `value`. Contract and defaults in `kirei_core::AppSettings`; see `docs/settings.md`.                                                         |
 | `covers`           | distinct cover image                     | Keyed by the BLAKE3 hash of the source image bytes. Thumbnail file, size, and `palette` JSON.                                                                     |
 
 Deleting a root cascades to its series and chapters only. Progress and settings survive as orphans (below). Cover rows and thumbnail files stay; they are shared by content and cost little.
@@ -45,7 +46,7 @@ Removing a root deletes its series and chapter rows; the foreign keys null `chap
 
 Why this over a content hash: the scanner already knows size per chapter without opening anything, so the fingerprint costs nothing, and a rename of the folder or file (rather than a move) is the only case it cannot follow. Why not the first page hash: it needs opening every archive again. Accepted limits: a replacement file of exactly the same name and byte size inherits the progress, and two roots holding a series of the same folder name each get their own progress (an orphan is claimed once).
 
-`Library::purge_orphans(older_than_days)` deletes orphans whose `orphaned_at` (falling back to `updated_at`) is at least that old and returns the counts. Nothing calls it automatically; it is there for a future settings button. `ident` columns for rows that predate migration 2 are backfilled when the database opens.
+`Library::purge_orphans(older_than_days)` deletes orphans whose `orphaned_at` (falling back to `updated_at`) is at least that old and returns the counts. Nothing calls it automatically; the Settings screen's "Clean up hidden progress" button calls it through `library_purge_orphans`. `ident` columns for rows that predate migration 2 are backfilled when the database opens.
 
 ### Palette
 
