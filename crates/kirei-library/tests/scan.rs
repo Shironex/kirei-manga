@@ -501,3 +501,151 @@ fn the_database_survives_a_reopen() {
     assert_eq!(library.series().unwrap().len(), 6);
     assert_eq!(scan(&library).added, 0);
 }
+
+/// Opens chapter `file` of a series and records `page` on it.
+fn read(library: &Library, title: &str, file: &str, page: i64) {
+    let series = library.series().unwrap();
+    let chapter = detail(library, &series, title)
+        .chapters
+        .into_iter()
+        .find(|c| c.path.ends_with(file))
+        .unwrap();
+    library.record_progress(chapter.id, page).unwrap();
+}
+
+fn page_of(library: &Library, title: &str, file: &str) -> Option<i64> {
+    let series = library.series().unwrap();
+    detail(library, &series, title)
+        .chapters
+        .into_iter()
+        .find(|c| c.path.ends_with(file))
+        .unwrap()
+        .progress
+        .map(|p| p.page)
+}
+
+#[test]
+fn removing_a_root_keeps_progress_and_settings_for_a_re_add() {
+    let fixture = fixture();
+    let library = open(&fixture);
+    let root = library.add_root(&fixture.root).unwrap();
+    scan(&library);
+    read(&library, "Ash and Ember", "c003.cbz", 1);
+    read(
+        &library,
+        "Wiedźma z Bieszczad",
+        "Wiedźma z Bieszczad - 002.cbz",
+        1,
+    );
+    let ember = by_title(&library.series().unwrap(), "Ash and Ember").id;
+    let settings = serde_json::json!({ "mode": "webtoon" });
+    library.set_series_settings(ember, &settings).unwrap();
+
+    library.remove_root(root.id).unwrap();
+    assert!(library.series().unwrap().is_empty());
+
+    library.add_root(&fixture.root).unwrap();
+    scan(&library);
+    assert_eq!(page_of(&library, "Ash and Ember", "c003.cbz"), Some(1));
+    assert_eq!(
+        page_of(
+            &library,
+            "Wiedźma z Bieszczad",
+            "Wiedźma z Bieszczad - 002.cbz"
+        ),
+        Some(1)
+    );
+    let series = library.series().unwrap();
+    assert_eq!(page_of(&library, "Ash and Ember", "c002.cbz"), None);
+    let ember = by_title(&series, "Ash and Ember").id;
+    assert_eq!(library.series_settings(ember).unwrap(), Some(settings));
+    // Nothing is left orphaned once everything re-linked.
+    assert_eq!(library.purge_orphans(0).unwrap().progress, 0);
+}
+
+#[test]
+fn moving_a_folder_to_another_root_restores_its_progress() {
+    let fixture = fixture();
+    let library = open(&fixture);
+    let root = library.add_root(&fixture.root).unwrap();
+    scan(&library);
+    read(&library, "Ash and Ember", "c003.cbz", 2);
+
+    library.remove_root(root.id).unwrap();
+    let elsewhere = fixture.root.parent().unwrap().join("Elsewhere");
+    std::fs::create_dir_all(&elsewhere).unwrap();
+    std::fs::rename(
+        fixture.root.join("Ash and Ember"),
+        elsewhere.join("Ash and Ember"),
+    )
+    .unwrap();
+    library.add_root(&elsewhere).unwrap();
+    scan(&library);
+
+    assert_eq!(page_of(&library, "Ash and Ember", "c003.cbz"), Some(2));
+}
+
+#[test]
+fn a_different_file_under_the_same_name_does_not_inherit_progress() {
+    let fixture = fixture();
+    let library = open(&fixture);
+    let root = library.add_root(&fixture.root).unwrap();
+    scan(&library);
+    read(&library, "Ash and Ember", "c003.cbz", 1);
+    library.remove_root(root.id).unwrap();
+
+    // Same name, different content (so a different size).
+    cbz(
+        &fixture.root.join("Ash and Ember").join("c003.cbz"),
+        7,
+        TEAL,
+        None,
+    );
+    library.add_root(&fixture.root).unwrap();
+    scan(&library);
+
+    assert_eq!(page_of(&library, "Ash and Ember", "c003.cbz"), None);
+    // The stale progress waits as an orphan until purged.
+    assert_eq!(library.purge_orphans(0).unwrap().progress, 1);
+}
+
+#[test]
+fn purge_only_removes_orphans_old_enough() {
+    let fixture = fixture();
+    let library = open(&fixture);
+    let root = library.add_root(&fixture.root).unwrap();
+    scan(&library);
+    read(&library, "Ash and Ember", "c003.cbz", 1);
+    let ember = by_title(&library.series().unwrap(), "Ash and Ember").id;
+    library
+        .set_series_settings(ember, &serde_json::json!({ "mode": "paged" }))
+        .unwrap();
+
+    // Live rows are never purged.
+    assert_eq!(library.purge_orphans(0).unwrap(), Default::default());
+
+    library.remove_root(root.id).unwrap();
+    let purge = library.purge_orphans(30).unwrap();
+    assert_eq!(
+        (purge.progress, purge.settings),
+        (0, 0),
+        "orphaned just now"
+    );
+
+    // Age them 40 days and purge again.
+    let conn = rusqlite::Connection::open(fixture.data.join("library.sqlite3")).unwrap();
+    let old = 40 * 86_400_000_i64;
+    conn.execute(
+        "UPDATE reading_progress SET orphaned_at = orphaned_at - ?1",
+        [old],
+    )
+    .unwrap();
+    conn.execute(
+        "UPDATE series_settings SET orphaned_at = orphaned_at - ?1",
+        [old],
+    )
+    .unwrap();
+    drop(conn);
+    let purge = library.purge_orphans(30).unwrap();
+    assert_eq!((purge.progress, purge.settings), (1, 1));
+}

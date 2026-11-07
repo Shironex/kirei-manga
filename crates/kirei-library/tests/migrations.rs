@@ -89,6 +89,49 @@ fn a_v1_database_migrates_forward_with_its_data() {
 }
 
 #[test]
+fn migration_two_keeps_progress_and_backfills_identities() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("library.sqlite3");
+    build_v1_fixture(&db, "/m");
+    let library = Library::open(&db, &dir.path().join("covers")).unwrap();
+
+    let conn = Connection::open(&db).unwrap();
+    let rows: Vec<(String, i64, i64)> = conn
+        .prepare("SELECT ident, file_size, page FROM reading_progress ORDER BY chapter_id")
+        .unwrap()
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    assert_eq!(
+        rows,
+        [
+            ("dir:Ash|c001.cbz".to_owned(), 1234, 19),
+            ("dir:Ash|c002.cbz".to_owned(), 1234, 4)
+        ]
+    );
+    let settings_ident: String = conn
+        .query_row("SELECT ident FROM series_settings", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(settings_ident, "dir:Ash");
+    drop(conn);
+
+    // Removing the root keeps both, orphaned, and hides them from the lists.
+    assert!(library.remove_root(1).unwrap());
+    assert!(library.series().unwrap().is_empty());
+    let conn = Connection::open(&db).unwrap();
+    let (progress, orphans): (i64, i64) = conn
+        .query_row(
+            "SELECT count(*), count(*) FILTER (WHERE chapter_id IS NULL AND orphaned_at IS NOT NULL)
+             FROM reading_progress",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!((progress, orphans), (2, 2));
+}
+
+#[test]
 fn a_file_database_uses_wal_and_foreign_keys() {
     let dir = tempfile::tempdir().unwrap();
     let db = dir.path().join("library.sqlite3");
