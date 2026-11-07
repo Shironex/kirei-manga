@@ -28,7 +28,7 @@ export function SeriesTile({
   ...props
 }: { series: SeriesSummary; className?: string } & Pick<
   ComponentProps<'a'>,
-  'onFocus' | 'onPointerEnter' | 'onPointerLeave'
+  'onFocus' | 'onBlur' | 'onPointerEnter' | 'onPointerLeave'
 >) {
   const state = readingState(series);
   const fresh = series.newCount;

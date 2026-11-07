@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { usePageCover } from '@/lib/theme/coverTheme';
 
 import { ContinueHero } from './ContinueHero';
 import { addFolderAndScan, refreshLibrary, rescanLibrary, useLibrary } from './libraryStore';
@@ -83,6 +84,8 @@ export function LibraryPage() {
     [library.series]
   );
   const heading = usePageHeading('Library');
+  // The library wears the colours of the series it would resume.
+  usePageCover(shelf.hero?.cover);
 
   if (library.status === 'error') {
     return (

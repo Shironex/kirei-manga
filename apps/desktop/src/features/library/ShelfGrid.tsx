@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type FocusEvent } from 'react';
 
 import type { SeriesSummary } from '@/lib/library';
+import { useCoverPreview } from '@/lib/theme/coverTheme';
 
 import { gridMetrics, visibleRows, type GridSpec } from './gridLayout';
 import { SeriesTile, TILE_CAPTION } from './SeriesTile';
@@ -30,6 +31,7 @@ interface Viewport {
  * so 10k series cost as much as a screenful. Rows are absolutely placed from
  * fixed geometry (see gridLayout.ts), which keeps scrolling free of layout
  * work. A focused tile scrolls into view, so Tab walks the whole list.
+ * Hovering or focusing a tile previews its cover colours.
  */
 export function ShelfGrid({ series, label }: { series: SeriesSummary[]; label: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -88,10 +90,11 @@ export function ShelfGrid({ series, label }: { series: SeriesSummary[]; label: s
   });
   const height = rows > 0 ? rows * metrics.stride - SPEC.gapY : 0;
 
-  const reveal = (event: FocusEvent<HTMLElement>) => {
-    if (event.target.matches(':focus-visible')) {
-      event.target.scrollIntoView({ block: 'nearest' });
-    }
+  const preview = useCoverPreview();
+  const onFocus = (event: FocusEvent<HTMLElement>, series: SeriesSummary) => {
+    if (!event.target.matches(':focus-visible')) return;
+    event.target.scrollIntoView({ block: 'nearest' });
+    preview.enter(series.cover);
   };
 
   const rowEls = [];
@@ -116,7 +119,13 @@ export function ShelfGrid({ series, label }: { series: SeriesSummary[]; label: s
             aria-setsize={series.length}
             aria-posinset={row * metrics.columns + i + 1}
           >
-            <SeriesTile series={s} onFocus={reveal} />
+            <SeriesTile
+              series={s}
+              onFocus={event => onFocus(event, s)}
+              onBlur={preview.leave}
+              onPointerEnter={() => preview.enter(s.cover)}
+              onPointerLeave={preview.leave}
+            />
           </div>
         ))}
       </div>
