@@ -23,6 +23,7 @@ publish = false
 kirei-core = { path = "crates/kirei-core" }
 kirei-archive = { path = "crates/kirei-archive" }
 kirei-reader = { path = "crates/kirei-reader" }
+kirei-library = { path = "crates/kirei-library" }
 
 # External. Versions live here, never in a leaf crate, so the tree stays unified.
 serde = { version = "1", features = ["derive"] }
@@ -49,6 +50,22 @@ unrar = "0.5.8"
 imagesize = "0.15"
 # The page cache's recency order (kirei-reader). MIT.
 lru = "0.19"
+
+# Library database and scanner (kirei-library).
+# SQLite through rusqlite with the bundled amalgamation, so Windows and macOS
+# ship the same SQLite with no system library to find. MIT.
+rusqlite = { version = "0.41", features = ["bundled"] }
+# Loose chapter and volume names. MIT OR Apache-2.0.
+regex = "1.13"
+# ComicInfo.xml. MIT.
+quick-xml = "0.42"
+# Cover decode, downscale and JPEG thumbnails. Only the formats manga covers
+# come in; no rayon, no AVIF (that needs a native dav1d). MIT OR Apache-2.0.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif", "bmp"] }
+# Content hash that keys the cover cache. CC0-1.0 OR Apache-2.0.
+blake3 = "1.8"
+# Parallel archive reads and cover generation during a scan. MIT OR Apache-2.0.
+rayon = "1.12"
 
 # Test-only helpers.
 tempfile = "3"
