@@ -90,6 +90,8 @@ dbg_macro = "warn"
 
 [profile.dev]
 incremental = true
+# File and line in backtraces, no debugger locals: much smaller target dirs and faster links.
+debug = "line-tables-only"
 
 [profile.release]
 lto = true
