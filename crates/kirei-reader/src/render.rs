@@ -11,9 +11,9 @@
 use std::io::Cursor;
 
 use fast_image_resize::{FilterType, PixelType, ResizeAlg, ResizeOptions, Resizer, images::Image};
-use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::{self, PngEncoder};
 use image::{DynamicImage, ExtendedColorType, ImageEncoder, ImageReader, Limits};
+use jpeg_encoder::{ColorType as JpegColor, Encoder as JpegEncoder};
 use kirei_core::{ImageFormat, PageInfo};
 
 /// Downscale only when the page is this much larger than the box (the scale
@@ -233,8 +233,17 @@ fn downscale(
         .ok()?;
         "image/png"
     } else {
-        JpegEncoder::new_with_quality(&mut bytes, JPEG_QUALITY)
-            .write_image(dst.buffer(), width, height, layout)
+        let jpeg_color = match layout {
+            ExtendedColorType::L8 => JpegColor::Luma,
+            _ => JpegColor::Rgb,
+        };
+        JpegEncoder::new(&mut bytes, JPEG_QUALITY)
+            .encode(
+                dst.buffer(),
+                u16::try_from(width).ok()?,
+                u16::try_from(height).ok()?,
+                jpeg_color,
+            )
             .ok()?;
         "image/jpeg"
     };

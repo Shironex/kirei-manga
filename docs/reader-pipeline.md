@@ -11,7 +11,7 @@ How pages get from an archive to the webview, and the contract the reader UI (#2
 
 ## Rendering
 
-A page is served as stored when it fits the viewport box (or is within 10 percent of it), when no box is set, or when it is GIF (animation), AVIF or JPEG XL (passed to the webview's own decoder). Otherwise it is decoded (`image`), downscaled to fit the box with its aspect kept (`fast_image_resize`, Lanczos3 by default) and re-encoded: JPEG quality 90 for opaque pages (grayscale stays one channel), PNG for pages with transparency. A page that cannot be decoded is served as stored and counted in `decodeFallbacks`.
+A page is served as stored when it fits the viewport box (or is within 10 percent of it), when no box is set, or when it is GIF (animation), AVIF or JPEG XL (passed to the webview's own decoder). Otherwise it is decoded (`image`), downscaled to fit the box with its aspect kept (`fast_image_resize`, Lanczos3 by default) and re-encoded: JPEG quality 90 (`jpeg-encoder`) for opaque pages (grayscale stays one channel), PNG for pages with transparency. A page that cannot be decoded is served as stored and counted in `decodeFallbacks`.
 
 The cache holds these rendered bytes, not decoded pixels. A decoded 1800x2700 page is 4.9 MB in grayscale and 19 MB in RGBA and the webview needs encoded bytes anyway, so caching pixels costs several times the memory and still needs an encode per request. A hit is a copy of a few hundred KB.
 
