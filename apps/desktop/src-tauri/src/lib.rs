@@ -22,11 +22,16 @@ pub fn run() {
         .register_asynchronous_uri_scheme_protocol(protocol::SCHEME, |ctx, request, responder| {
             let app = ctx.app_handle().clone();
             let path = request.uri().path().to_owned();
+            let if_none_match = request
+                .headers()
+                .get(tauri::http::header::IF_NONE_MATCH)
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_owned);
             // Reading a page can mean inflating megabytes; keep it off the
             // thread that delivered the request.
             tauri::async_runtime::spawn_blocking(move || {
                 let library = app.state::<library::Library>();
-                responder.respond(protocol::respond(&library, &path));
+                responder.respond(protocol::respond(&library, &path, if_none_match.as_deref()));
             });
         })
         .invoke_handler(tauri::generate_handler![
@@ -44,6 +49,8 @@ pub fn run() {
             catalog::library_record_progress,
             catalog::library_series_settings,
             catalog::library_set_series_settings,
+            commands::set_viewport,
+            commands::page_meta,
         ])
         .run(tauri::generate_context!());
 

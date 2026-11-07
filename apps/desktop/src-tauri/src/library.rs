@@ -4,10 +4,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use kirei_archive::PageSource;
-use kirei_reader::{Direction, PageBytes, PageCache, ReadAheadConfig, Reader, SourceId};
+use kirei_reader::{CachedPage, Direction, PageCache, ReadAheadConfig, Reader, SourceId};
 
-/// Cache budget for page bytes. Encoded manga pages run 200 KB to 2 MB, so
-/// this holds a few dozen, far more than one read-ahead window.
+/// Cache budget for rendered pages. Pages run 200 KB to 2 MB as stored and a
+/// few hundred KB once downscaled to the window, so this holds a few hundred,
+/// far more than one read-ahead window.
 const CACHE_BUDGET_BYTES: usize = 256 * 1024 * 1024;
 
 /// Open sources and the reader that serves their pages. Managed Tauri state,
@@ -51,12 +52,12 @@ impl Library {
         self.reader.forget(id);
     }
 
-    /// Bytes of one page, through the cache. Blocking: call off the main thread.
+    /// One rendered page, through the cache. Blocking: call off the main thread.
     pub(crate) fn page(
         &self,
         id: SourceId,
         index: usize,
-    ) -> Option<kirei_archive::Result<PageBytes>> {
+    ) -> Option<kirei_archive::Result<CachedPage>> {
         let source = self.source(id)?;
         Some(self.reader.page(id, &source, index))
     }
@@ -68,6 +69,15 @@ impl Library {
         };
         self.reader.focus(id, &source, index, direction);
         true
+    }
+
+    /// Sets the box pages are rendered into, in device pixels (`None` for no
+    /// limit on that side). Returns the render revision now in effect.
+    pub(crate) fn set_viewport(&self, max_width: Option<u32>, max_height: Option<u32>) -> u64 {
+        self.reader.update_render_settings(|settings| {
+            settings.max_width = max_width;
+            settings.max_height = max_height;
+        })
     }
 
     pub(crate) fn reader(&self) -> &Reader {
