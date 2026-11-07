@@ -2,6 +2,7 @@
 //! and the page protocol, and hands control to Tauri. Domain logic lives in
 //! `crates/`.
 
+mod catalog;
 mod commands;
 mod library;
 mod protocol;
@@ -13,6 +14,11 @@ pub fn run() {
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(library::Library::new())
+        .setup(|app| {
+            let catalog = catalog::Catalog::open(app.handle());
+            app.manage(catalog);
+            Ok(())
+        })
         .register_asynchronous_uri_scheme_protocol(protocol::SCHEME, |ctx, request, responder| {
             let app = ctx.app_handle().clone();
             let path = request.uri().path().to_owned();
@@ -29,6 +35,15 @@ pub fn run() {
             commands::focus_page,
             commands::close_source,
             commands::reader_stats,
+            catalog::library_roots,
+            catalog::library_add_root,
+            catalog::library_remove_root,
+            catalog::library_scan,
+            catalog::library_series,
+            catalog::library_series_detail,
+            catalog::library_record_progress,
+            catalog::library_series_settings,
+            catalog::library_set_series_settings,
         ])
         .run(tauri::generate_context!());
 
