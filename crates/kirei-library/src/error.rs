@@ -25,6 +25,16 @@ pub enum LibraryError {
     NotFound(&'static str, i64),
     #[error(transparent)]
     Setting(#[from] kirei_core::SettingError),
+    #[error("{0}")]
+    InvalidBackup(String),
+    #[error(
+        "this backup was made by a newer KireiManga ({what} {found}, this app supports up to {supported}); update the app to restore it"
+    )]
+    NewerBackup {
+        what: &'static str,
+        found: u32,
+        supported: u32,
+    },
     #[error("invalid JSON: {0}")]
     Json(#[from] serde_json::Error),
 }

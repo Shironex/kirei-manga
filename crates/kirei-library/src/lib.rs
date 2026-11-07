@@ -9,6 +9,7 @@
 //! User files are only ever read. Removing a root or a vanished archive
 //! changes rows in the database, never anything on disk.
 
+mod backup;
 mod comic_info;
 mod covers;
 mod db;
@@ -28,6 +29,10 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use rusqlite::{Connection, OptionalExtension, params};
 
+pub use backup::{
+    BACKUP_EXTENSION, BACKUP_FORMAT, BackupManifest, BackupOptions, RestoreOutcome,
+    apply_pending_restore, inspect_backup, stage_restore,
+};
 pub use comic_info::{ComicInfo, parse as parse_comic_info};
 pub use covers::{THUMB_MAX_HEIGHT, THUMB_MAX_WIDTH};
 pub use db::SCHEMA_VERSION;
