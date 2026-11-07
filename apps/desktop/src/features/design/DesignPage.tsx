@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 
+import { PageHeader } from '@/components/page/PageHeader';
 import { Switch } from '@/components/ui/switch';
 import { Segmented, SegmentedItem } from '@/components/ui/segmented';
 import {
   applySeed,
   DEFAULT_SEED,
+  readPreferences,
+  resetSeed,
   setGlass,
   setStrength,
   type Seed,
@@ -32,41 +35,61 @@ const SECTIONS = [
  */
 export function DesignPage() {
   const [seed, setSeed] = useState<Seed>(DEFAULT_SEED);
-  const [strength, setStrengthState] = useState<Strength>('balanced');
-  const [glass, setGlassState] = useState(true);
+  const [strength, setStrengthState] = useState<Strength>(() => readPreferences().strength);
+  const [glass, setGlassState] = useState(() => readPreferences().glass);
 
   useEffect(() => applySeed(seed), [seed]);
+  // The seed picker is a preview: leave the app on the default seed afterwards.
+  useEffect(() => resetSeed, []);
   useEffect(() => setStrength(strength), [strength]);
   useEffect(() => setGlass(glass), [glass]);
 
   return (
-    <div className="mx-auto grid max-w-[1400px] grid-cols-[180px_minmax(0,1fr)] gap-12 px-12 pt-8 pb-24">
+    <div className="grid grid-cols-[184px_minmax(0,1fr)] gap-10">
       <nav
         aria-label="Design sections"
         className="sticky top-8 grid content-start gap-0.5 self-start"
       >
-        <p className="mb-2 px-3 text-xs text-fg-3">Design system</p>
+        {/* Buttons, not #anchors: the hash belongs to the router. */}
         {SECTIONS.map(s => (
-          <a
+          <button
             key={s.id}
-            href={`#ds-${s.id}`}
-            className="rounded-lg px-3 py-2 text-sm text-fg-2 no-underline transition-colors duration-base hover:bg-ink-2 hover:text-fg-1"
+            type="button"
+            onClick={() => document.getElementById(`ds-${s.id}`)?.scrollIntoView()}
+            className="rounded-lg px-3 py-2 text-left text-sm text-fg-2 transition-colors duration-base hover:bg-ink-2 hover:text-fg-1"
           >
             {s.label}
-          </a>
+          </button>
         ))}
+        <div className="mt-6 grid gap-4 border-t border-line px-3 pt-5">
+          <div className="grid gap-2">
+            <span id="ds-strength" className="text-xs text-fg-3">
+              Strength
+            </span>
+            <Segmented
+              aria-labelledby="ds-strength"
+              value={strength}
+              onValueChange={v => setStrengthState(v as Strength)}
+              size="sm"
+              className="justify-self-start"
+            >
+              <SegmentedItem value="subtle">Subtle</SegmentedItem>
+              <SegmentedItem value="balanced">Balanced</SegmentedItem>
+              <SegmentedItem value="vivid">Vivid</SegmentedItem>
+            </Segmented>
+          </div>
+          <label className="flex items-center gap-2.5 text-sm text-fg-2">
+            <Switch checked={glass} onCheckedChange={setGlassState} />
+            Glass
+          </label>
+        </div>
       </nav>
 
-      <main className="min-w-0">
-        <header className="mb-12">
-          <h1 className="m-0 mb-2 font-display text-4xl font-bold font-condensed-tight tracking-[-0.01em]">
-            Design system
-          </h1>
-          <p className="m-0 max-w-[62ch] text-fg-2">
-            Every token and primitive in KireiManga, rendered live. Pick a cover seed and the whole
-            page follows it: lightness stays fixed per role, so contrast holds on every cover.
-          </p>
-        </header>
+      <div className="min-w-0">
+        <PageHeader
+          title="Design system"
+          lead="Every token and primitive in KireiManga, rendered live. Pick a cover seed and the whole page follows it: lightness stays fixed per role, so contrast holds on every cover."
+        />
 
         <div className="sticky top-0 z-10 -mx-4 mb-12 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-line bg-ink-0/90 px-4 py-3 backdrop-blur-md">
           <div className="flex flex-wrap gap-1.5" role="group" aria-label="Cover seed">
@@ -93,28 +116,12 @@ export function DesignPage() {
               );
             })}
           </div>
-          <div className="ml-auto flex shrink-0 items-center gap-5">
-            <Segmented
-              aria-label="Strength"
-              value={strength}
-              onValueChange={v => setStrengthState(v as Strength)}
-              size="sm"
-            >
-              <SegmentedItem value="subtle">Subtle</SegmentedItem>
-              <SegmentedItem value="balanced">Balanced</SegmentedItem>
-              <SegmentedItem value="vivid">Vivid</SegmentedItem>
-            </Segmented>
-            <label className="flex items-center gap-2.5 text-sm text-fg-2">
-              <Switch checked={glass} onCheckedChange={setGlassState} />
-              Glass
-            </label>
-          </div>
         </div>
 
         <ColourSection seed={seed} strength={strength} />
         <FoundationsSection />
         <ComponentsSection />
-      </main>
+      </div>
     </div>
   );
 }
