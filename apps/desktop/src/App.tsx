@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -8,10 +8,32 @@ import { describeAppInfo, getAppInfo, isTauri } from '@/lib/ipc';
 type Status =
   { kind: 'loading' } | { kind: 'ready'; text: string } | { kind: 'error'; text: string };
 
+// Dev-only design review page; the import is dropped from production builds.
+const DesignPage = import.meta.env.DEV
+  ? lazy(() => import('@/features/design/DesignPage').then(m => ({ default: m.DesignPage })))
+  : null;
+
+function useHash() {
+  const [hash, setHash] = useState(() => window.location.hash);
+  useEffect(() => {
+    const onChange = () => setHash(window.location.hash);
+    window.addEventListener('hashchange', onChange);
+    return () => window.removeEventListener('hashchange', onChange);
+  }, []);
+  return hash;
+}
+
 export function App() {
+  const hash = useHash();
   return (
     <TooltipProvider>
-      <EngineHome />
+      {DesignPage && hash.startsWith('#/design') ? (
+        <Suspense fallback={null}>
+          <DesignPage />
+        </Suspense>
+      ) : (
+        <EngineHome />
+      )}
     </TooltipProvider>
   );
 }
