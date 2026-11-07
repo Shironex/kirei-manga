@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { ReaderTestPage } from '@/features/reader-test/ReaderTestPage';
 import { describeAppInfo, getAppInfo, isTauri } from '@/lib/ipc';
 
 type Status =
@@ -26,7 +27,7 @@ export function App() {
   }, [load]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
+    <main className="flex min-h-screen flex-col items-center gap-6 p-8">
       <h1 className="text-4xl font-semibold tracking-tight">KireiManga</h1>
       <p className="text-muted-foreground" data-testid="app-info">
         {status.kind === 'loading' ? 'Asking the Rust core...' : status.text}
@@ -34,6 +35,7 @@ export function App() {
       <Button variant="outline" onClick={() => void load()}>
         Call the backend again
       </Button>
+      {isTauri() && <ReaderTestPage />}
     </main>
   );
 }
