@@ -14,6 +14,7 @@ blake3 = { workspace = true }
 image = { workspace = true }
 kirei-archive = { workspace = true }
 kirei-core = { workspace = true }
+notify = { workspace = true }
 quick-xml = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
