@@ -11,7 +11,7 @@ import {
 
 import { BrowsePage } from '@/features/browse/BrowsePage';
 import { DownloadsPage } from '@/features/downloads/DownloadsPage';
-import { LibraryPage } from '@/features/library/LibraryPage';
+import { LibraryPage, validateLibrarySearch } from '@/features/library/LibraryPage';
 import { ReaderPage } from '@/features/reader/ReaderPage';
 import { SeriesPage } from '@/features/series/SeriesPage';
 import { loadAbout, SettingsPage } from '@/features/settings/SettingsPage';
@@ -53,6 +53,7 @@ const shellRoute = createRoute({
 const libraryRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/library',
+  validateSearch: validateLibrarySearch,
   component: LibraryPage,
 });
 
