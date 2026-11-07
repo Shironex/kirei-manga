@@ -62,6 +62,15 @@ impl PageSource for FakeSource {
     }
 }
 
+/// A page key under the first render revision.
+fn key(source: u64, index: usize) -> PageKey {
+    PageKey {
+        source,
+        index,
+        revision: 0,
+    }
+}
+
 fn as_source(fake: &Arc<FakeSource>) -> Arc<dyn PageSource> {
     Arc::clone(fake) as Arc<dyn PageSource>
 }
@@ -88,22 +97,16 @@ fn focus_warms_the_window_around_the_current_page() {
 
     for index in [9, 10, 11, 12, 13] {
         assert!(
-            reader.cache().contains(&PageKey { source: 7, index }),
+            reader.cache().contains(&key(7, index)),
             "page {index} should be warm"
         );
     }
-    assert!(!reader.cache().contains(&PageKey {
-        source: 7,
-        index: 14
-    }));
-    assert!(!reader.cache().contains(&PageKey {
-        source: 7,
-        index: 8
-    }));
+    assert!(!reader.cache().contains(&key(7, 14)));
+    assert!(!reader.cache().contains(&key(7, 8)));
 
     // The page the protocol asks for next is a hit, with no second read.
-    let bytes = reader.page(7, &source, 11).unwrap();
-    assert_eq!(bytes[0], 11);
+    let page = reader.page(7, &source, 11).unwrap();
+    assert_eq!(page.bytes[0], 11);
     assert_eq!(fake.reads[11].load(Ordering::SeqCst), 1);
     assert_eq!(reader.stats().hits, 1);
 }
@@ -117,12 +120,9 @@ fn backward_reading_warms_lower_pages() {
     reader.focus(1, &source, 10, Direction::Backward);
     assert!(reader.wait_idle(Duration::from_secs(5)));
     for index in [8, 9, 10, 11] {
-        assert!(reader.cache().contains(&PageKey { source: 1, index }));
+        assert!(reader.cache().contains(&key(1, index)));
     }
-    assert!(!reader.cache().contains(&PageKey {
-        source: 1,
-        index: 12
-    }));
+    assert!(!reader.cache().contains(&key(1, 12)));
 }
 
 #[test]
@@ -165,7 +165,7 @@ fn rapid_flipping_never_builds_a_backlog() {
         "{reads} reads for 100 flips"
     );
     for index in 99..=99 + ahead {
-        assert!(reader.cache().contains(&PageKey { source: 1, index }));
+        assert!(reader.cache().contains(&key(1, index)));
     }
 }
 
@@ -185,10 +185,7 @@ fn read_ahead_never_pushes_the_cache_over_budget() {
     assert!(reader.cache().bytes_used() <= 10_000);
     // The window is trimmed to three quarters of the budget, so the page on
     // screen is still cached after its read-ahead finished.
-    assert!(reader.cache().contains(&PageKey {
-        source: 1,
-        index: 99
-    }));
+    assert!(reader.cache().contains(&key(1, 99)));
 }
 
 #[test]
@@ -212,7 +209,7 @@ fn read_errors_are_counted_not_fatal() {
     assert!(reader.page(1, &source, 5).is_err());
     reader.focus(1, &source, 0, Direction::Forward);
     assert!(reader.wait_idle(Duration::from_secs(5)));
-    assert_eq!(reader.stats().errors, 0);
+    assert_eq!(reader.stats().errors, 1);
     assert_eq!(reader.stats().prefetched, 2);
 }
 

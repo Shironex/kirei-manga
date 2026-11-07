@@ -66,6 +66,10 @@ image = { version = "0.25", default-features = false, features = ["jpeg", "png",
 blake3 = "1.8"
 # Parallel archive reads and cover generation during a scan. MIT OR Apache-2.0.
 rayon = "1.12"
+# SIMD resampling for the viewport-sized downscale (kirei-reader). MIT OR
+# Apache-2.0. Several times faster than `image`'s own resize on the same filter,
+# and it carries every filter the reader's quality settings offer.
+fast_image_resize = "6.1"
 
 # Test-only helpers.
 tempfile = "3"
