@@ -65,3 +65,15 @@ jobs:
 
       - name: Test
         run: cargo test --workspace
+
+  deny:
+    # Licence and advisory policy from deny.toml. A new dependency with a
+    # licence outside the allow list, or a known advisory, fails here.
+    name: Licences and advisories
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check

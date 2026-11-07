@@ -1,0 +1,60 @@
+# cargo-deny policy. CI runs `cargo deny check` on every push and PR (see
+# .github/workflows/rust.yml), so a new dependency with a licence that is not
+# listed here, or with a known advisory, fails the build.
+
+[graph]
+# Only what ships: Windows and macOS.
+targets = [
+  "x86_64-pc-windows-msvc",
+  "aarch64-apple-darwin",
+  "x86_64-apple-darwin",
+]
+
+[advisories]
+# Fail on vulnerabilities and unmaintained or yanked crates in the tree.
+yanked = "deny"
+
+[licenses]
+# Keep in step with `accepted` in about.toml.
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "BSD-3-Clause",
+  "Unicode-3.0",
+  "Zlib",
+  "MPL-2.0",
+  "CC0-1.0",
+  "Unlicense",
+]
+confidence-threshold = 0.9
+
+# The workspace crates are `publish = false` and carry the repo's own
+# source-available LICENSE file, which is not an SPDX id.
+[licenses.private]
+ignore = true
+
+# The UnRAR source vendored by unrar_sys is under the UnRAR licence: freeware,
+# not OSI approved. Use in any software that reads RAR archives is free; it may
+# not be used to build a RAR compressor. The full text ships in
+# THIRD_PARTY_NOTICES. Decided 2026-11-07 (issue #57).
+# unrar_sys declares MIT OR Apache-2.0 for the Rust binding but vendors the
+# UnRAR C++ source. Clarify the real expression from the vendored licence file
+# so the exception below names what actually applies.
+[[licenses.clarify]]
+crate = "unrar_sys"
+expression = "(MIT OR Apache-2.0) AND LicenseRef-UnRAR"
+license-files = [{ path = "vendor/unrar/license.txt", hash = 0x46456911 }]
+
+[[licenses.exceptions]]
+crate = "unrar_sys"
+allow = ["LicenseRef-UnRAR", "MIT", "Apache-2.0"]
+
+[bans]
+multiple-versions = "allow"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
