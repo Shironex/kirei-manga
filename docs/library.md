@@ -8,9 +8,11 @@ User files are only ever read. Removing a root, or an archive vanishing, changes
 
 | What           | Where                                                             |
 | -------------- | ----------------------------------------------------------------- |
-| Database       | `<app data>/library.sqlite3` (WAL, foreign keys on)               |
-| Cover cache    | `<app data>/covers/<hh>/<hash>.jpg`                               |
+| Database       | `<data folder>/library.sqlite3` (WAL, foreign keys on)            |
+| Cover cache    | `<data folder>/covers/<hh>/<hash>.jpg`                            |
 | SQLite library | rusqlite with the `bundled` amalgamation, same build on every OS  |
+
+The data folder is the OS app data directory, or `data/` beside the app in portable mode; see `docs/data.md`, which also covers backups.
 
 rusqlite over sqlx: the library is synchronous by design (scans run on the rayon pool, commands on Tauri's blocking pool), so an async driver would add a runtime and compile time for nothing. `bundled` avoids depending on whatever SQLite the OS ships.
 

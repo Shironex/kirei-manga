@@ -58,7 +58,7 @@ Never rename a shipped key: stored rows would be ignored. Add a new key instead.
 | `library_purge_orphans`     | `olderThanDays` (null for all)              | `{ progress, settings }` |
 | `library_cover_cache`       |                                             | `{ bytes, files }` |
 | `library_clear_cover_cache` |                                             | `{ bytes, files }` freed; refused while a scan runs; the next scan makes covers again |
-| `data_dir`                  |                                             | path               |
+| `data_dir`                  |                                             | path (the portable `data` folder in portable mode, see `docs/data.md`) |
 | `open_data_dir`             |                                             | opens it in Finder or Explorer |
 | `open_link`                 | `link`: `website`, `repository`, `issues`, `notices` | opens a fixed URL in the browser |
 | `third_party_notices`       |                                             | the bundled `THIRD_PARTY_NOTICES` text, or null |
