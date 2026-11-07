@@ -86,6 +86,10 @@ pub enum ResampleFilter {
 pub struct AppSettings {
     #[serde(rename = "appearance.strength")]
     pub strength: ThemeStrength,
+    /// Take the interface colours from the cover in focus; off keeps the
+    /// default accent everywhere.
+    #[serde(rename = "appearance.coverColours")]
+    pub cover_colours: bool,
     /// Cover glow behind the page header.
     #[serde(rename = "appearance.ambient")]
     pub ambient: bool,
@@ -111,6 +115,7 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             strength: ThemeStrength::default(),
+            cover_colours: true,
             ambient: true,
             glass: true,
             motion: MotionPreference::default(),
@@ -188,6 +193,7 @@ mod tests {
     fn defaults_serialize_under_dotted_keys() {
         let value = serde_json::to_value(AppSettings::default()).unwrap();
         assert_eq!(value["appearance.strength"], "balanced");
+        assert_eq!(value["appearance.coverColours"], true);
         assert_eq!(value["appearance.ambient"], true);
         assert_eq!(value["appearance.glass"], true);
         assert_eq!(value["appearance.motion"], "system");
@@ -201,7 +207,7 @@ mod tests {
     #[test]
     fn keys_cover_every_field() {
         let keys = AppSettings::keys();
-        assert_eq!(keys.len(), 9);
+        assert_eq!(keys.len(), 10);
         assert!(keys.contains(&"reader.detectSpreads".to_owned()));
     }
 

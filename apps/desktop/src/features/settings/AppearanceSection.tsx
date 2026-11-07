@@ -6,6 +6,8 @@ import { SettingRow, SettingsList, SettingsSection, useSettingControl } from './
 
 export function AppearanceSection() {
   const [strength, setStrength, strengthError] = useSettingControl('appearance.strength');
+  const [coverColours, setCoverColours, coverColoursError] =
+    useSettingControl('appearance.coverColours');
   const [ambient, setAmbient, ambientError] = useSettingControl('appearance.ambient');
   const [glass, setGlass, glassError] = useSettingControl('appearance.glass');
   const [motion, setMotion, motionError] = useSettingControl('appearance.motion');
@@ -17,6 +19,20 @@ export function AppearanceSection() {
       lead="The interface takes its colour from the cover you are looking at. Turn it down or off here."
     >
       <SettingsList>
+        <SettingRow
+          id="pref-cover-colours"
+          label="Cover colours"
+          help="Tint the interface with the cover you are looking at. Off keeps the default accent."
+          error={coverColoursError}
+          control={
+            <Switch
+              id="pref-cover-colours"
+              aria-describedby="pref-cover-colours-help"
+              checked={coverColours}
+              onCheckedChange={setCoverColours}
+            />
+          }
+        />
         <SettingRow
           id="pref-strength"
           labelFor={false}
