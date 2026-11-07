@@ -23,6 +23,8 @@ pub enum LibraryError {
     ScanInProgress,
     #[error("no {0} with id {1}")]
     NotFound(&'static str, i64),
+    #[error(transparent)]
+    Setting(#[from] kirei_core::SettingError),
     #[error("invalid JSON: {0}")]
     Json(#[from] serde_json::Error),
 }

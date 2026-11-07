@@ -142,6 +142,14 @@ pub struct ScanSummary {
     pub elapsed_ms: f64,
 }
 
+/// Size of the cover thumbnail cache on disk.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CoverCacheUsage {
+    pub bytes: u64,
+    pub files: u64,
+}
+
 /// What [`crate::Library::purge_orphans`] deleted.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]

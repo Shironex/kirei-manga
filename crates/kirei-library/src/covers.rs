@@ -13,6 +13,7 @@ use image::codecs::jpeg::JpegEncoder;
 use image::imageops::FilterType;
 use image::{ImageReader, Limits};
 
+use crate::model::CoverCacheUsage;
 use crate::palette::{self, Palette};
 use crate::{LibraryError, Result};
 
@@ -106,6 +107,71 @@ impl CoverCache {
     }
 }
 
+impl CoverCache {
+    /// Bytes and files the thumbnails take on disk.
+    pub(crate) fn usage(&self) -> Result<CoverCacheUsage> {
+        let mut usage = CoverCacheUsage::default();
+        self.for_each_file(|_, meta| {
+            usage.bytes += meta.len();
+            usage.files += 1;
+            Ok(())
+        })?;
+        Ok(usage)
+    }
+
+    /// Deletes every thumbnail and returns what was freed. Rows in `covers`
+    /// stay: the next scan sees the files are gone and makes them again.
+    /// Only the cache's own `<hh>/` folders are touched.
+    pub(crate) fn clear(&self) -> Result<CoverCacheUsage> {
+        let mut freed = CoverCacheUsage::default();
+        self.for_each_file(|path, meta| {
+            std::fs::remove_file(path).map_err(|source| LibraryError::io(path, source))?;
+            freed.bytes += meta.len();
+            freed.files += 1;
+            Ok(())
+        })?;
+        for shard in self.shards()? {
+            // Best effort: a folder something else wrote into stays.
+            let _ = std::fs::remove_dir(shard);
+        }
+        Ok(freed)
+    }
+
+    /// The two-hex-digit shard folders the thumbnails live in.
+    fn shards(&self) -> Result<Vec<PathBuf>> {
+        let entries =
+            std::fs::read_dir(&self.dir).map_err(|source| LibraryError::io(&self.dir, source))?;
+        Ok(entries
+            .filter_map(std::result::Result::ok)
+            .filter(|entry| {
+                let name = entry.file_name();
+                let name = name.to_string_lossy();
+                name.len() == 2
+                    && name.bytes().all(|b| b.is_ascii_hexdigit())
+                    && entry.file_type().is_ok_and(|t| t.is_dir())
+            })
+            .map(|entry| entry.path())
+            .collect())
+    }
+
+    fn for_each_file(
+        &self,
+        mut visit: impl FnMut(&Path, &std::fs::Metadata) -> Result<()>,
+    ) -> Result<()> {
+        for shard in self.shards()? {
+            let entries =
+                std::fs::read_dir(&shard).map_err(|source| LibraryError::io(&shard, source))?;
+            for entry in entries.filter_map(std::result::Result::ok) {
+                let Ok(meta) = entry.metadata() else { continue };
+                if meta.is_file() {
+                    visit(&entry.path(), &meta)?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
 fn write_atomically(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
@@ -167,5 +233,24 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let cache = CoverCache::new(dir.path()).unwrap();
         assert!(cache.make("ab", b"not an image").is_err());
+    }
+
+    #[test]
+    fn usage_and_clear_cover_the_thumbnails_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = CoverCache::new(dir.path()).unwrap();
+        for rgb in [[200, 30, 30], [30, 200, 30]] {
+            let bytes = png(40, 60, rgb);
+            cache.make(&CoverCache::hash(&bytes), &bytes).unwrap();
+        }
+        std::fs::write(dir.path().join("keep.txt"), b"not a cover").unwrap();
+
+        let usage = cache.usage().unwrap();
+        assert_eq!(usage.files, 2);
+        assert!(usage.bytes > 0);
+
+        assert_eq!(cache.clear().unwrap(), usage);
+        assert_eq!(cache.usage().unwrap(), CoverCacheUsage::default());
+        assert!(dir.path().join("keep.txt").exists());
     }
 }
