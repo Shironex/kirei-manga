@@ -1,10 +1,12 @@
 //! Page turn latency and memory through the reader on a generated 3000 page
 //! CBZ of real JPEG pages at scan resolution.
 //!
-//! Ignored by default. Run:
+//! Ignored by default. Each case builds its own fixture; run them one per
+//! process so the RSS numbers do not mix:
 //!
 //! ```text
-//! cargo test -p kirei-reader --release --test bench -- --ignored --nocapture
+//! cargo test -p kirei-reader --release --test bench -- --ignored --nocapture original_size
+//! cargo test -p kirei-reader --release --test bench -- --ignored --nocapture viewport_size
 //! ```
 
 // Test helpers outside #[test] fns may unwrap: a panic is the failure report.
@@ -17,7 +19,7 @@ use std::time::{Duration, Instant};
 
 use image::codecs::jpeg::JpegEncoder;
 use kirei_archive::{OpenOptions, PageSource, open_with};
-use kirei_reader::{Direction, PageCache, ReadAheadConfig, Reader};
+use kirei_reader::{Direction, PageCache, ReadAheadConfig, Reader, RenderSettings};
 use zip::write::SimpleFileOptions;
 
 const PAGES: usize = 3000;
@@ -128,7 +130,26 @@ fn summary(mut samples: Vec<Duration>) -> String {
 
 #[test]
 #[ignore = "benchmark: run with --ignored --nocapture"]
-fn bench_page_turns_through_the_reader() {
+fn bench_original_size() {
+    bench(
+        "no viewport hint, pages served as stored",
+        RenderSettings::default(),
+    );
+}
+
+#[test]
+#[ignore = "benchmark: run with --ignored --nocapture"]
+fn bench_viewport_size() {
+    // An 820 px tall window on a 2x display, pages fitted to the window.
+    let settings = RenderSettings {
+        max_width: Some(1600),
+        max_height: Some(1600),
+        ..RenderSettings::default()
+    };
+    bench("viewport hint 1600x1600 device px", settings);
+}
+
+fn bench(label: &str, settings: RenderSettings) {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("big.cbz");
     let distinct: Vec<Vec<u8>> = (0..DISTINCT).map(|i| page_jpeg(i as u64)).collect();
@@ -153,6 +174,7 @@ fn bench_page_turns_through_the_reader() {
     let open = start.elapsed();
 
     let reader = Reader::new(Arc::new(PageCache::new(BUDGET)), ReadAheadConfig::default());
+    reader.update_render_settings(|s| *s = settings);
 
     // Cold: every turn misses because nothing was read ahead.
     let mut served_bytes = 0usize;
@@ -193,7 +215,7 @@ fn bench_page_turns_through_the_reader() {
     let stats = reader.stats();
     let cache = reader.cache();
     println!(
-        "Reader on CBZ: {PAGES} JPEG pages {PAGE_WIDTH}x{PAGE_HEIGHT}, ~{page_kib} KiB each, \
+        "Reader, {label}\n  CBZ: {PAGES} JPEG pages {PAGE_WIDTH}x{PAGE_HEIGHT}, ~{page_kib} KiB each, \
          {size_mib} MiB, cache budget {} MiB\n  \
          open (with sizes)       {open:.2?}\n  \
          cold page (miss)        {}\n  \
@@ -201,7 +223,7 @@ fn bench_page_turns_through_the_reader() {
          page turn while reading {}\n  \
          page turn while scrub   {} (max queue {max_queue})\n  \
          cache                   {} pages, {} KiB used (budget {} KiB)\n  \
-         stats                   {stats:?}\n  \
+         stats                   {stats:#?}\n  \
          RSS                     start {} KiB, peak {peak_kib} KiB, end {} KiB",
         BUDGET / 1_048_576,
         summary(cold),
