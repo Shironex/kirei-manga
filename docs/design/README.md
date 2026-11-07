@@ -55,3 +55,9 @@ Library, Browse, Series detail, Reader (single, double and webtoon modes, with a
 Open `prototype.html` in a browser. It loads its fonts from Google Fonts and icons from a CDN, so it needs a network connection to look right. All covers, pages and strips are fictional SVG art generated in the file.
 
 `tokens.css` is the source for the design tokens work in issue #25. Tailwind v4 maps the variables with `@theme inline`. The seed variables (`--seed-h`, `--seed-c`, `--strength`) are written at runtime from the sampled cover.
+
+## Cover theming in the app
+
+`apps/desktop/src/lib/theme/coverTheme.ts` decides which cover is in focus. The series page puts its own cover there, and the library puts the cover of the series it would resume. Hovering or keyboard focusing another cover previews it after 140 ms, and leaving drops back 500 ms later, so sweeping across the grid does not strobe. The seed is written once at the app root (`useCoverTheme`), and the registered seed properties crossfade in 900 ms (instantly with reduced motion). The focus outlives the page, so the reader opened from a series keeps that series' colours.
+
+Every stored palette is mapped into the range the contrast test covers: the hue is wrapped into 0 to 360 and the chroma is clamped to `SEED_CHROMA_MAX`. Covers with no palette get the default seed. The ambient backdrop puts the blurred cover behind the page top, dimmed to the ceiling in `lib/theme/ambient.ts`. `contrast.test.ts` holds hero text at AA over a pure white cover at every strength, so raise that ceiling only together with the test. The `appearance.coverColours` setting turns all of this off.
