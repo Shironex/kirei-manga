@@ -239,11 +239,31 @@
  * keyframe animations (enter, pop, shimmer) and smooth scrolling everywhere.
  */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :root:not([data-motion='full']) *,
+  :root:not([data-motion='full']) *::before,
+  :root:not([data-motion='full']) *::after {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
   }
+  /* Settings: motion "full" animates whatever the OS asks. */
+  :root[data-motion='full'] {
+    --d-theme: 900ms;
+    --d-3: 320ms;
+    --d-2: 200ms;
+  }
+}
+
+/* Settings: motion "reduced" applies the reduced set whatever the OS says. */
+:root[data-motion='reduced'] {
+  --d-theme: 1ms;
+  --d-3: 1ms;
+  --d-2: 1ms;
+}
+:root[data-motion='reduced'] *,
+:root[data-motion='reduced'] *::before,
+:root[data-motion='reduced'] *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
 }
