@@ -12,7 +12,8 @@ import {
 import { BrowsePage } from '@/features/browse/BrowsePage';
 import { DownloadsPage } from '@/features/downloads/DownloadsPage';
 import { LibraryPage, validateLibrarySearch } from '@/features/library/LibraryPage';
-import { ReaderPage } from '@/features/reader/ReaderPage';
+import { parseFileSearch, parsePageSearch } from '@/features/reader/openChapter';
+import { FileReaderPage, LibraryReaderPage } from '@/features/reader/ReaderPage';
 import { SeriesPage } from '@/features/series/SeriesPage';
 import { loadAbout, SettingsPage } from '@/features/settings/SettingsPage';
 
@@ -29,6 +30,7 @@ import { NotFound, RouteError, RoutePending, ShellNotFound } from './shell/Route
  *     /series/$seriesId
  *     /dev/design  /dev/engine (dev builds only)
  *   /read/$seriesId/$chapterId  full-window reader, outside the shell
+ *   /read/file?path=            the reader on an archive or folder from disk
  */
 
 const rootRoute = createRootRoute({
@@ -109,7 +111,15 @@ const engineRoute = createRoute({
 const readerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/read/$seriesId/$chapterId',
-  component: ReaderPage,
+  validateSearch: parsePageSearch,
+  component: LibraryReaderPage,
+});
+
+const readFileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/read/file',
+  validateSearch: parseFileSearch,
+  component: FileReaderPage,
 });
 
 const routeTree = rootRoute.addChildren([
@@ -124,6 +134,7 @@ const routeTree = rootRoute.addChildren([
     engineRoute,
   ]),
   readerRoute,
+  readFileRoute,
 ]);
 
 export function createAppRouter() {
