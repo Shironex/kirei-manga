@@ -4,6 +4,7 @@ import { BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import type { SeriesSummary } from '@/lib/library';
+import { useCoverPreview } from '@/lib/theme/coverTheme';
 import { cn } from '@/lib/utils';
 
 import { useSeriesDetail } from '../series/useSeriesDetail';
@@ -27,6 +28,7 @@ export function ContinueHero({
   also: SeriesSummary[];
 }) {
   const open = useOpenChapter();
+  const preview = useCoverPreview();
   const { detail } = useSeriesDetail(hero.id);
   const current = detail?.id === hero.id ? detail : null;
   const chapter = current ? continueChapter(current) : null;
@@ -120,10 +122,10 @@ export function ContinueHero({
 
       {also.length > 0 && (
         <div className="col-span-2 grid content-end gap-2 self-stretch xl:col-span-1">
-          <h3 className="m-0 mb-1 text-sm font-medium text-fg-3">Also reading</h3>
+          <h3 className="m-0 mb-1 text-sm font-medium text-fg-2">Also reading</h3>
           <div className="grid gap-2 max-xl:grid-cols-3">
             {also.map(s => (
-              <AlsoReading key={s.id} series={s} />
+              <AlsoReading key={s.id} series={s} preview={preview} />
             ))}
           </div>
         </div>
@@ -132,19 +134,29 @@ export function ContinueHero({
   );
 }
 
-function AlsoReading({ series }: { series: SeriesSummary }) {
+function AlsoReading({
+  series,
+  preview,
+}: {
+  series: SeriesSummary;
+  preview: ReturnType<typeof useCoverPreview>;
+}) {
   const pct = seriesProgress(series);
   const next = Math.min(series.completedCount + 1, series.chapterCount);
   return (
     <Link
       to="/series/$seriesId"
       params={{ seriesId: String(series.id) }}
+      onPointerEnter={() => preview.enter(series.cover)}
+      onPointerLeave={preview.leave}
+      onFocus={() => preview.enter(series.cover)}
+      onBlur={preview.leave}
       className="grid grid-cols-[44px_minmax(0,1fr)] items-center gap-3 rounded-xl p-2 text-fg-1 no-underline transition-colors duration-base hover:bg-fg-1/5"
     >
       <Cover cover={series.cover} title={series.title} eager />
       <span className="min-w-0">
         <strong className="block truncate font-semibold">{series.title}</strong>
-        <span className="tabular mb-1.5 block text-xs text-fg-3">
+        <span className="tabular mb-1.5 block text-xs text-fg-2">
           Chapter {next} of {series.chapterCount}
         </span>
         <Progress value={pct} label={`${series.title}, ${Math.round(pct * 100)}% read`} />
