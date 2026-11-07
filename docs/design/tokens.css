@@ -1,0 +1,70 @@
+/* tokens.css: KireiManga design tokens (dark) */
+@property --seed-h { syntax: "<number>"; inherits: true; initial-value: 268; }
+@property --seed-c { syntax: "<number>"; inherits: true; initial-value: 0.13; }
+
+:root {
+  color-scheme: dark;
+
+  /* Seed: written at runtime from the sampled cover */
+  --seed-h: 268;          /* hue, degrees, unwrapped so transitions take the short way */
+  --seed-c: 0.13;         /* chroma of the dominant vivid colour, capped at 0.17 */
+  --strength: 1;          /* 0.6 subtle, 1 balanced, 1.35 vivid */
+  --tint: calc(var(--seed-c) * 0.09 * var(--strength));
+
+  /* Ink ramp */
+  --ink-0: oklch(0.13 var(--tint) var(--seed-h));    /* app background */
+  --ink-1: oklch(0.165 var(--tint) var(--seed-h));   /* rail, panels */
+  --ink-2: oklch(0.205 var(--tint) var(--seed-h));   /* controls */
+  --ink-3: oklch(0.255 var(--tint) var(--seed-h));   /* hover, tracks */
+  --ink-stage: oklch(0.1 calc(var(--tint) * 0.5) var(--seed-h)); /* reader */
+  --line: oklch(0.97 0.01 var(--seed-h) / 0.09);
+  --line-strong: oklch(0.97 0.01 var(--seed-h) / 0.16);
+
+  /* Text */
+  --fg-1: oklch(0.96 0.006 var(--seed-h));
+  --fg-2: oklch(0.8 0.012 var(--seed-h));
+  --fg-3: oklch(0.66 0.014 var(--seed-h));  /* 5.6:1 on ink-0 */
+
+  /* Cover-derived roles */
+  --accent-c: clamp(0.045, calc(var(--seed-c) * var(--strength)), 0.17);
+  --accent: oklch(0.82 var(--accent-c) var(--seed-h));
+  --accent-strong: oklch(0.72 var(--accent-c) var(--seed-h));
+  --accent-wash: oklch(0.82 var(--accent-c) var(--seed-h) / 0.14);
+  --on-accent: oklch(0.2 calc(var(--accent-c) * 0.5) var(--seed-h));
+  --ambient: oklch(0.5 var(--accent-c) var(--seed-h) / calc(0.42 * var(--strength)));
+
+  /* Semantic, never cover-derived */
+  --ok: oklch(0.8 0.13 155);
+  --warn: oklch(0.84 0.13 82);
+  --err: oklch(0.72 0.16 25);
+
+  /* Glass: reader chrome and floating panels only */
+  --glass: oklch(0.18 calc(var(--tint) * 1.5) var(--seed-h) / 0.62);
+  --glass-edge: oklch(1 0 0 / 0.1);
+  --glass-blur: 22px;
+
+  /* Type */
+  --f-display: "Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif; /* wdth 75 to 88 */
+  --f-ui: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-jp: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  --t-xs: 0.75rem; --t-sm: 0.8125rem; --t-md: 0.875rem; --t-lg: 1rem;
+  --t-xl: 1.1875rem; --t-2xl: 1.4375rem; --t-3xl: 1.75rem; --t-4xl: 2.25rem;
+  --t-5xl: 3.25rem; --t-6xl: 4.5rem;
+
+  /* Space, 4px base */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px;
+  --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
+
+  /* Radius: covers 4, chips 6, panels 14, actions pill */
+  --r-cover: 4px; --r-chip: 6px; --r-panel: 14px; --r-pill: 999px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --d-1: 120ms; --d-2: 200ms; --d-3: 320ms; --d-theme: 900ms;
+
+  transition: --seed-h var(--d-theme) var(--ease-inout), --seed-c var(--d-theme) var(--ease-inout);
+}
+@media (prefers-reduced-motion: reduce) { :root { --d-theme: 1ms; --d-3: 1ms; --d-2: 1ms; } }
+@media (prefers-reduced-transparency: reduce) { :root { --glass: var(--ink-2); --glass-blur: 0px; } }
