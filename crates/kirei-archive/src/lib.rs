@@ -29,6 +29,10 @@ pub use error::{ArchiveError, Result};
 pub use limits::{Limits, OpenOptions};
 pub use natural::natural_cmp;
 
+/// Ceiling for a `ComicInfo.xml`. Real ones are a few kilobytes even with a
+/// full page table.
+pub const MAX_COMIC_INFO_BYTES: u64 = 1024 * 1024;
+
 /// A chapter's pages, wherever they are stored.
 ///
 /// Implementations are `Send + Sync` so one source can serve the read-ahead
@@ -42,6 +46,13 @@ pub trait PageSource: Send + Sync {
 
     /// Reads one page's bytes (still encoded: JPEG, PNG, ...).
     fn read_page(&self, index: usize) -> Result<Vec<u8>>;
+
+    /// The source's `ComicInfo.xml`, raw, when it has one at its root or one
+    /// folder down. Capped at [`MAX_COMIC_INFO_BYTES`]; a larger file is
+    /// treated as absent rather than read.
+    fn comic_info(&self) -> Result<Option<Vec<u8>>> {
+        Ok(None)
+    }
 
     /// Number of pages.
     fn len(&self) -> usize {

@@ -21,6 +21,17 @@ pub(crate) fn page_format(name: &str) -> Option<ImageFormat> {
     ImageFormat::from_extension(ext)
 }
 
+/// True for a `ComicInfo.xml` at the root or one folder down (archives often
+/// wrap everything in a single top folder). Any case.
+pub(crate) fn is_comic_info(name: &str) -> bool {
+    let mut parts = name.rsplit('/');
+    let file_name = parts.next().unwrap_or(name);
+    let depth = parts.count();
+    depth <= 1
+        && file_name.eq_ignore_ascii_case("comicinfo.xml")
+        && !name.split('/').any(|part| part == "__MACOSX")
+}
+
 /// Turns an archive entry name into a safe relative name with `/` separators,
 /// or `None` when it is absolute or climbs out of the archive root. Nothing is
 /// ever written to disk, but a name like `../../x.jpg` is still a sign of a
@@ -82,6 +93,16 @@ mod tests {
         ] {
             assert_eq!(page_format(name), None, "{name} should be skipped");
         }
+    }
+
+    #[test]
+    fn finds_comic_info_near_the_root() {
+        assert!(is_comic_info("ComicInfo.xml"));
+        assert!(is_comic_info("comicinfo.XML"));
+        assert!(is_comic_info("Chapter 1/ComicInfo.xml"));
+        assert!(!is_comic_info("a/b/ComicInfo.xml"));
+        assert!(!is_comic_info("__MACOSX/ComicInfo.xml"));
+        assert!(!is_comic_info("ComicInfo.txt"));
     }
 
     #[test]
