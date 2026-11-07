@@ -1,62 +1,30 @@
 {
   "name": "kireimanga",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "KireiManga — desktop manga reader with OCR + translation overlay",
+  "description": "KireiManga, a desktop manga reader built on Tauri and Rust",
   "license": "SEE LICENSE IN LICENSE",
-  "packageManager": "pnpm@10.9.0",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@nestjs/core",
-      "@swc/core",
-      "electron",
-      "esbuild",
-      "better-sqlite3"
-    ],
-    "overrides": {
-      "electron": ">=40.8.5 <41",
-      "@nestjs/core": ">=11.1.18 <12"
-    }
-  },
+  "type": "module",
+  "packageManager": "pnpm@10.34.9",
   "scripts": {
-    "dev": "pnpm build:packages && concurrently -k -n web,desktop -c magenta,yellow \"pnpm dev:web\" \"wait-on -t 30000 -i 1000 http-get://localhost:15175 && pnpm --filter @kireimanga/desktop dev\"",
-    "dev:web": "pnpm build:packages && pnpm --filter @kireimanga/web dev",
     "dev:landing": "pnpm --filter @kireimanga/landing dev",
-    "build": "pnpm build:packages && pnpm --filter @kireimanga/web build && pnpm --filter @kireimanga/desktop build",
     "build:landing": "pnpm --filter @kireimanga/landing build",
     "og:landing": "pnpm --filter @kireimanga/landing og",
-    "build:packages": "pnpm --filter @kireimanga/shared build",
-    "package": "pnpm build && pnpm --filter @kireimanga/desktop package",
-    "package:win": "pnpm build && pnpm --filter @kireimanga/desktop package:win",
-    "package:mac": "pnpm build && pnpm --filter @kireimanga/desktop package:mac",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "test": "pnpm build:packages && pnpm -r run test",
-    "typecheck": "pnpm build:packages && pnpm --filter @kireimanga/web typecheck && pnpm --filter @kireimanga/desktop typecheck",
-    "rebuild": "pnpm --filter @kireimanga/desktop rebuild",
-    "native:build": "node scripts/native-build.mjs",
-    "build:sidecar": "node scripts/build-sidecar.mjs",
-    "bench-bubble-detector": "node scripts/bench-bubble-detector.mjs",
-    "fetch-prebuilds": "node scripts/fetch-prebuilds.mjs",
-    "fetch-tesseract": "node scripts/fetch-tesseract-traineddata.mjs",
-    "version:patch": "node scripts/bump-version.mjs patch",
-    "version:minor": "node scripts/bump-version.mjs minor",
-    "version:major": "node scripts/bump-version.mjs major"
+    "format:check": "prettier --check ."
   },
   "engines": {
     "node": ">=22.0.0",
-    "pnpm": ">=10.0.0"
+    "pnpm": ">=10.16.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "concurrently": "^9.2.1",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.4.0",
     "prettier": "^3.8.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.57.0",
-    "wait-on": "^9.0.4"
+    "typescript-eslint": "^8.57.0"
   }
 }
