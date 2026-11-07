@@ -13,7 +13,8 @@ const ARCHIVE_FILTER = { name: 'Comic archives', extensions: ['cbz', 'zip', 'cbr
  * read-ahead cache work. Not the reader UI.
  */
 export function ReaderTestPage() {
-  const { source, index, error, lastPageMs, stats, open, step, onPageLoaded } = usePageSource();
+  const { source, index, error, lastPageMs, stats, revision, open, step, onPageLoaded } =
+    usePageSource();
   const page = source?.pages[index];
 
   const pick = async (directory: boolean) => {
@@ -96,14 +97,24 @@ export function ReaderTestPage() {
           <dd className="text-foreground tabular-nums">
             {stats ? `${stats.prefetched} / ${stats.droppedStale}` : '...'}
           </dd>
+          <dt>Serve p50 / p95</dt>
+          <dd className="text-foreground tabular-nums">
+            {stats
+              ? `${(stats.serve.p50Us / 1000).toFixed(1)} / ${(stats.serve.p95Us / 1000).toFixed(1)} ms`
+              : '...'}
+          </dd>
+          <dt>Downscaled / original</dt>
+          <dd className="text-foreground tabular-nums">
+            {stats ? `${stats.downscaled} / ${stats.original}` : '...'}
+          </dd>
         </dl>
       )}
 
       {source && page && (
         <div className="bg-card flex min-h-[60vh] items-center justify-center rounded-lg border p-2">
           <img
-            key={`${source.id}-${index}`}
-            src={pageUrl(source.id, index)}
+            key={`${source.id}-${index}-${revision ?? 0}`}
+            src={pageUrl(source.id, index, revision)}
             alt={`Page ${index + 1}`}
             className="max-h-[75vh] w-auto object-contain"
             onLoad={onPageLoaded}
