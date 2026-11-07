@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { describeAppInfo, isTauri } from './ipc';
+import { call, describeAppInfo, getAppInfo, IpcError, isTauri } from './ipc';
 
 describe('ipc', () => {
   it('formats the app info returned by the backend', () => {
@@ -11,5 +11,13 @@ describe('ipc', () => {
 
   it('reports no Tauri runtime outside the webview', () => {
     expect(isTauri()).toBe(false);
+  });
+
+  it('rejects with an IpcError naming the command when there is no backend', async () => {
+    await expect(getAppInfo()).rejects.toBeInstanceOf(IpcError);
+    await expect(call('app_info')).rejects.toMatchObject({
+      name: 'IpcError',
+      command: 'app_info',
+    });
   });
 });
