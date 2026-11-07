@@ -25,6 +25,8 @@ allow = [
   "MPL-2.0",
   "CC0-1.0",
   "Unlicense",
+  # jpeg-encoder: its AND clause covers the IJG-derived quantisation tables.
+  "IJG",
 ]
 confidence-threshold = 0.9
 
