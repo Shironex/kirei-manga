@@ -1,0 +1,82 @@
+use std::collections::HashMap;
+use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, PoisonError};
+
+use kirei_archive::PageSource;
+use kirei_reader::{Direction, PageBytes, PageCache, ReadAheadConfig, Reader, SourceId};
+
+/// Cache budget for page bytes. Encoded manga pages run 200 KB to 2 MB, so
+/// this holds a few dozen, far more than one read-ahead window.
+const CACHE_BUDGET_BYTES: usize = 256 * 1024 * 1024;
+
+/// Open sources and the reader that serves their pages. Managed Tauri state,
+/// shared by the commands and the `kirei-page` protocol.
+pub(crate) struct Library {
+    next_id: AtomicU64,
+    sources: Mutex<HashMap<SourceId, Arc<dyn PageSource>>>,
+    reader: Reader,
+}
+
+impl Library {
+    pub(crate) fn new() -> Self {
+        Self::with_cache(CACHE_BUDGET_BYTES, ReadAheadConfig::default())
+    }
+
+    pub(crate) fn with_cache(budget: usize, config: ReadAheadConfig) -> Self {
+        Self {
+            next_id: AtomicU64::new(1),
+            sources: Mutex::new(HashMap::new()),
+            reader: Reader::new(Arc::new(PageCache::new(budget)), config),
+        }
+    }
+
+    /// Opens an archive or folder and registers it under a fresh id.
+    pub(crate) fn open(
+        &self,
+        path: &Path,
+    ) -> kirei_archive::Result<(SourceId, Arc<dyn PageSource>)> {
+        let source: Arc<dyn PageSource> = Arc::from(kirei_archive::open(path)?);
+        let id = self.next_id.fetch_add(1, Ordering::Relaxed);
+        self.lock().insert(id, Arc::clone(&source));
+        Ok((id, source))
+    }
+
+    pub(crate) fn source(&self, id: SourceId) -> Option<Arc<dyn PageSource>> {
+        self.lock().get(&id).cloned()
+    }
+
+    pub(crate) fn close(&self, id: SourceId) {
+        self.lock().remove(&id);
+        self.reader.forget(id);
+    }
+
+    /// Bytes of one page, through the cache. Blocking: call off the main thread.
+    pub(crate) fn page(
+        &self,
+        id: SourceId,
+        index: usize,
+    ) -> Option<kirei_archive::Result<PageBytes>> {
+        let source = self.source(id)?;
+        Some(self.reader.page(id, &source, index))
+    }
+
+    /// Moves the read-ahead window. Returns false for an unknown source.
+    pub(crate) fn focus(&self, id: SourceId, index: usize, direction: Direction) -> bool {
+        let Some(source) = self.source(id) else {
+            return false;
+        };
+        self.reader.focus(id, &source, index, direction);
+        true
+    }
+
+    pub(crate) fn reader(&self) -> &Reader {
+        &self.reader
+    }
+
+    // The map is only ever inserted into or removed from, so a poisoned lock
+    // still holds a consistent map.
+    fn lock(&self) -> std::sync::MutexGuard<'_, HashMap<SourceId, Arc<dyn PageSource>>> {
+        self.sources.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+}

@@ -18,10 +18,17 @@ crate-type = ["lib"]
 tauri-build = { workspace = true }
 
 [dependencies]
+kirei-archive = { workspace = true }
 kirei-core = { workspace = true }
+kirei-reader = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tauri = { workspace = true }
+tauri-plugin-dialog = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+zip = { workspace = true }
 
 [lints]
 workspace = true
