@@ -13,6 +13,7 @@ use tauri::Manager;
 pub fn run() {
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .manage(library::Library::new())
         .setup(|app| {
             let catalog = catalog::Catalog::open(app.handle());
