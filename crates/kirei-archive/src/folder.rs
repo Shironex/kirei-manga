@@ -3,9 +3,11 @@ use std::path::{Path, PathBuf};
 
 use kirei_core::{PageInfo, SourceKind};
 
-use crate::filter::page_format;
+use crate::filter::{is_comic_info, page_format};
 use crate::limits::read_capped;
-use crate::{ArchiveError, OpenOptions, PageSource, Result, finish_listing, probe};
+use crate::{
+    ArchiveError, MAX_COMIC_INFO_BYTES, OpenOptions, PageSource, Result, finish_listing, probe,
+};
 
 /// A directory of image files. Only its direct children are pages: a series
 /// folder with one subfolder per chapter is the library scanner's job, not a
@@ -13,6 +15,8 @@ use crate::{ArchiveError, OpenOptions, PageSource, Result, finish_listing, probe
 pub(crate) struct FolderSource {
     root: PathBuf,
     pages: Vec<PageInfo>,
+    /// File name and size of a `ComicInfo.xml` beside the pages.
+    comic_info: Option<(String, u64)>,
     max_entry_bytes: u64,
 }
 
@@ -20,6 +24,7 @@ impl FolderSource {
     pub(crate) fn open(root: &Path, options: &OpenOptions) -> Result<Self> {
         let entries = std::fs::read_dir(root).map_err(|source| ArchiveError::io(root, source))?;
         let mut candidates = Vec::new();
+        let mut comic_info = None;
         for entry in entries {
             let entry = entry.map_err(|source| ArchiveError::io(root, source))?;
             // Symlinks are followed by `metadata`, so a link to an image is a
@@ -35,6 +40,10 @@ impl FolderSource {
             let Ok(name) = entry.file_name().into_string() else {
                 continue;
             };
+            if is_comic_info(&name) {
+                comic_info = Some((name, metadata.len()));
+                continue;
+            }
             let Some(format) = page_format(&name) else {
                 continue;
             };
@@ -65,6 +74,7 @@ impl FolderSource {
         Ok(Self {
             root: root.to_path_buf(),
             pages,
+            comic_info,
             max_entry_bytes: options.limits.max_entry_bytes,
         })
     }
@@ -82,6 +92,22 @@ impl PageSource for FolderSource {
 
     fn pages(&self) -> &[PageInfo] {
         &self.pages
+    }
+
+    fn comic_info(&self) -> Result<Option<Vec<u8>>> {
+        let Some((name, size)) = &self.comic_info else {
+            return Ok(None);
+        };
+        if *size > MAX_COMIC_INFO_BYTES {
+            return Ok(None);
+        }
+        let path = self.root.join(name);
+        let mut file = File::open(&path).map_err(|source| ArchiveError::io(&path, source))?;
+        match read_capped(&mut file, name, *size, MAX_COMIC_INFO_BYTES) {
+            Ok(bytes) => Ok(Some(bytes)),
+            Err(ArchiveError::EntryTooLarge { .. }) => Ok(None),
+            Err(error) => Err(error),
+        }
     }
 
     fn read_page(&self, index: usize) -> Result<Vec<u8>> {

@@ -6,9 +6,11 @@ use std::sync::Mutex;
 use kirei_core::{ImageFormat, PageInfo, SourceKind};
 use zip::ZipArchive;
 
-use crate::filter::{normalize_name, page_format};
+use crate::filter::{is_comic_info, normalize_name, page_format};
 use crate::limits::read_capped;
-use crate::{ArchiveError, OpenOptions, PageSource, Result, finish_listing, probe};
+use crate::{
+    ArchiveError, MAX_COMIC_INFO_BYTES, OpenOptions, PageSource, Result, finish_listing, probe,
+};
 
 type Archive = ZipArchive<BufReader<File>>;
 
@@ -19,6 +21,8 @@ pub(crate) struct ZipSource {
     pages: Vec<PageInfo>,
     /// Index into the ZIP's own entry table, per page.
     entry_index: Vec<usize>,
+    /// The ZIP entry holding `ComicInfo.xml`, the shallowest one found.
+    comic_info: Option<(usize, String, u64)>,
     max_entry_bytes: u64,
 }
 
@@ -34,6 +38,7 @@ impl ZipSource {
         let mut archive = ZipArchive::new(BufReader::new(file))?;
 
         let mut candidates = Vec::new();
+        let mut comic_info: Option<(usize, String, u64)> = None;
         for entry in 0..archive.len() {
             let file = archive.by_index_raw(entry)?;
             if !file.is_file() || file.encrypted() {
@@ -42,6 +47,15 @@ impl ZipSource {
             let Some(name) = file.name().ok().as_deref().and_then(normalize_name) else {
                 continue;
             };
+            if is_comic_info(&name) {
+                let shallower = comic_info.as_ref().is_none_or(|(_, found, _)| {
+                    name.matches('/').count() < found.matches('/').count()
+                });
+                if shallower {
+                    comic_info = Some((entry, name, file.size()));
+                }
+                continue;
+            }
             let Some(format) = page_format(&name) else {
                 continue;
             };
@@ -80,6 +94,7 @@ impl ZipSource {
             archive: Mutex::new(archive),
             pages,
             entry_index,
+            comic_info,
             max_entry_bytes: options.limits.max_entry_bytes,
         })
     }
@@ -99,6 +114,25 @@ impl PageSource for ZipSource {
 
     fn pages(&self) -> &[PageInfo] {
         &self.pages
+    }
+
+    fn comic_info(&self) -> Result<Option<Vec<u8>>> {
+        let Some((entry, name, size)) = &self.comic_info else {
+            return Ok(None);
+        };
+        if *size > MAX_COMIC_INFO_BYTES {
+            return Ok(None);
+        }
+        let mut archive = self
+            .archive
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        let mut file = archive.by_index(*entry)?;
+        match read_capped(&mut file, name, *size, MAX_COMIC_INFO_BYTES) {
+            Ok(bytes) => Ok(Some(bytes)),
+            Err(ArchiveError::EntryTooLarge { .. }) => Ok(None),
+            Err(error) => Err(error),
+        }
     }
 
     fn read_page(&self, index: usize) -> Result<Vec<u8>> {

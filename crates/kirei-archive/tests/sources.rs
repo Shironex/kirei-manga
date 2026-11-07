@@ -257,3 +257,51 @@ fn corrupt_and_truncated_archives_error_instead_of_panicking() {
         }
     }
 }
+
+#[test]
+fn comic_info_is_read_from_every_backend() {
+    let dir = tempfile::tempdir().unwrap();
+    let xml = b"<ComicInfo/>".to_vec();
+
+    let cbz = dir.path().join("chapter.cbz");
+    write_zip(&cbz, &chapter_entries());
+    let cbr = dir.path().join("chapter.cbr");
+    write_rar(&cbr, ArchiveVersion::Rar50, &chapter_entries());
+    let folder = dir.path().join("folder");
+    std::fs::create_dir(&folder).unwrap();
+    std::fs::write(folder.join("001.png"), png(4, 4, 1)).unwrap();
+    std::fs::write(folder.join("ComicInfo.xml"), &xml).unwrap();
+
+    for path in [&cbz, &cbr, &folder] {
+        let source = open(path).unwrap();
+        assert_eq!(
+            source.comic_info().unwrap().as_deref(),
+            Some(xml.as_slice()),
+            "{}",
+            path.display()
+        );
+    }
+}
+
+#[test]
+fn comic_info_is_none_when_absent_or_too_deep() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("chapter.cbz");
+    write_zip(
+        &path,
+        &[
+            ("a/b/ComicInfo.xml", b"<ComicInfo/>".to_vec()),
+            ("a/b/001.png", png(4, 4, 1)),
+        ],
+    );
+    assert_eq!(open(&path).unwrap().comic_info().unwrap(), None);
+}
+
+#[test]
+fn oversized_comic_info_is_ignored() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("chapter.cbz");
+    let huge = vec![b' '; kirei_archive::MAX_COMIC_INFO_BYTES as usize + 1];
+    write_zip(&path, &[("ComicInfo.xml", huge), ("001.png", png(4, 4, 1))]);
+    assert_eq!(open(&path).unwrap().comic_info().unwrap(), None);
+}

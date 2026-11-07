@@ -4,8 +4,10 @@ use std::path::{Path, PathBuf};
 use kirei_core::{ImageFormat, PageInfo, SourceKind};
 use unrar::Archive;
 
-use crate::filter::{normalize_name, page_format};
-use crate::{ArchiveError, OpenOptions, PageSource, Result, finish_listing, probe};
+use crate::filter::{is_comic_info, normalize_name, page_format};
+use crate::{
+    ArchiveError, MAX_COMIC_INFO_BYTES, OpenOptions, PageSource, Result, finish_listing, probe,
+};
 
 /// A RAR or CBR file, read through RARLAB's UnRAR.
 ///
@@ -18,6 +20,8 @@ pub(crate) struct RarSource {
     pages: Vec<PageInfo>,
     /// Position of each page's header in the archive, counted over all headers.
     header_ordinal: Vec<usize>,
+    /// Header ordinal of `ComicInfo.xml`, the shallowest one found.
+    comic_info: Option<(usize, String, u64)>,
     max_entry_bytes: u64,
 }
 
@@ -35,6 +39,7 @@ impl RarSource {
     pub(crate) fn open(path: &Path, options: &OpenOptions) -> Result<Self> {
         let listing = Archive::new(path).open_for_listing().map_err(rar_error)?;
         let mut candidates = Vec::new();
+        let mut comic_info: Option<(usize, String, u64)> = None;
         for (ordinal, header) in listing.enumerate() {
             let header = header.map_err(rar_error)?;
             if !header.is_file() || header.is_encrypted() || header.is_split() {
@@ -43,6 +48,15 @@ impl RarSource {
             let Some(name) = header.filename.to_str().and_then(normalize_name) else {
                 continue;
             };
+            if is_comic_info(&name) {
+                let shallower = comic_info.as_ref().is_none_or(|(_, found, _)| {
+                    name.matches('/').count() < found.matches('/').count()
+                });
+                if shallower {
+                    comic_info = Some((ordinal, name, header.unpacked_size));
+                }
+                continue;
+            }
             let Some(format) = page_format(&name) else {
                 continue;
             };
@@ -83,6 +97,7 @@ impl RarSource {
             path: path.to_path_buf(),
             pages,
             header_ordinal,
+            comic_info,
             max_entry_bytes: options.limits.max_entry_bytes,
         })
     }
@@ -140,6 +155,17 @@ impl PageSource for RarSource {
         &self.pages
     }
 
+    fn comic_info(&self) -> Result<Option<Vec<u8>>> {
+        let Some((ordinal, _, size)) = &self.comic_info else {
+            return Ok(None);
+        };
+        if *size > MAX_COMIC_INFO_BYTES {
+            return Ok(None);
+        }
+        let bytes = self.read_ordinal(*ordinal)?;
+        Ok((bytes.len() as u64 <= MAX_COMIC_INFO_BYTES).then_some(bytes))
+    }
+
     fn read_page(&self, index: usize) -> Result<Vec<u8>> {
         let page = self.pages.get(index).ok_or(ArchiveError::PageOutOfRange {
             index,
@@ -154,7 +180,26 @@ impl PageSource for RarSource {
                 max: self.max_entry_bytes,
             });
         }
-        let target = self.header_ordinal[index];
+        let bytes = self
+            .read_ordinal(self.header_ordinal[index])
+            .map_err(|error| match error {
+                ArchiveError::MissingEntry(_) => ArchiveError::MissingEntry(page.name.clone()),
+                other => other,
+            })?;
+        if bytes.len() as u64 > self.max_entry_bytes {
+            return Err(ArchiveError::EntryTooLarge {
+                name: page.name.clone(),
+                size: bytes.len() as u64,
+                max: self.max_entry_bytes,
+            });
+        }
+        Ok(bytes)
+    }
+}
+
+impl RarSource {
+    /// Walks the headers to the `target`th one and inflates it.
+    fn read_ordinal(&self, target: usize) -> Result<Vec<u8>> {
         let mut cursor = Archive::new(&self.path)
             .open_for_processing()
             .map_err(rar_error)?;
@@ -162,18 +207,11 @@ impl PageSource for RarSource {
         while let Some(entry) = cursor.read_header().map_err(rar_error)? {
             if ordinal == target {
                 let (bytes, _) = entry.read().map_err(rar_error)?;
-                if bytes.len() as u64 > self.max_entry_bytes {
-                    return Err(ArchiveError::EntryTooLarge {
-                        name: page.name.clone(),
-                        size: bytes.len() as u64,
-                        max: self.max_entry_bytes,
-                    });
-                }
                 return Ok(bytes);
             }
             cursor = entry.skip().map_err(rar_error)?;
             ordinal += 1;
         }
-        Err(ArchiveError::MissingEntry(page.name.clone()))
+        Err(ArchiveError::MissingEntry(format!("header {target}")))
     }
 }
