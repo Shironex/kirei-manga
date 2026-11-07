@@ -45,7 +45,7 @@ export function ShellFrame({ children }: { children: ReactNode }) {
           aria-hidden
           className="sticky top-0 z-10 -mb-7 hidden h-7 [:root[data-chrome=overlay]_&]:block"
         />
-        <Ambient />
+        <Ambient tall={pathname.startsWith('/series/')} />
         <div key={pathname} className="max-w-[1500px] animate-enter px-12 pt-8 pb-16">
           {children}
         </div>

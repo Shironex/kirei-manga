@@ -50,3 +50,16 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
   { fg: ['--fg-2'], bg: ['--ink-3'], min: AA_UI, use: 'Switch thumb, off' },
   { fg: ['--on-accent'], bg: ['--accent'], min: AA_UI, use: 'Switch thumb, on' },
 ];
+
+/**
+ * Text drawn over the top of a page, where the ambient glow and the dimmed,
+ * blurred cover sit behind it (see ambient.ts). The hero band keeps to these
+ * colours; meta text there uses --fg-2, never --fg-3. contrast.test.ts checks
+ * each one over the glow alone and over the glow plus the brightest the cover
+ * layer can be, on every page and on the series page.
+ */
+export const BACKDROP_TEXT: { fg: string; use: string }[] = [
+  { fg: '--fg-1', use: 'Hero and series titles' },
+  { fg: '--fg-2', use: 'Hero meta, byline, synopsis, also reading' },
+  { fg: '--accent', use: 'Continue reading label' },
+];
