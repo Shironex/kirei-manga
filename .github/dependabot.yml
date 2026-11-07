@@ -1,0 +1,53 @@
+# The 7 day cooldown mirrors minimumReleaseAge in pnpm-workspace.yaml: nothing
+# younger than a week is proposed, for npm, cargo or actions alike.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    labels:
+      - dependencies
+      - area:infra
+    groups:
+      actions:
+        patterns: ['*']
+        update-types: [patch, minor]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types: [patch, minor]
+      production-dependencies:
+        dependency-type: production
+        update-types: [patch, minor]
+    ignore:
+      # TypeScript majors need a tsconfig migration; bump by hand.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - area:core
+    groups:
+      cargo:
+        patterns: ['*']
+        update-types: [patch, minor]
