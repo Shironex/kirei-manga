@@ -32,6 +32,27 @@ thiserror = "2"
 tauri = { version = "2.12", features = [] }
 tauri-build = { version = "2.7", features = [] }
 
+# Archive backends (kirei-archive). Reading only: `deflate-flate2-zlib-rs` is
+# the one decoder CBZ files use in practice, and it skips the zopfli encoder
+# the plain `deflate` feature pulls in. Locked to 9.1.3 in Cargo.lock because
+# the 9.x line shipped twelve releases in two weeks; move up once one has aged.
+zip = { version = "9.1", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+# RAR (CBR) reading. Wraps RARLAB's UnRAR C++ source, the reference decoder:
+# every RAR version, solid archives, and the same code WinRAR extracts with.
+# The Rust crate is MIT OR Apache-2.0; the vendored UnRAR source is under the
+# UnRAR licence (free to use in any software that handles RAR archives, may not
+# be used to build a RAR compressor). Builds with the platform C++ toolchain.
+unrar = "0.5.8"
+# Pixel size from image headers, without decoding.
+imagesize = "0.15"
+
+# Test-only helpers.
+tempfile = "3"
+crc32fast = "1.5"
+# Writes RAR fixtures inside the tests, since no RAR encoder ships with the
+# OS or CI runners. Pure Rust, Apache-2.0, dev-dependency only.
+rars = "=0.12.3"
+
 # Lints are declared once and inherited by every member via `[lints] workspace
 # = true`. CI runs clippy with `-D warnings`, so a warn here is a hard gate.
 [workspace.lints.rust]
