@@ -1,0 +1,6 @@
+# Let git normalize line endings (LF in the repo, native on checkout).
+* text=auto
+
+# rustfmt.toml pins `newline_style = "Unix"`, so a CRLF checkout on Windows
+# would fail `cargo fmt --check` on every file for changes nobody made.
+*.rs text eol=lf
