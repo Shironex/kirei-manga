@@ -1,5 +1,6 @@
 packages:
   - 'apps/*'
+  - 'packages/*'
 
 # The owner's global npm config sets a 7 day minimum release age. Mirroring it
 # here makes the gate a property of the repo instead of one machine, and the
