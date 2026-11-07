@@ -73,3 +73,24 @@ export function setGlass(enabled: boolean, target?: HTMLElement): void {
   if (enabled) delete el.dataset.glass;
   else el.dataset.glass = 'off';
 }
+
+/** Ambient cover glow preference. Off hides the glow behind page headers. */
+export function setAmbient(enabled: boolean, target?: HTMLElement): void {
+  const el = root(target);
+  if (enabled) delete el.dataset.ambient;
+  else el.dataset.ambient = 'off';
+}
+
+/** Current preferences as written on <html>, for controls that reflect them. */
+export function readPreferences(target?: HTMLElement): {
+  strength: Strength;
+  glass: boolean;
+  ambient: boolean;
+} {
+  const el = root(target);
+  const scale = Number.parseFloat(el.style.getPropertyValue('--strength'));
+  const strength =
+    (Object.entries(STRENGTH_SCALE).find(([, v]) => v === scale)?.[0] as Strength | undefined) ??
+    'balanced';
+  return { strength, glass: el.dataset.glass !== 'off', ambient: el.dataset.ambient !== 'off' };
+}
