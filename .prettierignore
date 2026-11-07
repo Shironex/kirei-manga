@@ -1,2 +1,19 @@
+# Prettier also reads .gitignore, so this file only lists what is prettier's
+# business to skip rather than git's.
+
+# Cargo build output and Tauri's regenerated permission schemas.
+target/
+apps/desktop/src-tauri/gen/
+
+# Package managers own their lockfiles' formatting.
+Cargo.lock
+pnpm-lock.yaml
+
+# Design prototype sources, kept exactly as approved.
 docs/design/*.html
 docs/design/tokens.css
+
+# The live landing keeps its own formatting until the new landing replaces it,
+# and docs/ is written by the spec workflow. Neither is reformatted here.
+apps/landing/
+docs/
