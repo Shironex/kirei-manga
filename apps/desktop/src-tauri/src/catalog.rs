@@ -49,7 +49,7 @@ impl Catalog {
 }
 
 /// Runs `work` against the library on the blocking pool.
-async fn with_library<R, T, F>(app: &AppHandle<R>, work: F) -> Result<T, String>
+pub(crate) async fn with_library<R, T, F>(app: &AppHandle<R>, work: F) -> Result<T, String>
 where
     R: Runtime,
     T: Send + 'static,
