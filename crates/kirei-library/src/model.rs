@@ -44,6 +44,9 @@ pub struct SeriesSummary {
     pub completed_count: i64,
     /// When any chapter of the series was last read.
     pub last_read_at: Option<i64>,
+    /// Unread chapters that appeared after the series was last read; always
+    /// 0 for a series never opened (everything there is simply unread).
+    pub new_count: i64,
     /// The chapter "continue" opens: the last one read if unfinished, else the
     /// next unfinished one, else the first.
     pub continue_chapter_id: Option<i64>,

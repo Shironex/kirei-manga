@@ -417,6 +417,31 @@ fn progress_records_completion_and_drives_continue() {
 }
 
 #[test]
+fn chapters_added_after_the_last_read_count_as_new() {
+    let fixture = fixture();
+    let library = open(&fixture);
+    library.add_root(&fixture.root).unwrap();
+    scan(&library);
+    let series = library.series().unwrap();
+    assert!(series.iter().all(|s| s.new_count == 0), "nothing read yet");
+
+    let ember = detail(&library, &series, "Ash and Ember");
+    library.record_progress(ember.chapters[0].id, 0).unwrap();
+    // Added rows are stamped in milliseconds; make sure the new one is later.
+    std::thread::sleep(std::time::Duration::from_millis(5));
+    cbz(
+        &fixture.root.join("Ash and Ember").join("c004.cbz"),
+        2,
+        ORANGE,
+        None,
+    );
+    scan(&library);
+    let series = library.series().unwrap();
+    assert_eq!(by_title(&series, "Ash and Ember").new_count, 1);
+    assert_eq!(by_title(&series, "The Moonlit Bookshop").new_count, 0);
+}
+
+#[test]
 fn series_settings_round_trip() {
     let fixture = fixture();
     let library = open(&fixture);
