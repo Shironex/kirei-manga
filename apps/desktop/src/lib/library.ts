@@ -47,6 +47,8 @@ export interface SeriesSummary {
   missingCount: number;
   completedCount: number;
   lastReadAt: number | null;
+  /** Unread chapters added after the series was last read (0 if never read). */
+  newCount: number;
   continueChapterId: number | null;
   missing: boolean;
   addedAt: number;

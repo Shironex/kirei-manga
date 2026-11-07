@@ -72,6 +72,8 @@ Names are parsed loosely (`naming.rs`): `Vol.02 Ch.011`, `v02c011`, `c011.5`, `[
 
 Chapters are ordered by number (then volume), then volume alone for volume-only releases, then natural path order.
 
+A series summary counts `newCount`: present, unfinished chapters whose row was added after the series was last read. It drives the new chapter badge in the library and stays 0 for a series never opened.
+
 A rescan is incremental: a chapter whose size and mtime match its row is not opened again (failed opens are retried). New and changed archives are opened in parallel without probing page sizes. Chapters that disappear are marked `missing`, never deleted, so progress survives an unplugged drive; a root that cannot be read marks everything under it missing and the scan carries on. Only one scan runs at a time.
 
 Progress is reported as `library:scan-progress` events with `{ phase, root, done, total, current }`, throttled to one every 50 ms per phase, with the first and last of each phase always sent. Phases: `discovering`, `reading`, `covers`, `saving`, `done`.

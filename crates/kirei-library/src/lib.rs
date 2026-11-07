@@ -432,6 +432,7 @@ impl Library {
             missing_count: row.get(20)?,
             completed_count: row.get(13)?,
             last_read_at: row.get(21)?,
+            new_count: row.get(22)?,
             continue_chapter_id: None,
         })
     }
@@ -543,7 +544,8 @@ impl Library {
 }
 
 /// Columns 0..=13 feed [`Library::summary_from_row`]; 14..=19 are the detail
-/// fields; 20 and 21 are the missing count and last read time.
+/// fields; 20 and 21 are the missing count and last read time; 22 counts
+/// chapters added since the series was last read.
 const SERIES_SELECT: &str =
     "SELECT s.id, s.root_id, s.title, s.path, s.missing, s.added_at, s.updated_at,
         cv.hash, cv.file, cv.width, cv.height, cv.palette,
@@ -553,7 +555,12 @@ const SERIES_SELECT: &str =
         s.description, s.writer, s.year, s.language, s.genres, s.manga,
         (SELECT count(*) FROM chapters c WHERE c.series_id = s.id AND c.missing = 1),
         (SELECT max(p.updated_at) FROM chapters c JOIN reading_progress p ON p.chapter_id = c.id
-          WHERE c.series_id = s.id)
+          WHERE c.series_id = s.id),
+        (SELECT count(*) FROM chapters c
+          LEFT JOIN reading_progress p ON p.chapter_id = c.id
+          WHERE c.series_id = s.id AND c.missing = 0 AND coalesce(p.completed, 0) = 0
+            AND c.added_at > (SELECT max(p2.updated_at) FROM chapters c2
+              JOIN reading_progress p2 ON p2.chapter_id = c2.id WHERE c2.series_id = s.id))
      FROM series s LEFT JOIN covers cv ON cv.hash = s.cover_hash";
 
 fn root_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<LibraryRoot> {
