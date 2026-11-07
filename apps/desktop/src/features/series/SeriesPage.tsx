@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Tag } from '@/components/ui/chip';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { SeriesDetail } from '@/lib/library';
+import { usePageCover } from '@/lib/theme/coverTheme';
 
 import { Cover } from '../library/Cover';
 import { continueChapter, languageName, readActionLabel } from '../library/format';
@@ -25,6 +26,7 @@ import { refreshLibrary, useLibrary } from '../library/libraryStore';
 import { useOpenChapter } from '../library/openChapter';
 import { compareTitles } from '../library/shelf';
 import { ChapterList } from './ChapterList';
+import { PaletteCard } from './PaletteCard';
 import { useSeriesDetail } from './useSeriesDetail';
 
 const route = getRouteApi('/shell/series/$seriesId');
@@ -77,6 +79,7 @@ export function SeriesPage() {
 function SeriesView({ detail }: { detail: SeriesDetail }) {
   const open = useOpenChapter();
   const heading = usePageHeading(detail.title);
+  usePageCover(detail.cover);
   const { series } = useLibrary();
   const [newestFirst, setNewestFirst] = useState(true);
 
@@ -202,7 +205,10 @@ function SeriesView({ detail }: { detail: SeriesDetail }) {
             <p className="text-fg-3">No chapters were found in this folder.</p>
           )}
         </section>
-        <SeriesFacts detail={detail} rtl={rtl} />
+        <aside aria-label="About this series" className="sticky top-6 grid gap-4">
+          <PaletteCard palette={detail.cover?.palette ?? null} />
+          <SeriesFacts detail={detail} rtl={rtl} />
+        </aside>
       </div>
     </>
   );
@@ -259,11 +265,13 @@ function SeriesFacts({ detail, rtl }: { detail: SeriesDetail; rtl: boolean }) {
     ],
   ];
   return (
-    <aside
-      aria-label="About this series"
-      className="sticky top-6 rounded-panel border border-line bg-ink-1 p-6"
+    <section
+      aria-labelledby="facts-heading"
+      className="rounded-panel border border-line bg-ink-1 p-6"
     >
-      <h2 className="m-0 mb-4 font-display text-lg font-[650] font-condensed">On your shelf</h2>
+      <h2 id="facts-heading" className="m-0 mb-4 font-display text-lg font-[650] font-condensed">
+        On your shelf
+      </h2>
       <dl className="m-0 grid grid-cols-[80px_minmax(0,1fr)] gap-x-3 gap-y-2.5 text-sm">
         {facts.map(([term, value]) => (
           <div key={term} className="contents">
@@ -272,7 +280,7 @@ function SeriesFacts({ detail, rtl }: { detail: SeriesDetail; rtl: boolean }) {
           </div>
         ))}
       </dl>
-    </aside>
+    </section>
   );
 }
 
