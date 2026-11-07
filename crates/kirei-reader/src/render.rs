@@ -1,6 +1,7 @@
 //! Turns a page's archive bytes into what the webview gets: the original bytes
 //! when they already fit the viewport, otherwise a decode, a downscale to the
-//! viewport box and a re-encode.
+//! viewport box and a re-encode. With sharpening on, every decodable page is
+//! decoded, sharpened (after the downscale, if any) and re-encoded.
 //!
 //! What is cached is this output, not decoded pixels. A decoded 1800x2700 page
 //! is 4.9 MB in grayscale and 19 MB in RGBA, and the webview needs encoded
@@ -26,6 +27,9 @@ const JPEG_QUALITY: u8 = 90;
 /// is served as is and left to the webview rather than risking the app.
 const MAX_DECODE_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_DIMENSION: u32 = 20_000;
+/// Strongest unsharp mask amount, at sharpen 100: the detail layer is added
+/// one and a half times. Past that, screentone starts to shimmer.
+const MAX_SHARPEN_AMOUNT: f32 = 1.5;
 
 /// Resampling filter for the downscale.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -59,6 +63,8 @@ pub struct RenderSettings {
     /// (for example a webtoon strip fitted to width).
     pub max_height: Option<u32>,
     pub resample: Resample,
+    /// Unsharp mask strength, 0 (off) to 100. Values above 100 act as 100.
+    pub sharpen: u8,
 }
 
 /// A page ready to serve.
@@ -69,7 +75,8 @@ pub struct RenderedPage {
     /// Pixel size of `bytes`, when known.
     pub width: Option<u32>,
     pub height: Option<u32>,
-    /// True when `bytes` were downscaled, false when they are the original.
+    /// True when `bytes` were downscaled, false when they keep the original
+    /// size (the original bytes, or a sharpened copy).
     pub downscaled: bool,
     /// Render revision the page was produced under.
     pub revision: u64,
@@ -88,11 +95,12 @@ impl RenderedPage {
 /// Why a render served the original bytes or stopped.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Outcome {
-    /// Downscaled.
-    Downscaled,
-    /// Already fits, or a format the pipeline passes through.
+    /// Decoded and re-encoded: downscaled, sharpened or both.
+    Encoded,
+    /// Already fits with nothing to sharpen, or a format the pipeline passes
+    /// through.
     Original,
-    /// Should have been downscaled but could not be decoded; served as is.
+    /// Should have been processed but could not be decoded; served as is.
     Fallback,
 }
 
@@ -156,9 +164,9 @@ pub(crate) fn render(
         Some((page, outcome))
     };
     let target = size.and_then(|(w, h)| target_size(w, h, settings));
-    let Some(target) = target.filter(|_| decodable(info.format)) else {
+    if !decodable(info.format) || (target.is_none() && settings.sharpen == 0) {
         return original(raw, Outcome::Original);
-    };
+    }
     if cancelled() {
         return None;
     }
@@ -168,10 +176,11 @@ pub(crate) fn render(
     if cancelled() {
         return None;
     }
-    let Some(page) = downscale(image, target, settings.resample, revision) else {
+    let target = target.unwrap_or((image.width(), image.height()));
+    let Some(page) = process(image, target, settings, revision) else {
         return original(raw, Outcome::Fallback);
     };
-    Some((page, Outcome::Downscaled))
+    Some((page, Outcome::Encoded))
 }
 
 fn decode(raw: &[u8]) -> Option<DynamicImage> {
@@ -186,10 +195,12 @@ fn decode(raw: &[u8]) -> Option<DynamicImage> {
     reader.decode().ok()
 }
 
-fn downscale(
+/// Resizes `image` to `width` x `height` (a no-op at its own size), sharpens
+/// it and encodes it: PNG when it has alpha, JPEG otherwise.
+fn process(
     image: DynamicImage,
     (width, height): (u32, u32),
-    resample: Resample,
+    settings: &RenderSettings,
     revision: u64,
 ) -> Option<RenderedPage> {
     let (src_width, src_height) = (image.width(), image.height());
@@ -216,11 +227,25 @@ fn downscale(
             image.into_rgba8().into_raw(),
         ),
     };
-    let src = Image::from_vec_u8(src_width, src_height, pixels, pixel_type).ok()?;
-    let mut dst = Image::new(width, height, pixel_type);
-    let options = ResizeOptions::new().resize_alg(resample.algorithm());
-    Resizer::new().resize(&src, &mut dst, &options).ok()?;
-    drop(src);
+    let downscaled = (width, height) != (src_width, src_height);
+    let mut pixels = if downscaled {
+        let src = Image::from_vec_u8(src_width, src_height, pixels, pixel_type).ok()?;
+        let mut dst = Image::new(width, height, pixel_type);
+        let options = ResizeOptions::new().resize_alg(settings.resample.algorithm());
+        Resizer::new().resize(&src, &mut dst, &options).ok()?;
+        dst.into_vec()
+    } else {
+        pixels
+    };
+    let channels = pixel_type.size();
+    sharpen(
+        &mut pixels,
+        width as usize,
+        height as usize,
+        channels,
+        color.has_alpha(),
+        settings.sharpen,
+    );
 
     let mut bytes = Vec::new();
     let mime = if color.has_alpha() {
@@ -229,7 +254,7 @@ fn downscale(
             png::CompressionType::Fast,
             png::FilterType::Adaptive,
         )
-        .write_image(dst.buffer(), width, height, layout)
+        .write_image(&pixels, width, height, layout)
         .ok()?;
         "image/png"
     } else {
@@ -239,7 +264,7 @@ fn downscale(
         };
         JpegEncoder::new(&mut bytes, JPEG_QUALITY)
             .encode(
-                dst.buffer(),
+                &pixels,
                 u16::try_from(width).ok()?,
                 u16::try_from(height).ok()?,
                 jpeg_color,
@@ -252,9 +277,63 @@ fn downscale(
         mime,
         width: Some(width),
         height: Some(height),
-        downscaled: true,
+        downscaled,
         revision,
     })
+}
+
+/// Unsharp mask in place: `pixel + amount * (pixel - blurred)`, with a
+/// separable [1 2 1] blur (close to a Gaussian of sigma 0.85, about the width
+/// of a printed line after a downscale). `channels` is the interleaved channel
+/// count; the last channel is left alone when `alpha` is set. `strength` is
+/// the 0 to 100 setting. Edges repeat the border pixel.
+fn sharpen(
+    pixels: &mut [u8],
+    width: usize,
+    height: usize,
+    channels: usize,
+    alpha: bool,
+    strength: u8,
+) {
+    if strength == 0 || width == 0 || height == 0 || pixels.len() != width * height * channels {
+        return;
+    }
+    let amount = f32::from(strength.min(100)) / 100.0 * MAX_SHARPEN_AMOUNT;
+    let color = if alpha { channels - 1 } else { channels };
+    let stride = width * channels;
+    // Horizontal pass into u16 (sums of 4), then vertical (sums of 16).
+    let mut horizontal = vec![0u16; pixels.len()];
+    for (row, out) in pixels
+        .chunks_exact(stride)
+        .zip(horizontal.chunks_exact_mut(stride))
+    {
+        for x in 0..width {
+            let left = x.saturating_sub(1) * channels;
+            let here = x * channels;
+            let right = (x + 1).min(width - 1) * channels;
+            for c in 0..color {
+                out[here + c] = u16::from(row[left + c])
+                    + 2 * u16::from(row[here + c])
+                    + u16::from(row[right + c]);
+            }
+        }
+    }
+    for y in 0..height {
+        let up = y.saturating_sub(1) * stride;
+        let here = y * stride;
+        let down = (y + 1).min(height - 1) * stride;
+        for x in 0..width {
+            for c in 0..color {
+                let i = x * channels + c;
+                let blurred =
+                    f32::from(horizontal[up + i] + 2 * horizontal[here + i] + horizontal[down + i])
+                        / 16.0;
+                let original = f32::from(pixels[here + i]);
+                let value = original + amount * (original - blurred);
+                pixels[here + i] = value.round().clamp(0.0, 255.0) as u8;
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -353,7 +432,7 @@ mod tests {
             &never,
         )
         .unwrap();
-        assert_eq!(outcome, Outcome::Downscaled);
+        assert_eq!(outcome, Outcome::Encoded);
         assert_eq!(page.mime, "image/jpeg");
         assert_eq!((page.width, page.height), (Some(400), Some(600)));
         assert_eq!(page.revision, 3);
@@ -375,7 +454,7 @@ mod tests {
             &never,
         )
         .unwrap();
-        assert_eq!(outcome, Outcome::Downscaled);
+        assert_eq!(outcome, Outcome::Encoded);
         assert_eq!(page.mime, "image/png");
         let decoded = image::load_from_memory(&page.bytes).unwrap();
         assert!(decoded.color().has_alpha());
@@ -453,6 +532,70 @@ mod tests {
     }
 
     #[test]
+    fn sharpen_leaves_flat_areas_alone() {
+        let mut pixels = vec![128u8; 5 * 5];
+        sharpen(&mut pixels, 5, 5, 1, false, 100);
+        assert!(pixels.iter().all(|&p| p == 128));
+    }
+
+    #[test]
+    fn sharpen_raises_contrast_across_an_edge() {
+        // A vertical edge: columns 0 to 2 at 100, 3 to 5 at 200.
+        let row = [100u8, 100, 100, 200, 200, 200];
+        let mut pixels: Vec<u8> = row.iter().copied().cycle().take(6 * 3).collect();
+        sharpen(&mut pixels, 6, 3, 1, false, 100);
+        let middle = &pixels[6..12];
+        // Blur at column 2 is (100 + 200 + 2 * 100) / 4 = 125, so the dark
+        // side drops by 1.5 * 25; the bright side rises by the same.
+        assert_eq!(middle, &[100, 100, 63, 238, 200, 200]);
+        // Off is a no-op.
+        let mut untouched: Vec<u8> = row.iter().copied().cycle().take(6 * 3).collect();
+        sharpen(&mut untouched, 6, 3, 1, false, 0);
+        assert_eq!(&untouched[6..12], &row);
+    }
+
+    #[test]
+    fn sharpen_keeps_alpha() {
+        let mut pixels = vec![
+            0, 10, 0, 20, 255, 30, //
+            0, 40, 0, 50, 255, 60, //
+            0, 70, 0, 80, 255, 90,
+        ];
+        sharpen(&mut pixels, 3, 3, 2, true, 100);
+        let alpha: Vec<u8> = pixels.iter().skip(1).step_by(2).copied().collect();
+        assert_eq!(alpha, [10, 20, 30, 40, 50, 60, 70, 80, 90]);
+    }
+
+    #[test]
+    fn sharpening_re_encodes_pages_that_fit() {
+        let settings = RenderSettings {
+            sharpen: 50,
+            ..boxed(1000, 1000)
+        };
+        let (page, outcome) = render(
+            gray_jpeg(300, 450),
+            &info(ImageFormat::Jpeg, 300, 450),
+            &settings,
+            0,
+            &never,
+        )
+        .unwrap();
+        assert_eq!(outcome, Outcome::Encoded);
+        assert!(!page.downscaled);
+        assert_eq!((page.width, page.height), (Some(300), Some(450)));
+        // GIF still passes through untouched.
+        let (_, outcome) = render(
+            b"GIF89a....".to_vec(),
+            &info(ImageFormat::Gif, 300, 300),
+            &settings,
+            0,
+            &never,
+        )
+        .unwrap();
+        assert_eq!(outcome, Outcome::Original);
+    }
+
+    #[test]
     fn every_filter_downscales() {
         for resample in [Resample::Lanczos3, Resample::Mitchell, Resample::Nearest] {
             let settings = RenderSettings {
@@ -467,7 +610,7 @@ mod tests {
                 &never,
             )
             .unwrap();
-            assert_eq!(outcome, Outcome::Downscaled, "{resample:?}");
+            assert_eq!(outcome, Outcome::Encoded, "{resample:?}");
             assert_eq!(page.width, Some(50));
         }
     }

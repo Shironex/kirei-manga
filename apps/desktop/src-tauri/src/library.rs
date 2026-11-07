@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use kirei_archive::PageSource;
-use kirei_reader::{CachedPage, Direction, PageCache, ReadAheadConfig, Reader, SourceId};
+use kirei_reader::{CachedPage, Direction, PageCache, ReadAheadConfig, Reader, Resample, SourceId};
 
 /// Cache budget for rendered pages. Pages run 200 KB to 2 MB as stored and a
 /// few hundred KB once downscaled to the window, so this holds a few hundred,
@@ -77,6 +77,15 @@ impl Library {
         self.reader.update_render_settings(|settings| {
             settings.max_width = max_width;
             settings.max_height = max_height;
+        })
+    }
+
+    /// Sets the resampling filter and the sharpening strength (0 to 100).
+    /// Returns the render revision now in effect.
+    pub(crate) fn set_render_quality(&self, resample: Resample, sharpen: u8) -> u64 {
+        self.reader.update_render_settings(|settings| {
+            settings.resample = resample;
+            settings.sharpen = sharpen.min(100);
         })
     }
 
