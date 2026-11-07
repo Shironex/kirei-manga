@@ -18,6 +18,7 @@ mod model;
 mod naming;
 mod palette;
 mod scanner;
+mod settings;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -32,8 +33,8 @@ pub use covers::{THUMB_MAX_HEIGHT, THUMB_MAX_WIDTH};
 pub use db::SCHEMA_VERSION;
 pub use error::{LibraryError, Result};
 pub use model::{
-    ChapterEntry, CoverRef, LibraryRoot, OrphanPurge, ReadingProgress, ScanPhase, ScanProgress,
-    ScanSummary, SeriesDetail, SeriesSummary,
+    ChapterEntry, CoverCacheUsage, CoverRef, LibraryRoot, OrphanPurge, ReadingProgress, ScanPhase,
+    ScanProgress, ScanSummary, SeriesDetail, SeriesSummary,
 };
 pub use naming::{ParsedName, clean_title, parse_name, title_key};
 pub use palette::{
@@ -395,6 +396,22 @@ impl Library {
     /// Directory the thumbnails live in.
     pub fn cover_dir(&self) -> &Path {
         self.covers.dir()
+    }
+
+    /// Bytes and files the cover thumbnails take on disk.
+    pub fn cover_cache_usage(&self) -> Result<CoverCacheUsage> {
+        self.covers.usage()
+    }
+
+    /// Deletes every cover thumbnail and returns what was freed. The next
+    /// scan makes them again. Refused while a scan runs, since the scan may
+    /// be writing thumbnails at that moment.
+    pub fn clear_cover_cache(&self) -> Result<CoverCacheUsage> {
+        if self.scanning.swap(true, Ordering::AcqRel) {
+            return Err(LibraryError::ScanInProgress);
+        }
+        let _guard = ScanGuard(&self.scanning);
+        self.covers.clear()
     }
 
     // --- Progress and settings -----------------------------------------------
