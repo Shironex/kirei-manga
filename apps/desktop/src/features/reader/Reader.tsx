@@ -1,23 +1,32 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 
 import { Kbd } from '@/components/ui/tooltip';
 import { isTauri } from '@/lib/ipc';
 import { focusPage, pageUrl } from '@/lib/reader';
 import { cn } from '@/lib/utils';
 
-import { AdjustPanel, LayoutSettings } from './chrome/AdjustPanel';
+import {
+  AdjustHeader,
+  AdjustPanel,
+  ImageSettings,
+  LayoutSettings,
+  RememberLine,
+} from './chrome/AdjustPanel';
 import { ReaderBar } from './chrome/ReaderBar';
 import { ReaderFoot } from './chrome/ReaderFoot';
 import { StatsOverlay } from './chrome/StatsOverlay';
+import { useAdjustments } from './hooks/useAdjustments';
 import { useAutoHide } from './hooks/useAutoHide';
 import { useElementSize } from './hooks/useElementSize';
 import { useFullscreen } from './hooks/useFullscreen';
 import { usePreload } from './hooks/usePreload';
 import { useProgress } from './hooks/useProgress';
 import { useReaderPrefs } from './hooks/useReaderPrefs';
+import { useRenderQuality } from './hooks/useRenderQuality';
 import { useSeriesSettings } from './hooks/useSeriesSettings';
 import { useViewportHint, type PageBox } from './hooks/useViewportHint';
 import { useZoomPan, ZOOM_STEP } from './hooks/useZoomPan';
+import { cssFilter, defaultAdjustments, isNeutral, type Resample } from './model/adjust';
 import { FIT_WIDTH_CAP, fitScreen, ratioOf } from './model/fit';
 import { keyAction, type ReaderAction } from './model/keys';
 import type { Background, Fit, ReaderPrefs } from './model/prefs';
@@ -70,17 +79,55 @@ function renderBox(
   }
 }
 
-function isTyping(target: EventTarget | null): boolean {
+/** Keys a focused slider uses to change its value. */
+const SLIDER_KEYS = new Set([
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowUp',
+  'ArrowDown',
+  'Home',
+  'End',
+  'PageUp',
+  'PageDown',
+]);
+
+/** True when the focused control should get `key` instead of the reader. */
+function ownsKey(target: EventTarget | null, key: string): boolean {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return true;
-  // Sliders, open selects and menus own their arrow keys.
-  return target.closest('[role="slider"], [role="listbox"], [role="menu"]') !== null;
+  // Open selects and menus own every key (Escape closes them first).
+  if (target.closest('[role="listbox"], [role="menu"]') !== null) return true;
+  // Space and Enter press a focused button or switch. A click hands focus
+  // back to the stage (see `returnFocus`), so this is keyboard focus only.
+  if ((key === ' ' || key === 'Enter') && target.closest('button, a[href], [role="switch"]'))
+    return true;
+  // Sliders own the keys that move them; Esc and the shortcuts still work.
+  return target.closest('[role="slider"]') !== null && SLIDER_KEYS.has(key);
+}
+
+/**
+ * After a click on a chrome button or switch, focus goes back to the stage,
+ * so Space reads on instead of pressing the button again. Sliders keep focus
+ * for their arrow keys, and popups (selects, menus) manage their own.
+ */
+function returnFocus(stage: HTMLElement | null) {
+  const active = document.activeElement;
+  if (!stage || !(active instanceof HTMLElement)) return;
+  if (!active.closest('[data-reader-chrome]')) return;
+  if (
+    !active.matches('button, [role="switch"]') ||
+    active.matches('[aria-haspopup], [role="slider"]')
+  )
+    return;
+  stage.focus({ preventScroll: true });
 }
 
 export interface ReaderProps {
   chapter: LoadedChapter;
   /** Prefs for a title with nothing saved, from the app settings. */
   defaults: ReaderPrefs;
+  /** Resampling filter for a title with nothing saved, from the app settings. */
+  defaultFilter: Resample;
   onClose: () => void;
   /** Opens the next chapter of the series, when there is one. */
   onNextChapter: () => void;
@@ -94,10 +141,20 @@ export interface ReaderProps {
  * reading. The stage keeps its size when they fade, so pages never jump or
  * get rendered again for a new box.
  */
-export function Reader({ chapter, defaults, onClose, onNextChapter, onOpenFile }: ReaderProps) {
+export function Reader({
+  chapter,
+  defaults,
+  defaultFilter,
+  onClose,
+  onNextChapter,
+  onOpenFile,
+}: ReaderProps) {
   const { source, pages } = chapter;
   const write = useSeriesSettings(chapter.seriesId, chapter.settings);
   const [prefs, setPrefs] = useReaderPrefs(chapter, defaults, write);
+  const neutral = useMemo(() => defaultAdjustments(defaultFilter), [defaultFilter]);
+  const adjust = useAdjustments(chapter, neutral, write);
+  const { adjustments } = adjust;
   const { mode, direction, fit } = prefs;
   const webtoon = mode === 'webtoon';
 
@@ -159,7 +216,13 @@ export function Reader({ chapter, defaults, onClose, onNextChapter, onOpenFile }
   );
 
   const box = stage.width > 0 ? renderBox(webtoon ? null : fit, inner, columnWidth) : undefined;
-  const revision = useViewportHint(box, webtoon ? 1 : zoom.zoom);
+  const viewportRevision = useViewportHint(box, webtoon ? 1 : zoom.zoom);
+  const qualityRevision = useRenderQuality(adjustments.resample, adjustments.sharpen);
+  // Both calls bump the same counter, so the later answer is the one in effect.
+  const revision =
+    viewportRevision === undefined || qualityRevision === undefined
+      ? undefined
+      : Math.max(viewportRevision, qualityRevision);
   const ready = revision !== undefined || !isTauri();
   const urlFor = useCallback(
     (index: number) => pageUrl(source.id, index, revision),
@@ -324,7 +387,7 @@ export function Reader({ chapter, defaults, onClose, onNextChapter, onOpenFile }
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isTyping(event.target)) return;
+      if (event.defaultPrevented || ownsKey(event.target, event.key)) return;
       const action = keyAction(event, { mode, direction });
       if (!action) return;
       event.preventDefault();
@@ -366,6 +429,7 @@ export function Reader({ chapter, defaults, onClose, onNextChapter, onOpenFile }
         BACKGROUNDS[prefs.background],
         !chrome.visible && zoom.zoom === 1 && '[&,&_*]:cursor-none'
       )}
+      onPointerUp={() => returnFocus(stageRef.current)}
       onPointerMove={event => {
         setChromeHover((event.target as Element).closest('[data-reader-chrome]') !== null);
         chrome.show();
@@ -376,6 +440,12 @@ export function Reader({ chapter, defaults, onClose, onNextChapter, onOpenFile }
         id="main"
         tabIndex={-1}
         className="absolute inset-x-0 top-20 bottom-20 outline-none"
+        style={
+          {
+            '--page-filter': cssFilter(adjustments),
+            '--page-rendering': adjustments.resample === 'nearest' ? 'pixelated' : 'auto',
+          } as CSSProperties
+        }
       >
         {ready && stage.width > 0 && pages.length > 0 && (
           <>
@@ -432,12 +502,13 @@ export function Reader({ chapter, defaults, onClose, onNextChapter, onOpenFile }
         />
         {panelOpen && (
           <AdjustPanel>
-            <h3 className="m-0 mb-4 font-display text-lg leading-none font-[650] font-condensed">
-              Adjust
-            </h3>
-            <div className="grid gap-3">
+            <AdjustHeader onReset={adjust.reset} canReset={!isNeutral(adjustments, neutral)} />
+            <ImageSettings adjustments={adjustments} onChange={adjust.update}>
               <LayoutSettings prefs={prefs} mode={mode} onChange={setPrefs} />
-            </div>
+              {chapter.seriesId !== null && (
+                <RememberLine remember={adjust.remember} onChange={adjust.setRemember} />
+              )}
+            </ImageSettings>
           </AdjustPanel>
         )}
         <ReaderFoot

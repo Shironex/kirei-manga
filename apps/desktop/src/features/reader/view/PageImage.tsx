@@ -45,7 +45,11 @@ export function PageImage({
       alt={alt}
       draggable={false}
       decoding="async"
-      className={cn('block select-none', className)}
+      className={cn(
+        // The reader's image adjustments, set as variables on the stage.
+        'block [filter:var(--page-filter,none)] select-none [image-rendering:var(--page-rendering,auto)]',
+        className
+      )}
       style={style}
       onLoad={event =>
         onLoad?.(event.currentTarget.naturalWidth, event.currentTarget.naturalHeight)

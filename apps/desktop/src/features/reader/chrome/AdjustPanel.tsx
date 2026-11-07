@@ -7,8 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 
+import { RANGES, type Adjustments, type NumericAdjustment, type Resample } from '../model/adjust';
 import type { Background, Fit, ReaderMode, ReaderPrefs } from '../model/prefs';
 
 /** A labelled control on one line of the panel. */
@@ -57,6 +60,140 @@ function Choice<T extends string>({
         ))}
       </SelectContent>
     </Select>
+  );
+}
+
+/** A labelled slider with its value in percent, as in the prototype. */
+function PanelRange({
+  label,
+  name,
+  value,
+  onChange,
+}: {
+  label: string;
+  name: NumericAdjustment;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const id = useId();
+  const [min, max] = RANGES[name];
+  return (
+    <div className="grid gap-1">
+      <div className="flex justify-between text-sm text-fg-2">
+        <span id={id}>{label}</span>
+        <output className="text-fg-1 tabular">{value}%</output>
+      </div>
+      <Slider
+        aria-labelledby={id}
+        value={[value]}
+        min={min}
+        max={max}
+        step={1}
+        onValueChange={([next]) => {
+          if (next !== undefined) onChange(next);
+        }}
+      />
+    </div>
+  );
+}
+
+const RESAMPLE_OPTIONS = [
+  ['lanczos3', 'Lanczos3'],
+  ['mitchell', 'Mitchell'],
+  ['nearest', 'Nearest'],
+] as const satisfies ReadonlyArray<readonly [Resample, string]>;
+
+/** Header of the panel: the title and Reset. */
+export function AdjustHeader({ onReset, canReset }: { onReset: () => void; canReset: boolean }) {
+  return (
+    <h3 className="m-0 mb-4 flex items-center justify-between font-display text-lg leading-none font-[650] font-condensed">
+      Adjust
+      <Button variant="ghost" size="sm" onClick={onReset} disabled={!canReset}>
+        Reset
+      </Button>
+    </h3>
+  );
+}
+
+/**
+ * The image adjustments: tone sliders, then a group with night reading,
+ * grayscale, the resampling filter and `children` (the layout settings).
+ * Sharpen and resampling re-render pages in the pipeline, the rest is a CSS
+ * filter that follows the slider live.
+ */
+export function ImageSettings({
+  adjustments,
+  onChange,
+  children,
+}: {
+  adjustments: Adjustments;
+  onChange: (patch: Partial<Adjustments>) => void;
+  children?: ReactNode;
+}) {
+  const range = (name: NumericAdjustment, label: string) => (
+    <PanelRange
+      label={label}
+      name={name}
+      value={adjustments[name]}
+      onChange={value => onChange({ [name]: value })}
+    />
+  );
+  return (
+    <>
+      <div className="grid gap-3">
+        {range('brightness', 'Brightness')}
+        {range('contrast', 'Contrast')}
+        {range('saturation', 'Saturation')}
+        {range('sharpen', 'Sharpen')}
+        {range('warmth', 'Warmth')}
+      </div>
+      <div className="mt-2 grid gap-3 border-t border-line pt-4">
+        <PanelLine label="Invert for night reading">
+          {id => (
+            <Switch
+              id={id}
+              checked={adjustments.invert}
+              onCheckedChange={invert => onChange({ invert })}
+            />
+          )}
+        </PanelLine>
+        <PanelLine label="Grayscale">
+          {id => (
+            <Switch
+              id={id}
+              checked={adjustments.grayscale}
+              onCheckedChange={grayscale => onChange({ grayscale })}
+            />
+          )}
+        </PanelLine>
+        <PanelLine label="Resampling">
+          {id => (
+            <Choice
+              id={id}
+              value={adjustments.resample}
+              options={RESAMPLE_OPTIONS}
+              onChange={resample => onChange({ resample })}
+            />
+          )}
+        </PanelLine>
+        {children}
+      </div>
+    </>
+  );
+}
+
+/** The last line of the panel, for a library series only. */
+export function RememberLine({
+  remember,
+  onChange,
+}: {
+  remember: boolean;
+  onChange: (remember: boolean) => void;
+}) {
+  return (
+    <PanelLine label="Remember for this series">
+      {id => <Switch id={id} checked={remember} onCheckedChange={onChange} />}
+    </PanelLine>
   );
 }
 
