@@ -66,7 +66,8 @@ pub(crate) async fn library_clear_cover_cache<R: Runtime>(
     with_library(&app, Library::clear_cover_cache).await
 }
 
-/// Folder holding the library database, settings and cover cache.
+/// Folder holding the library database, settings and cover cache: the
+/// portable `data` folder in portable mode, else the OS app data directory.
 #[tauri::command]
 pub(crate) async fn data_dir<R: Runtime>(app: AppHandle<R>) -> Result<String, String> {
     Ok(app_data_dir(&app)?.to_string_lossy().into_owned())
@@ -132,8 +133,13 @@ fn read_optional(path: &Path) -> Result<Option<String>, String> {
     }
 }
 
+/// The resolved data root (see `data.rs`), so portable mode is honoured.
 fn app_data_dir<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, String> {
-    app.path().app_data_dir().map_err(|error| error.to_string())
+    Ok(app
+        .state::<crate::data::DataState>()
+        .paths()?
+        .root()
+        .to_path_buf())
 }
 
 /// Hands a folder or URL to the OS: `open` on macOS, Explorer on Windows,

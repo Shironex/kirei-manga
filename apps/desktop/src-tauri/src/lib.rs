@@ -4,6 +4,7 @@
 
 mod catalog;
 mod commands;
+mod data;
 mod library;
 mod protocol;
 mod settings;
@@ -12,12 +13,21 @@ use tauri::Manager;
 
 /// Starts the app. Returns only when the last window closes.
 pub fn run() {
+    // In portable mode the window state goes to the portable data folder too.
+    let mut window_state = tauri_plugin_window_state::Builder::default();
+    if let Some(file) = data::portable_window_state() {
+        window_state = window_state.with_filename(file);
+    }
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(window_state.build())
         .manage(library::Library::new())
         .setup(|app| {
-            let catalog = catalog::Catalog::open(app.handle());
+            // Resolving the data root also swaps in a staged restore, so it
+            // has to happen before the library opens.
+            let data = data::DataState::init(app.handle());
+            let catalog = catalog::Catalog::open(data.paths());
+            app.manage(data);
             app.manage(catalog);
             Ok(())
         })
@@ -62,6 +72,11 @@ pub fn run() {
             settings::open_data_dir,
             settings::open_link,
             settings::third_party_notices,
+            data::data_info,
+            data::backup_create,
+            data::backup_inspect,
+            data::backup_restore,
+            data::app_restart,
         ])
         .run(tauri::generate_context!());
 
