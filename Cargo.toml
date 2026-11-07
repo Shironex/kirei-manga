@@ -20,6 +20,7 @@ publish = false
 
 [workspace.dependencies]
 # Internal crates.
+kirei-core = { path = "crates/kirei-core" }
 kirei-archive = { path = "crates/kirei-archive" }
 
 # External. Versions live here, never in a leaf crate, so the tree stays unified.
