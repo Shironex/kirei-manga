@@ -247,6 +247,9 @@ fn covers_are_cached_with_a_palette_from_the_front_cover() {
     assert_eq!((cover.width, cover.height), (400, 600));
     let path = Path::new(&cover.path);
     assert!(path.starts_with(fixture.data.join("covers")));
+    // The webview asks for covers by hash; the path comes back only for a hash.
+    assert_eq!(library.cover_path(&cover.hash).as_deref(), Some(path));
+    assert_eq!(library.cover_path("../../etc/passwd"), None);
     assert_eq!(&std::fs::read(path).unwrap()[..2], &[0xff, 0xd8]);
 
     // The image folder cover comes from its first page.

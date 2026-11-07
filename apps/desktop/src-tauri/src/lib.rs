@@ -1,9 +1,10 @@
 //! Composition root of the KireiManga desktop app: registers commands, plugins
-//! and the page protocol, and hands control to Tauri. Domain logic lives in
+//! and the page and cover protocols, and hands control to Tauri. Domain logic lives in
 //! `crates/`.
 
 mod catalog;
 mod commands;
+mod cover_protocol;
 mod data;
 mod library;
 mod protocol;
@@ -47,6 +48,26 @@ pub fn run() {
                 responder.respond(protocol::respond(&library, &path, if_none_match.as_deref()));
             });
         })
+        .register_asynchronous_uri_scheme_protocol(
+            cover_protocol::SCHEME,
+            |ctx, request, responder| {
+                let app = ctx.app_handle().clone();
+                let path = request.uri().path().to_owned();
+                let if_none_match = request
+                    .headers()
+                    .get(tauri::http::header::IF_NONE_MATCH)
+                    .and_then(|value| value.to_str().ok())
+                    .map(str::to_owned);
+                tauri::async_runtime::spawn_blocking(move || {
+                    let library = app.state::<catalog::Catalog>().library().ok();
+                    responder.respond(cover_protocol::respond(
+                        library.as_deref(),
+                        &path,
+                        if_none_match.as_deref(),
+                    ));
+                });
+            },
+        )
         .invoke_handler(tauri::generate_handler![
             commands::app_info,
             commands::open_source,
