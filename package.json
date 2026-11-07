@@ -7,6 +7,10 @@
   "type": "module",
   "packageManager": "pnpm@10.34.9",
   "scripts": {
+    "dev": "pnpm --filter @kireimanga/desktop tauri dev",
+    "dev:web": "pnpm --filter @kireimanga/desktop dev",
+    "tauri": "pnpm --filter @kireimanga/desktop tauri",
+    "build": "pnpm --filter @kireimanga/desktop build",
     "dev:landing": "pnpm --filter @kireimanga/landing dev",
     "build:landing": "pnpm --filter @kireimanga/landing build",
     "og:landing": "pnpm --filter @kireimanga/landing og",
@@ -15,7 +19,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepare": "husky"
+    "prepare": "husky",
+    "typecheck": "pnpm --filter @kireimanga/desktop typecheck"
   },
   "engines": {
     "node": ">=22.0.0",
