@@ -4,48 +4,53 @@ import { cva, type VariantProps } from 'class-variance-authority';
 
 import { cn } from '@/lib/utils';
 
+/**
+ * Actions are pills. Primary carries the cover accent and is used once per view;
+ * secondary is the everyday control; ghost sits beside a primary; quiet is for
+ * icon actions inside rows and toolbars; danger confirms a destructive choice.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+  [
+    'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-pill border border-transparent font-medium select-none',
+    'transition-[background-color,border-color,color,transform] duration-base ease-expo active:scale-[0.98] active:duration-fast',
+    'disabled:cursor-not-allowed disabled:opacity-45 disabled:active:scale-100',
+    "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[18px]",
+  ],
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
-        destructive: 'bg-destructive text-white shadow-xs hover:bg-destructive/90',
-        outline:
-          'border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50',
-        secondary: 'bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
-        link: 'text-primary underline-offset-4 hover:underline',
+        primary:
+          'bg-accent font-semibold text-on-accent hover:enabled:bg-[oklch(0.87_var(--accent-c)_var(--seed-h))]',
+        secondary: 'bg-ink-2 text-fg-1 hover:enabled:bg-ink-3',
+        ghost: 'border-line-strong bg-transparent text-fg-1 hover:enabled:bg-ink-2',
+        quiet: 'bg-transparent text-fg-2 hover:enabled:bg-ink-2 hover:enabled:text-fg-1',
+        danger: 'bg-err font-semibold text-ink-0 hover:enabled:bg-[oklch(0.77_0.15_25)]',
       },
       size: {
-        default: 'h-9 px-4 py-2 has-[>svg]:px-3',
-        sm: 'h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5',
-        lg: 'h-10 rounded-md px-6 has-[>svg]:px-4',
-        icon: 'size-9',
+        md: 'h-10 px-[18px] text-md',
+        sm: "h-8 px-3 text-sm [&_svg:not([class*='size-'])]:size-4",
+        icon: 'size-10',
+        'icon-sm': "size-8 [&_svg:not([class*='size-'])]:size-4",
       },
     },
     defaultVariants: {
-      variant: 'default',
-      size: 'default',
+      variant: 'secondary',
+      size: 'md',
     },
   }
 );
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: React.ComponentProps<'button'> &
+type ButtonProps = React.ComponentProps<'button'> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
-  }) {
-  const Comp = asChild ? Slot.Root : 'button';
+  };
 
+function Button({ className, variant, size, asChild = false, type, ...props }: ButtonProps) {
+  const Comp = asChild ? Slot.Root : 'button';
   return (
     <Comp
       data-slot="button"
+      type={asChild ? undefined : (type ?? 'button')}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
@@ -53,3 +58,4 @@ function Button({
 }
 
 export { Button, buttonVariants };
+export type { ButtonProps };

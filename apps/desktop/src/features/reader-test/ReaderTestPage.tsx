@@ -29,12 +29,12 @@ export function ReaderTestPage() {
         <Button onClick={() => void pick(false)}>
           <FileArchive /> Open archive
         </Button>
-        <Button variant="outline" onClick={() => void pick(true)}>
+        <Button variant="ghost" onClick={() => void pick(true)}>
           <FolderOpen /> Open folder
         </Button>
         <div className="ml-auto flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             aria-label="Previous page"
             disabled={!source || index === 0}
@@ -46,7 +46,7 @@ export function ReaderTestPage() {
             {source ? `${index + 1} / ${source.pages.length}` : '0 / 0'}
           </span>
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
             aria-label="Next page"
             disabled={!source || index >= source.pages.length - 1}
