@@ -16,7 +16,7 @@
 //! that disappear are marked missing, never dropped, so their progress
 //! survives an unplugged drive.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fs::Metadata;
 use std::path::Path;
 use std::sync::Mutex;
@@ -42,6 +42,40 @@ const ARCHIVE_EXTENSIONS: [&str; 4] = ["cbz", "zip", "cbr", "rar"];
 const REPORT_INTERVAL: Duration = Duration::from_millis(50);
 
 pub(crate) type ProgressFn<'a> = &'a (dyn Fn(ScanProgress) + Sync);
+
+/// Part of a root for a narrower rescan (the file watcher uses it). A scan
+/// with a scope looks only at these entries, and only chapters inside them
+/// can be marked missing.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ScanScope {
+    /// Names of folders directly inside the root, each one a series.
+    pub series_dirs: BTreeSet<String>,
+    /// The archives directly inside the root (the loose series).
+    pub loose: bool,
+}
+
+impl ScanScope {
+    pub fn is_empty(&self) -> bool {
+        self.series_dirs.is_empty() && !self.loose
+    }
+
+    /// Whether a known chapter belongs to this part of `root`.
+    fn contains(&self, root: &Path, path: &str, kind: SourceKind) -> bool {
+        let Ok(relative) = Path::new(path).strip_prefix(root) else {
+            return false;
+        };
+        let mut parts = relative.components();
+        let Some(first) = parts.next().and_then(|c| c.as_os_str().to_str()) else {
+            return false;
+        };
+        // An archive directly in the root is loose; a folder directly in it
+        // is a series folder that holds images itself.
+        if parts.next().is_none() && kind != SourceKind::Folder {
+            return self.loose;
+        }
+        self.series_dirs.contains(first)
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CandidateKind {
@@ -166,14 +200,15 @@ impl Reporter<'_> {
     }
 }
 
-/// Scans one root and writes the result. The database lock is held only to
-/// read the known chapters and for the final write transaction; archives are
-/// read in parallel outside it.
+/// Scans one root, or the part of it `scope` names, and writes the result.
+/// The database lock is held only to read the known chapters and for the
+/// final write transaction; archives are read in parallel outside it.
 pub(crate) fn scan_root(
     conn: &Mutex<Connection>,
     covers: &CoverCache,
     root_id: i64,
     root_path: &str,
+    scope: Option<&ScanScope>,
     progress: ProgressFn<'_>,
     summary: &mut ScanSummary,
 ) -> Result<()> {
@@ -183,7 +218,7 @@ pub(crate) fn scan_root(
         last: Mutex::new(None),
     };
     reporter.report(ScanPhase::Discovering, 0, 1, None);
-    let discovered = match discover(Path::new(root_path)) {
+    let discovered = match discover(Path::new(root_path), scope) {
         Ok(found) => found,
         Err(error) => {
             // An unplugged drive: everything under it becomes missing below.
@@ -193,10 +228,14 @@ pub(crate) fn scan_root(
     };
     reporter.report(ScanPhase::Discovering, 1, 1, None);
 
-    let (known_chapters, known_series, known_covers) = {
+    let (mut known_chapters, known_series, known_covers) = {
         let conn = lock(conn);
         load_known(&conn, root_id)?
     };
+    if let Some(scope) = scope {
+        let root = Path::new(root_path);
+        known_chapters.retain(|path, known| scope.contains(root, path, known.data.kind));
+    }
 
     // Read new and changed chapters in parallel.
     let to_read: Vec<&Candidate> = discovered
@@ -291,7 +330,7 @@ fn is_unchanged(candidate: &Candidate, known: Option<&KnownChapter>) -> bool {
 // --- Discovery -------------------------------------------------------------
 
 /// Names that are never library content: hidden files, OS and NAS metadata.
-fn is_junk(name: &str) -> bool {
+pub(crate) fn is_junk(name: &str) -> bool {
     name.starts_with('.')
         || matches!(
             name,
@@ -304,7 +343,7 @@ fn extension(name: &str) -> Option<String> {
         .map(|(_, ext)| ext.to_ascii_lowercase())
 }
 
-fn is_archive(name: &str) -> bool {
+pub(crate) fn is_archive(name: &str) -> bool {
     extension(name).is_some_and(|ext| ARCHIVE_EXTENSIONS.contains(&ext.as_str()))
 }
 
@@ -355,15 +394,20 @@ fn path_string(path: &Path) -> Option<String> {
     path.to_str().map(str::to_owned)
 }
 
-fn discover(root: &Path) -> std::io::Result<Vec<SeriesCandidate>> {
+fn discover(root: &Path, scope: Option<&ScanScope>) -> std::io::Result<Vec<SeriesCandidate>> {
     let root_string = root.to_string_lossy().into_owned();
     let mut series = Vec::new();
     let mut loose: HashMap<String, SeriesCandidate> = HashMap::new();
+    let wants_dir = |name: &str| scope.is_none_or(|s| s.series_dirs.contains(name));
+    let wants_loose = scope.is_none_or(|s| s.loose);
     for (name, path, metadata) in entries(root)? {
         let Some(path_str) = path_string(&path) else {
             continue;
         };
         if metadata.is_dir() {
+            if !wants_dir(&name) {
+                continue;
+            }
             let mut chapters = Vec::new();
             collect_chapters(&path, &name, 0, None, &mut chapters);
             if !chapters.is_empty() {
@@ -374,7 +418,7 @@ fn discover(root: &Path) -> std::io::Result<Vec<SeriesCandidate>> {
                     chapters,
                 });
             }
-        } else if is_archive(&name) {
+        } else if wants_loose && is_archive(&name) {
             let parsed = parse_name(stem(&name));
             let title = parsed
                 .title
