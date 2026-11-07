@@ -33,6 +33,19 @@ Webtoon reports the page a third of the way down the screen to `focus_page`, so 
 
 The stage sits between the two glass bars and keeps its size when they fade, so a hidden toolbar never triggers new renders. The reader sends `set_viewport` with the box a page occupies: the stage on screen fit, `maxWidth` only on width fit and in webtoon, `maxHeight` only on height fit and no box for original, scaled by the zoom once it settles. Page URLs carry the revision; a page whose URL changes is decoded off screen and swapped in, so it never blanks. The next two screens are preloaded into the webview's image cache.
 
+## Image adjustments
+
+The adjust panel (A) has brightness, contrast, saturation, sharpen and warmth sliders, invert for night reading, grayscale and the resampling filter, above the layout settings.
+
+| Adjustment | Where it runs |
+| --- | --- |
+| Brightness, contrast, saturation, warmth (sepia), grayscale, invert | CSS `filter` on the page images (`model/adjust.ts`, `cssFilter`) |
+| Sharpen, resampling (Lanczos3, Mitchell, Nearest) | The pipeline, through `set_render_quality` |
+
+Tone and colour are CSS filters because each is an exact linear map on the colour (the Filter Effects spec), runs on the GPU, follows a slider live and needs no new render, and it also reaches the pages the pipeline passes through untouched (GIF, AVIF, JPEG XL). Sharpen and resampling run in Rust because the browser has no choice of resize filter and an unsharp mask is a neighbourhood operation CSS cannot express without an SVG filter repainted every frame. Sharpen re-renders the window of pages once the slider settles (250 ms); Nearest also sets `image-rendering: pixelated` so the webview's own scaling stays crisp. Invert is followed by `hue-rotate(180deg)` so colours keep their hue, and it comes first in the chain so brightness dims what is on screen.
+
+A library series saves its adjustments in the series settings under `adjust` while "Remember for this series" is on (the default); turning it off stores `null` and the next chapter opens neutral. The default filter comes from `reader.filter`. A file keeps adjustments for the session. Reset returns the adjustments (not the layout) to the defaults.
+
 ## Input
 
 | Key                       | Action                                       |
@@ -48,5 +61,7 @@ The stage sits between the two glass bars and keeps its size when they fade, so 
 | A                         | The adjust panel                             |
 | I                         | Engine numbers: last page turn, serve and render latency, cache |
 | Esc                       | Close the panel, leave fullscreen, close the reader |
+
+Shortcuts work while a panel slider has focus, except the keys that move it. A click on a bar button hands focus back to the stage, so Space reads on; Space and Enter press a button reached with Tab.
 
 The outer thirds of the stage turn pages and the middle shows or hides the bars. The wheel turns pages unless the page scrolls (a fit larger than the stage) or is zoomed. Pinch or Ctrl and the wheel zoom around the pointer, a zoomed page pans by dragging, and a double click on the middle zooms in or back.
