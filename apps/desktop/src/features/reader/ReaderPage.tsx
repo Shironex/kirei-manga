@@ -92,6 +92,7 @@ function ReaderScreen({ target }: { target: ChapterTarget }) {
       key={chapter.source.id}
       chapter={chapter}
       defaults={prefsFromAppSettings(settings.settings)}
+      defaultFilter={settings.settings['reader.filter']}
       onClose={close}
       onNextChapter={() => {
         if (next)
