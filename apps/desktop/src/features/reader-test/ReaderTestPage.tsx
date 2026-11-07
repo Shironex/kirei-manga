@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
-import { ChevronLeft, ChevronRight, FileArchive, FolderOpen } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, FileArchive, FolderOpen } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { useOpenChapter } from '@/features/reader/openChapter';
 import { formatBytes, pageUrl } from '@/lib/reader';
 
 import { usePageSource } from './usePageSource';
@@ -16,12 +18,17 @@ export function ReaderTestPage() {
   const { source, index, error, lastPageMs, stats, revision, open, step, onPageLoaded } =
     usePageSource();
   const page = source?.pages[index];
+  const openChapter = useOpenChapter();
+  const [path, setPath] = useState<string | null>(null);
 
   const pick = async (directory: boolean) => {
     const picked = await openDialog(
       directory ? { directory: true } : { multiple: false, filters: [ARCHIVE_FILTER] }
     );
-    if (typeof picked === 'string') await open(picked);
+    if (typeof picked === 'string') {
+      setPath(picked);
+      await open(picked);
+    }
   };
 
   return (
@@ -32,6 +39,13 @@ export function ReaderTestPage() {
         </Button>
         <Button variant="ghost" onClick={() => void pick(true)}>
           <FolderOpen /> Open folder
+        </Button>
+        <Button
+          variant="ghost"
+          disabled={!path}
+          onClick={() => path && openChapter({ kind: 'file', path, page: index })}
+        >
+          <BookOpen /> Open in reader
         </Button>
         <div className="ml-auto flex items-center gap-2">
           <Button
