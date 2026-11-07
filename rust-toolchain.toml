@@ -1,0 +1,6 @@
+# Pinned exactly, not floating "stable": a toolchain that drifts between a
+# local run and CI makes clippy disagree with itself. Bump in its own commit.
+[toolchain]
+channel = "1.94.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

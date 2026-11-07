@@ -5,6 +5,8 @@ import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import globals from 'globals';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default defineConfig(
   eslint.configs.recommended,
@@ -30,18 +32,43 @@ export default defineConfig(
       ],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-empty-object-type': 'off',
-      '@typescript-eslint/no-require-imports': 'off',
     },
   },
+  // React + React Hooks, scoped to the desktop renderer.
   {
-    files: ['**/*.spec.ts', '**/test/**/*.ts'],
+    files: ['apps/desktop/src/**/*.{ts,tsx}'],
+    plugins: {
+      react,
+      'react-hooks': reactHooks,
+    },
+    settings: {
+      // Pinned, not 'detect': eslint-plugin-react@7's detection calls the
+      // context.getFilename() API that ESLint 10 removed, and throws.
+      react: { version: '19.3' },
+    },
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
+      ...react.configs.flat.recommended.rules,
+      ...react.configs.flat['jsx-runtime'].rules,
+      // TypeScript owns prop types and the JSX transform is automatic.
+      'react/react-in-jsx-scope': 'off',
+      'react/prop-types': 'off',
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'error',
     },
   },
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/release/**', '**/*.js'],
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/release/**',
+      '**/.astro/**',
+      '**/coverage/**',
+      '**/target/**',
+      'apps/desktop/src-tauri/gen/**',
+      '**/*.js',
+    ],
   }
 );

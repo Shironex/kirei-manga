@@ -1,0 +1,51 @@
+# Path-based labels for pull requests. Names match the repo taxonomy
+# (gh label list); the labeler never creates labels.
+
+area:core:
+  - changed-files:
+      - any-glob-to-any-file:
+          - crates/**
+          - Cargo.toml
+          - apps/desktop/src-tauri/**
+
+area:ui:
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/desktop/src/**
+          - apps/desktop/index.html
+          - apps/desktop/components.json
+
+area:landing:
+  - changed-files:
+      - any-glob-to-any-file:
+          - apps/landing/**
+          - Dockerfile.landing
+
+area:infra:
+  - changed-files:
+      - any-glob-to-any-file:
+          - .github/**
+          - .husky/**
+          - eslint.config.mjs
+          - commitlint.config.mjs
+          - vitest.config.ts
+          - tsconfig.base.json
+          - rust-toolchain.toml
+          - rustfmt.toml
+          - clippy.toml
+          - .nvmrc
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - package.json
+          - pnpm-lock.yaml
+          - apps/*/package.json
+          - packages/*/package.json
+          - Cargo.lock
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - docs/**
