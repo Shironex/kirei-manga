@@ -1,6 +1,8 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
+
+import { usePageHeading } from './usePageHeading';
 
 /**
  * Page title and lead. The title takes focus after navigation (tabIndex -1), so
@@ -17,16 +19,7 @@ export function PageHeader({
   actions?: ReactNode;
   className?: string;
 }) {
-  const ref = useRef<HTMLHeadingElement>(null);
-  useEffect(() => {
-    document.title = `${title} - KireiManga`;
-    // Only move focus when it was left on the body or in the rail (a navigation),
-    // never away from a control on the page.
-    const active = document.activeElement;
-    if (!active || active === document.body || active.closest('[data-shell-rail]')) {
-      ref.current?.focus({ preventScroll: true });
-    }
-  }, [title]);
+  const ref = usePageHeading(title);
 
   return (
     <header className={cn('mb-8 flex flex-wrap items-end gap-x-8 gap-y-4', className)}>
