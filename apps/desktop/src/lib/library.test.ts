@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const invoke = vi.fn();
-vi.mock('@tauri-apps/api/core', () => ({ invoke: (...args: unknown[]) => invoke(...args) }));
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: (...args: unknown[]) => invoke(...args),
+  convertFileSrc: (key: string, scheme: string) => `${scheme}://localhost/${key}`,
+}));
 vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn() }));
 
-const { chapterLabel, recordProgress, scanLibrary } = await import('./library');
+const { chapterLabel, coverUrl, recordProgress, scanLibrary } = await import('./library');
 
 describe('chapterLabel', () => {
   it('joins volume and chapter numbers', () => {
@@ -28,5 +31,11 @@ describe('commands', () => {
     expect(invoke).toHaveBeenLastCalledWith('library_scan', { rootId: 3 });
     await recordProgress(7, 12);
     expect(invoke).toHaveBeenLastCalledWith('library_record_progress', { chapterId: 7, page: 12 });
+  });
+});
+
+describe('coverUrl', () => {
+  it('loads covers by hash over the kirei-cover scheme, never by path', () => {
+    expect(coverUrl({ hash: 'ab12' })).toBe('kirei-cover://localhost/ab12');
   });
 });

@@ -90,6 +90,8 @@ Debouncing is a small loop in the watcher thread rather than a debouncer crate, 
 
 One cover per series, from its first readable chapter: the page ComicInfo marks `FrontCover`, else the first page. It is downscaled to fit 400 x 600 and stored as JPEG (quality 85). The same image in two series is decoded and stored once. A cover is regenerated only when the chapter it came from changes or its file is gone from the cache.
 
+The webview loads thumbnails through the `kirei-cover` scheme (`kirei-cover://localhost/<hash>` on macOS, `http://kirei-cover.localhost/<hash>` on Windows; `coverUrl()` in `library.ts` builds it). The hash is the only input: anything that is not 64 lowercase hex digits is refused, and `Library::cover_path` builds the file path inside the cache from the hash alone, so a request can never name a path. A hash always names the same bytes, so responses carry the hash as `ETag` and `Cache-Control: public, max-age=31536000, immutable`. The CSP allows this scheme in `img-src` and nothing else; the asset protocol stays off.
+
 ### Measured
 
 `cargo test -p kirei-library --release --test bench -- --ignored --nocapture` builds 200 series x 25 chapters (2500 CBZ and 2500 image folders, 10 000 files) and scans it. On an Apple M3 (release build):

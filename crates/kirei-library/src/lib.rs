@@ -457,6 +457,14 @@ impl Library {
         self.covers.clear()
     }
 
+    /// Where the thumbnail for a cover hash would be, or `None` when `hash`
+    /// is not a cover hash (64 lowercase hex digits). The path is built only
+    /// from the validated hash, so nothing a caller passes can point outside
+    /// the cache. The file may still be missing.
+    pub fn cover_path(&self, hash: &str) -> Option<PathBuf> {
+        CoverCache::is_hash(hash).then(|| self.covers.absolute(&CoverCache::relative_file(hash)))
+    }
+
     // --- Progress and settings -----------------------------------------------
 
     /// Records that `page` (0 based) of a chapter is on screen. Reaching the

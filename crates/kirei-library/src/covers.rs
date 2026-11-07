@@ -63,6 +63,14 @@ impl CoverCache {
         blake3::hash(bytes).to_hex().to_string()
     }
 
+    /// True for a BLAKE3 hex digest as [`Self::hash`] writes it.
+    pub(crate) fn is_hash(value: &str) -> bool {
+        value.len() == 64
+            && value
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    }
+
     pub(crate) fn relative_file(hash: &str) -> String {
         format!("{}/{hash}.jpg", &hash[..2])
     }
@@ -217,6 +225,15 @@ mod tests {
         let written = std::fs::read(&path).unwrap();
         assert_eq!(&written[..2], &[0xff, 0xd8], "a JPEG");
         assert!(!cover.palette.fallback);
+    }
+
+    #[test]
+    fn only_hex_digests_are_hashes() {
+        assert!(CoverCache::is_hash(&CoverCache::hash(b"cover")));
+        assert!(!CoverCache::is_hash(""));
+        assert!(!CoverCache::is_hash(&"A".repeat(64)));
+        assert!(!CoverCache::is_hash(&format!("../{}", "a".repeat(61))));
+        assert!(!CoverCache::is_hash(&"a".repeat(65)));
     }
 
     #[test]

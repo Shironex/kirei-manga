@@ -69,14 +69,14 @@ fn etag(id: u64, index: usize, revision: u64) -> String {
 }
 
 /// True when an `If-None-Match` value lists `etag` (or is `*`).
-fn matches_etag(header: &str, etag: &str) -> bool {
+pub(crate) fn matches_etag(header: &str, etag: &str) -> bool {
     header
         .split(',')
         .map(|tag| tag.trim().trim_start_matches("W/"))
         .any(|tag| tag == "*" || tag == etag)
 }
 
-fn status(code: StatusCode, message: &str) -> Response<Vec<u8>> {
+pub(crate) fn status(code: StatusCode, message: &str) -> Response<Vec<u8>> {
     Response::builder()
         .status(code)
         .header(header::CONTENT_TYPE, "text/plain; charset=utf-8")
@@ -84,7 +84,7 @@ fn status(code: StatusCode, message: &str) -> Response<Vec<u8>> {
         .unwrap_or_else(|_| fallback())
 }
 
-fn fallback() -> Response<Vec<u8>> {
+pub(crate) fn fallback() -> Response<Vec<u8>> {
     let mut response = Response::new(Vec::new());
     *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
     response

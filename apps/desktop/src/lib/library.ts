@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 import type { SourceKind } from './reader';
@@ -20,8 +20,9 @@ export interface Palette {
 }
 
 export interface CoverRef {
+  /** Content hash; the key `coverUrl` loads the thumbnail by. */
   hash: string;
-  /** Absolute path of the thumbnail in the app data dir. */
+  /** Absolute path of the thumbnail in the app data dir. Not loadable by the webview. */
   path: string;
   width: number;
   height: number;
@@ -108,6 +109,14 @@ export interface ScanSummary {
   coversMade: number;
   rootErrors: string[];
   elapsedMs: number;
+}
+
+/** Scheme serving thumbnails by hash, see `cover_protocol.rs`. */
+export const COVER_SCHEME = 'kirei-cover';
+
+/** URL the webview loads a cover thumbnail from. Takes the hash, never a path. */
+export function coverUrl(cover: Pick<CoverRef, 'hash'>): string {
+  return convertFileSrc(cover.hash, COVER_SCHEME);
 }
 
 export const SCAN_PROGRESS_EVENT = 'library:scan-progress';
