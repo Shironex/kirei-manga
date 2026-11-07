@@ -6,6 +6,7 @@ mod catalog;
 mod commands;
 mod library;
 mod protocol;
+mod settings;
 
 use tauri::Manager;
 
@@ -52,6 +53,15 @@ pub fn run() {
             catalog::library_set_series_settings,
             commands::set_viewport,
             commands::page_meta,
+            settings::settings_get,
+            settings::settings_set,
+            settings::library_purge_orphans,
+            settings::library_cover_cache,
+            settings::library_clear_cover_cache,
+            settings::data_dir,
+            settings::open_data_dir,
+            settings::open_link,
+            settings::third_party_notices,
         ])
         .run(tauri::generate_context!());
 

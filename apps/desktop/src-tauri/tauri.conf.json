@@ -42,6 +42,9 @@
     "homepage": "https://kireimanga.app",
     "copyright": "Copyright (c) 2026 Shironex. All rights reserved.",
     "category": "Entertainment",
+    "resources": {
+      "../../../THIRD_PARTY_NOTICES": "THIRD_PARTY_NOTICES"
+    },
     "shortDescription": "A beautiful desktop manga reader",
     "macOS": {
       "minimumSystemVersion": "11.0",
