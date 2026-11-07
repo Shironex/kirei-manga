@@ -64,6 +64,9 @@ quick-xml = "0.42"
 # Cover decode, downscale and JPEG thumbnails. Only the formats manga covers
 # come in; no rayon, no AVIF (that needs a native dav1d). MIT OR Apache-2.0.
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif", "bmp"] }
+# JPEG encoder for the reader's re-encoded pages: about 2.5x faster than `image`'s
+# own encoder at the same quality. (MIT OR Apache-2.0) AND IJG.
+jpeg-encoder = { version = "0.7", default-features = false, features = ["std"] }
 # Content hash that keys the cover cache. CC0-1.0 OR Apache-2.0.
 blake3 = "1.8"
 # Parallel archive reads and cover generation during a scan. MIT OR Apache-2.0.
