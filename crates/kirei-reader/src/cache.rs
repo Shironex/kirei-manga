@@ -2,21 +2,24 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use lru::LruCache;
 
+use crate::render::RenderedPage;
+
 /// Identifies one opened source for the lifetime of the app.
 pub type SourceId = u64;
 
-/// Encoded page bytes, shared between the cache and whoever is serving them.
-pub type PageBytes = Arc<[u8]>;
+/// A rendered page, shared between the cache and whoever is serving it.
+pub type CachedPage = Arc<RenderedPage>;
 
-/// One page of one source.
+/// One page of one source, rendered under one render revision.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PageKey {
     pub source: SourceId,
     pub index: usize,
+    pub revision: u64,
 }
 
-/// A least-recently-used cache of page bytes that never holds more than its
-/// byte budget.
+/// A least-recently-used cache of rendered pages that never holds more than
+/// its byte budget (counted as the bytes each page serves).
 ///
 /// The budget is enforced on insert: older pages are evicted until the new one
 /// fits, and a single page larger than the whole budget is not cached at all.
@@ -26,7 +29,7 @@ pub struct PageCache {
 }
 
 struct Inner {
-    lru: LruCache<PageKey, PageBytes>,
+    lru: LruCache<PageKey, CachedPage>,
     bytes: usize,
 }
 
@@ -42,7 +45,7 @@ impl PageCache {
     }
 
     /// The page, marking it most recently used.
-    pub fn get(&self, key: &PageKey) -> Option<PageBytes> {
+    pub fn get(&self, key: &PageKey) -> Option<CachedPage> {
         self.lock().lru.get(key).cloned()
     }
 
@@ -53,16 +56,16 @@ impl PageCache {
 
     /// Caches a page, evicting the least recently used ones to stay within the
     /// budget. Returns false when the page alone exceeds the budget.
-    pub fn insert(&self, key: PageKey, bytes: PageBytes) -> bool {
-        if bytes.len() > self.budget {
+    pub fn insert(&self, key: PageKey, page: CachedPage) -> bool {
+        if page.len() > self.budget {
             return false;
         }
         let mut inner = self.lock();
         if let Some(old) = inner.lru.pop(&key) {
             inner.bytes -= old.len();
         }
-        inner.bytes += bytes.len();
-        inner.lru.push(key, bytes);
+        inner.bytes += page.len();
+        inner.lru.push(key, page);
         while inner.bytes > self.budget {
             match inner.lru.pop_lru() {
                 Some((_, evicted)) => inner.bytes -= evicted.len(),
@@ -74,12 +77,21 @@ impl PageCache {
 
     /// Drops every page of one source, for when it is closed.
     pub fn remove_source(&self, source: SourceId) {
+        self.remove_where(|key| key.source == source);
+    }
+
+    /// Drops every page rendered under another revision than `revision`.
+    pub fn retain_revision(&self, revision: u64) {
+        self.remove_where(|key| key.revision != revision);
+    }
+
+    fn remove_where(&self, condition: impl Fn(&PageKey) -> bool) {
         let mut inner = self.lock();
         let keys: Vec<PageKey> = inner
             .lru
             .iter()
             .map(|(key, _)| *key)
-            .filter(|key| key.source == source)
+            .filter(|key| condition(key))
             .collect();
         for key in keys {
             if let Some(bytes) = inner.lru.pop(&key) {
@@ -119,11 +131,22 @@ mod tests {
     use super::*;
 
     fn key(index: usize) -> PageKey {
-        PageKey { source: 1, index }
+        PageKey {
+            source: 1,
+            index,
+            revision: 0,
+        }
     }
 
-    fn bytes(len: usize) -> PageBytes {
-        vec![0u8; len].into()
+    fn bytes(len: usize) -> CachedPage {
+        Arc::new(RenderedPage {
+            bytes: vec![0u8; len],
+            mime: "image/png",
+            width: None,
+            height: None,
+            downscaled: false,
+            revision: 0,
+        })
     }
 
     #[test]
@@ -172,6 +195,7 @@ mod tests {
             PageKey {
                 source: 1,
                 index: 0,
+                revision: 0,
             },
             bytes(10),
         );
@@ -179,11 +203,27 @@ mod tests {
             PageKey {
                 source: 2,
                 index: 0,
+                revision: 0,
             },
             bytes(10),
         );
         cache.remove_source(1);
         assert_eq!(cache.len(), 1);
         assert_eq!(cache.bytes_used(), 10);
+    }
+
+    #[test]
+    fn retains_only_the_current_revision() {
+        let cache = PageCache::new(100);
+        cache.insert(key(0), bytes(10));
+        let newer = PageKey {
+            revision: 1,
+            ..key(0)
+        };
+        cache.insert(newer, bytes(20));
+        cache.retain_revision(1);
+        assert!(cache.contains(&newer));
+        assert!(!cache.contains(&key(0)));
+        assert_eq!(cache.bytes_used(), 20);
     }
 }
