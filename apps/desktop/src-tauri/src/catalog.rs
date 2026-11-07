@@ -8,7 +8,8 @@ use std::sync::Arc;
 
 use kirei_core::DataPaths;
 use kirei_library::{
-    Library, LibraryRoot, ReadingProgress, ScanProgress, ScanSummary, SeriesDetail, SeriesSummary,
+    Library, LibraryRoot, LibraryWatcher, ReadingProgress, ScanProgress, ScanSummary, SeriesDetail,
+    SeriesSummary, WatchConfig,
 };
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
@@ -42,6 +43,34 @@ impl Catalog {
     }
 }
 
+/// Managed state: the watcher over every library root (see `docs/library.md`,
+/// Watching). `None` when the library is unavailable.
+pub(crate) struct Watch(Option<LibraryWatcher>);
+
+impl Watch {
+    /// Starts watching the roots. Rescans it starts report through the same
+    /// `library:scan-progress` event as a manual scan.
+    pub(crate) fn start<R: Runtime>(app: &AppHandle<R>, catalog: &Catalog) -> Self {
+        let emitter = app.clone();
+        Self(catalog.library().ok().map(|library| {
+            LibraryWatcher::start(
+                library,
+                WatchConfig::default(),
+                Arc::new(move |progress: ScanProgress| {
+                    let _ = emitter.emit(SCAN_PROGRESS_EVENT, progress);
+                }),
+            )
+        }))
+    }
+
+    /// Picks up added and removed roots.
+    fn sync(&self) {
+        if let Some(watcher) = &self.0 {
+            watcher.sync();
+        }
+    }
+}
+
 /// Runs `work` against the library on the blocking pool.
 pub(crate) async fn with_library<R, T, F>(app: &AppHandle<R>, work: F) -> Result<T, String>
 where
@@ -62,22 +91,28 @@ pub(crate) async fn library_roots<R: Runtime>(
     with_library(&app, Library::roots).await
 }
 
-/// Adds a folder to the library. Does not scan; call `library_scan` next.
+/// Adds a folder to the library and starts watching it. Does not scan; call
+/// `library_scan` next.
 #[tauri::command]
 pub(crate) async fn library_add_root<R: Runtime>(
     app: AppHandle<R>,
     path: String,
 ) -> Result<LibraryRoot, String> {
-    with_library(&app, move |library| library.add_root(&PathBuf::from(path))).await
+    let root = with_library(&app, move |library| library.add_root(&PathBuf::from(path))).await?;
+    app.state::<Watch>().sync();
+    Ok(root)
 }
 
-/// Forgets a folder and its rows. Files on disk are never touched.
+/// Forgets a folder and its rows, and stops watching it. Files on disk are
+/// never touched.
 #[tauri::command]
 pub(crate) async fn library_remove_root<R: Runtime>(
     app: AppHandle<R>,
     id: i64,
 ) -> Result<bool, String> {
-    with_library(&app, move |library| library.remove_root(id)).await
+    let removed = with_library(&app, move |library| library.remove_root(id)).await?;
+    app.state::<Watch>().sync();
+    Ok(removed)
 }
 
 /// Scans one root, or all of them when `root_id` is null, emitting

@@ -28,6 +28,7 @@ pub fn run() {
             let data = data::DataState::init(app.handle());
             let catalog = catalog::Catalog::open(data.paths());
             app.manage(data);
+            app.manage(catalog::Watch::start(app.handle(), &catalog));
             app.manage(catalog);
             Ok(())
         })
