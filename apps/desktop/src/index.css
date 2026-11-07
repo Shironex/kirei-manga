@@ -1,60 +1,74 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import './styles/fonts.css';
+@import './styles/tokens.css';
+
+/*
+ * KireiManga design system. tokens.css is the approved source (a copy of
+ * docs/design/tokens.css, kept in sync by tokens.test.ts); this file maps it into
+ * Tailwind v4 and adds the few rules the tokens cannot express on their own.
+ *
+ * Every colour resolves through var() at use time (@theme inline), so writing
+ * --seed-h, --seed-c or --strength on <html> re-themes the whole app live.
+ */
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * shadcn/ui base tokens (neutral). The dark cinematic theme replaces these with
- * the real design system; until then they keep the primitives readable.
- */
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+/* User preference: glass panels off. Same fallback as prefers-reduced-transparency. */
+:root[data-glass='off'] {
+  --glass: var(--ink-2);
+  --glass-blur: 0px;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+/*
+ * shadcn/ui semantic aliases, so primitives added later with the shadcn CLI pick
+ * up the system instead of their neutral defaults.
+ */
+:root {
+  --radius: var(--r-panel);
+  --background: var(--ink-0);
+  --foreground: var(--fg-1);
+  --card: var(--ink-1);
+  --card-foreground: var(--fg-1);
+  --popover: var(--ink-1);
+  --popover-foreground: var(--fg-1);
+  --primary: var(--accent);
+  --primary-foreground: var(--on-accent);
+  --secondary: var(--ink-2);
+  --secondary-foreground: var(--fg-1);
+  --muted: var(--ink-2);
+  --muted-foreground: var(--fg-3);
+  --destructive: var(--err);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--accent);
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* No stock palette: every colour in the app comes from the tokens. */
+  --color-*: initial;
+
+  --color-ink-0: var(--ink-0);
+  --color-ink-1: var(--ink-1);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-stage: var(--ink-stage);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg-1: var(--fg-1);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-wash: var(--accent-wash);
+  --color-on-accent: var(--on-accent);
+  --color-ambient: var(--ambient);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-err: var(--err);
+  --color-glass: var(--glass);
+  --color-glass-edge: var(--glass-edge);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -67,19 +81,169 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --font-display: var(--f-display);
+  --font-ui: var(--f-ui);
+  --font-sans: var(--f-ui);
+  --font-jp: var(--f-jp);
+  --font-mono: var(--f-mono);
+
+  /* Type scale from the tokens (12 to 72 px). Replaces Tailwind's stock steps. */
+  --text-*: initial;
+  --text-xs: var(--t-xs);
+  --text-xs--line-height: 1.45;
+  --text-sm: var(--t-sm);
+  --text-sm--line-height: 1.5;
+  --text-md: var(--t-md);
+  --text-md--line-height: 1.55;
+  --text-lg: var(--t-lg);
+  --text-lg--line-height: 1.5;
+  --text-xl: var(--t-xl);
+  --text-xl--line-height: 1.25;
+  --text-2xl: var(--t-2xl);
+  --text-2xl--line-height: 1.1;
+  --text-3xl: var(--t-3xl);
+  --text-3xl--line-height: 1.05;
+  --text-4xl: var(--t-4xl);
+  --text-4xl--line-height: 1;
+  --text-5xl: var(--t-5xl);
+  --text-5xl--line-height: 0.95;
+  --text-6xl: var(--t-6xl);
+  --text-6xl--line-height: 0.92;
+
+  /*
+   * Spacing stays on Tailwind's 4 px step, which is the token base: p-1 = --s-1,
+   * p-2 = --s-2, p-3 = --s-3, p-4 = --s-4, p-6 = --s-5, p-8 = --s-6, p-12 = --s-7,
+   * p-16 = --s-8, p-24 = --s-9.
+   */
+  --spacing: 4px;
+
+  /* Radius rule: covers 4, chips 6, panels 14, actions pill. */
+  --radius-cover: var(--r-cover);
+  --radius-chip: var(--r-chip);
+  --radius-panel: var(--r-panel);
+  --radius-pill: var(--r-pill);
+
+  /* Motion curves. Durations are the duration-fast/base/slow/theme utilities below. */
+  --ease-expo: var(--ease-out);
+  --ease-theme: var(--ease-inout);
+
+  --animate-enter: enter var(--d-3) var(--ease-out);
+  --animate-pop: pop var(--d-2) var(--ease-out);
+  --animate-shimmer: shimmer 1.3s linear infinite;
+
+  @keyframes enter {
+    from {
+      opacity: 0.4;
+      transform: translateY(6px);
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: scale(0.97) translateY(-4px);
+    }
+  }
+  @keyframes shimmer {
+    to {
+      background-position: -150% 0;
+    }
+  }
+}
+
+@utility duration-fast {
+  transition-duration: var(--d-1);
+}
+@utility duration-base {
+  transition-duration: var(--d-2);
+}
+@utility duration-slow {
+  transition-duration: var(--d-3);
+}
+@utility duration-theme {
+  transition-duration: var(--d-theme);
+}
+
+/* Condensed display cut used by page and section titles. */
+@utility font-condensed {
+  font-variation-settings: 'wdth' 88;
+}
+@utility font-condensed-tight {
+  font-variation-settings:
+    'wdth' 78,
+    'opsz' 96;
+}
+
+/* Frosted surface for reader chrome and floating panels only. */
+@utility glass {
+  background-color: var(--glass);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.3);
+  box-shadow:
+    inset 0 1px 0 var(--glass-edge),
+    0 0 0 1px oklch(1 0 0 / 0.06),
+    0 20px 50px -20px oklch(0 0 0 / 0.7);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-line;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    margin: 0;
+    background: var(--ink-0);
+    color: var(--fg-1);
+    font: 400 var(--t-md) / 1.55 var(--f-ui);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-optical-sizing: auto;
+  }
+  ::selection {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+  /* lucide icons: the prototype's 18 px at a 1.6 stroke. Utilities override the size. */
+  svg.lucide {
+    width: 18px;
+    height: 18px;
+    flex: none;
+    stroke-width: 1.6;
+  }
+  :lang(ja) {
+    font-family: var(--f-jp);
+    font-weight: 600;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/*
+ * Reduced motion. tokens.css collapses --d-2, --d-3 and --d-theme; this also stops
+ * keyframe animations (enter, pop, shimmer) and smooth scrolling everywhere.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
   }
 }
