@@ -75,6 +75,10 @@ rayon = "1.12"
 # Apache-2.0. Several times faster than `image`'s own resize on the same filter,
 # and it carries every filter the reader's quality settings offer.
 fast_image_resize = "6.1"
+# Watches library roots for new or changed chapters (kirei-library). CC0-1.0.
+# FSEvents on macOS, ReadDirectoryChangesW on Windows. Debouncing is done in
+# the library's own watcher thread, so no debouncer crate.
+notify = "8.2"
 
 # Test-only helpers.
 tempfile = "3"
