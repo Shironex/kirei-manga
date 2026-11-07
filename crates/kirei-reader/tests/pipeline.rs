@@ -83,6 +83,20 @@ impl PageSource for JpegSource {
     }
 }
 
+/// Blocks until a worker has started reading `index`. The fake counts a read
+/// before its delay, so this replaces fixed sleeps that raced on loaded CI
+/// runners.
+fn wait_for_read(source: &JpegSource, index: usize) {
+    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    while source.reads(index) == 0 {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "worker never started page {index}"
+        );
+        std::thread::sleep(Duration::from_millis(1));
+    }
+}
+
 fn as_source(source: &Arc<JpegSource>) -> Arc<dyn PageSource> {
     Arc::clone(source) as Arc<dyn PageSource>
 }
@@ -170,8 +184,8 @@ fn the_protocol_joins_a_render_already_running() {
     let reader = reader(10 << 20, 0, 1);
 
     reader.focus(1, &source, 0, Direction::Forward);
-    // Let the worker pick the job up, then ask for the same page.
-    std::thread::sleep(Duration::from_millis(30));
+    // Ask for the page only once the worker is reading it.
+    wait_for_read(&fake, 0);
     let page = reader.page(1, &source, 0).unwrap();
     assert_eq!(page.bytes, fake.bytes);
     assert_eq!(fake.reads(0), 1, "one read for the worker and the protocol");
@@ -187,7 +201,7 @@ fn renders_that_leave_the_window_are_cancelled() {
     reader.update_render_settings(viewport(200, 300));
 
     reader.focus(1, &source, 0, Direction::Forward);
-    std::thread::sleep(Duration::from_millis(30));
+    wait_for_read(&fake, 0);
     // The worker is reading page 0; the reader jumps far away.
     reader.focus(1, &source, 50, Direction::Forward);
     assert!(reader.wait_idle(Duration::from_secs(10)));
