@@ -14,9 +14,9 @@
 # Landing auto-fetched font cache (regenerated on demand, not used in build)
 apps/landing/assets/fonts
 
-# Desktop build artefacts never needed for the landing image
-apps/desktop/out
-apps/desktop/release
+# Desktop and Rust build artefacts never needed for the landing image
+apps/desktop/dist
+target
 
 # Editor / OS noise
 .vscode
