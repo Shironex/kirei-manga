@@ -1,0 +1,50 @@
+# KireiManga Rust workspace.
+#
+# The domain crates under `crates/` own the backend logic and
+# `apps/desktop/src-tauri` is a thin composition root that wires them into the
+# Tauri 2 shell. Dependencies point one way only: core -> archive -> reader ->
+# src-tauri. A crate never depends on one that sits above it.
+
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.3.0"
+edition = "2024"
+rust-version = "1.94.1"
+authors = ["Shironex"]
+license-file = "LICENSE"
+repository = "https://github.com/Shironex/kirei-manga"
+publish = false
+
+[workspace.dependencies]
+# Internal crates.
+kirei-archive = { path = "crates/kirei-archive" }
+
+# External. Versions live here, never in a leaf crate, so the tree stays unified.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+# Lints are declared once and inherited by every member via `[lints] workspace
+# = true`. CI runs clippy with `-D warnings`, so a warn here is a hard gate.
+[workspace.lints.rust]
+unsafe_code = "deny"
+rust_2018_idioms = { level = "warn", priority = -1 }
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+await_holding_lock = "warn"
+# `.unwrap()` in a desktop app is a user-visible crash; propagate instead.
+unwrap_used = "warn"
+todo = "warn"
+dbg_macro = "warn"
+
+[profile.dev]
+incremental = true
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
