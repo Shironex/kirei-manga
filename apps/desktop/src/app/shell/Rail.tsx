@@ -1,5 +1,5 @@
 import type { ComponentType, SVGProps } from 'react';
-import { Link } from '@tanstack/react-router';
+import { Link, useRouterState } from '@tanstack/react-router';
 import { ArrowDownToLine, Compass, Gauge, LibraryBig, Settings2, SwatchBook } from 'lucide-react';
 
 import kireiFace from '@/assets/kirei/face.webp';
@@ -9,8 +9,9 @@ import { ariaShortcut, type NavPath } from './useShortcuts';
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
-const NAV: { to: NavPath; label: string; icon: Icon }[] = [
-  { to: '/library', label: 'Library', icon: LibraryBig },
+const NAV: { to: NavPath; label: string; icon: Icon; also?: string }[] = [
+  // A series page is part of the library, so the rail keeps Library lit there.
+  { to: '/library', label: 'Library', icon: LibraryBig, also: '/series/' },
   { to: '/browse', label: 'Browse', icon: Compass },
   { to: '/downloads', label: 'Downloads', icon: ArrowDownToLine },
   { to: '/settings', label: 'Settings', icon: Settings2 },
@@ -28,6 +29,7 @@ const itemClass = cn(
 );
 
 export function Rail() {
+  const pathname = useRouterState({ select: s => s.location.pathname });
   return (
     <aside
       data-shell-rail
@@ -53,8 +55,14 @@ export function Rail() {
       </Link>
 
       <nav aria-label="Main" className="grid gap-0.5">
-        {NAV.map(({ to, label, icon: Icon }) => (
-          <Link key={to} to={to} aria-keyshortcuts={ariaShortcut(to)} className={itemClass}>
+        {NAV.map(({ to, label, icon: Icon, also }) => (
+          <Link
+            key={to}
+            to={to}
+            aria-keyshortcuts={ariaShortcut(to)}
+            aria-current={also && pathname.startsWith(also) ? 'page' : undefined}
+            className={itemClass}
+          >
             <Icon aria-hidden />
             <span>{label}</span>
           </Link>
