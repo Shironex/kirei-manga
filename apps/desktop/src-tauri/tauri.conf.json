@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "KireiManga",
+  "version": "0.3.0",
+  "identifier": "app.kireimanga.desktop",
+  "build": {
+    "devUrl": "http://localhost:15180",
+    "frontendDist": "../dist",
+    "beforeDevCommand": "pnpm --filter @kireimanga/desktop dev",
+    "beforeBuildCommand": "pnpm --filter @kireimanga/desktop build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "KireiManga",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "center": true,
+        "backgroundColor": "#0b0b0d"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'self'; form-action 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "publisher": "Shironex",
+    "homepage": "https://kireimanga.app",
+    "copyright": "Copyright (c) 2026 Shironex. All rights reserved.",
+    "category": "Entertainment",
+    "shortDescription": "A beautiful desktop manga reader",
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "signingIdentity": "-"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}
