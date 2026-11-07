@@ -1,0 +1,58 @@
+name: PR Title Lint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  lint:
+    name: Conventional commit format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title
+        uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Same types and scopes as commitlint.config.mjs.
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          scopes: |
+            core
+            archive
+            reader
+            library
+            desktop
+            ui
+            tauri
+            workspace
+            rust
+            deps
+            actions
+            release
+            docker
+            landing
+            docs
+            spec
+            legacy
+            assets
+            3d
+            design
+          requireScope: true
+          subjectPattern: ^[a-z].+$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}" must start with a lowercase letter.
