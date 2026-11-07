@@ -20,7 +20,8 @@
         "minHeight": 600,
         "resizable": true,
         "center": true,
-        "backgroundColor": "#0b0b0d"
+        "backgroundColor": "#0b0b0d",
+        "theme": "Dark"
       }
     ],
     "security": {
