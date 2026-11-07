@@ -19,6 +19,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "notices": "node scripts/notices.mjs",
     "prepare": "husky",
     "typecheck": "pnpm --filter @kireimanga/desktop typecheck"
   },
