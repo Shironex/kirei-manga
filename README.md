@@ -329,6 +329,8 @@ Na podstawie [PRD](docs/kireimanga-prd.md).
 
 Source-available — see [LICENSE](LICENSE). Personal use and contributions via pull requests are permitted; redistribution and derivative works are not.
 
+Third party licences, including the UnRAR licence for CBR support, are listed in [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES). Regenerate it with `pnpm notices`.
+
 ## Credits
 
 KireiManga stands on the shoulders of the Shiro suite — design and architectural patterns are descended from [ShiroAni](https://github.com/Shironex/shiroani) and Shiranami. MangaDex provides the manga catalog through their generous official API.
