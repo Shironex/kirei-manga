@@ -17,6 +17,7 @@ export type ResampleFilter = 'lanczos3' | 'mitchell' | 'nearest';
 
 export interface AppSettings {
   'appearance.strength': ThemeStrength;
+  'appearance.coverColours': boolean;
   'appearance.ambient': boolean;
   'appearance.glass': boolean;
   'appearance.motion': MotionPreference;
@@ -32,6 +33,7 @@ export type SettingKey = keyof AppSettings;
 /** Same values as `AppSettings::default()` in Rust; a test keeps them honest. */
 export const DEFAULT_SETTINGS: Readonly<AppSettings> = Object.freeze({
   'appearance.strength': 'balanced',
+  'appearance.coverColours': true,
   'appearance.ambient': true,
   'appearance.glass': true,
   'appearance.motion': 'system',

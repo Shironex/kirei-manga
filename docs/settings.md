@@ -30,6 +30,7 @@ Appearance keys are applied to `<html>` by `useAppearanceSettings()`, mounted on
 | Key                     | Type                                                | Default      | Read by                                                                                   |
 | ----------------------- | --------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------- |
 | `appearance.strength`   | `'subtle' \| 'balanced' \| 'vivid'`                 | `'balanced'` | `--strength` (0.6, 1, 1.35) via `setStrength`                                             |
+| `appearance.coverColours` | `boolean`                                       | `true`       | Cover theming (`lib/theme/coverTheme.ts`): off keeps the default accent and hides the cover backdrop |
 | `appearance.ambient`    | `boolean`                                           | `true`       | `data-ambient="off"` hides the cover glow                                                 |
 | `appearance.glass`      | `boolean`                                           | `true`       | `data-glass="off"` uses solid surfaces, like reduced transparency                         |
 | `appearance.motion`     | `'system' \| 'reduced' \| 'full'`                   | `'system'`   | `data-motion`: absent follows `prefers-reduced-motion`; `reduced` and `full` force it     |
