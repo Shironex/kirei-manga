@@ -1965,6 +1965,7 @@ dependencies = [
 name = "kirei-reader"
 version = "0.3.0"
 dependencies = [
+ "image",
  "kirei-archive",
  "kirei-core",
  "lru",
