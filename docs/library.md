@@ -120,3 +120,12 @@ The webview loads thumbnails through the `kirei-cover` scheme (`kirei-cover://lo
 | `library_set_series_settings` | `seriesId`, `settings`             |                         |
 
 If the database cannot be opened (for example it was written by a newer build), the app still starts and the library commands return the reason.
+
+## Screens
+
+The renderer side lives in `apps/desktop/src/features/library` and `features/series`.
+
+- `libraryStore.ts` holds roots, series and the scan in flight for every screen. Adding a folder opens the system dialog, adds the root and scans it; one `library:scan-progress` listener feeds the progress panel. A finished scan bumps `version`, which makes open series pages refetch their detail.
+- The grid is virtualised by hand (`gridLayout.ts`, `ShelfGrid.tsx`): every row has the same height, so the rows on screen follow from the scroll offset and only those are in the DOM. With 10 000 series about 40 tiles exist at any time. A focused tile scrolls into view, so Tab still walks the whole list.
+- Search folds case and diacritics on both sides (`foldText`), so `zolta lodz` finds `Żółta łódź` and `kori` finds `Kōri`. Titles sort with the Polish collation. Filter, sort and search live in the route (`/library?filter=&sort=&q=`), so going back from a series restores the view.
+- Opening a chapter goes through `useOpenChapter` (`openChapter.ts`), which navigates to `/read/$seriesId/$chapterId`. The reader owns everything after that, including landing on the saved page.
