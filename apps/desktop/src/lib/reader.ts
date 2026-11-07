@@ -1,5 +1,7 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 
+import type { ResampleFilter } from './settings/contract';
+
 export type SourceKind = 'zip' | 'rar' | 'folder';
 export type ReadDirection = 'forward' | 'backward';
 
@@ -101,6 +103,18 @@ export function setViewport(
   maxHeight: number | null
 ): Promise<ViewportState> {
   return invoke<ViewportState>('set_viewport', { maxWidth, maxHeight });
+}
+
+/**
+ * Sets the resampling filter and the sharpening strength (0 to 100, 0 is off)
+ * the pipeline renders pages with. Returns the render revision, like
+ * `setViewport`; the same values again keep it.
+ */
+export function setRenderQuality(
+  resample: ResampleFilter,
+  sharpen: number
+): Promise<ViewportState> {
+  return invoke<ViewportState>('set_render_quality', { resample, sharpen });
 }
 
 /** Every page with its stored and served size, for layout before loading. */
