@@ -76,6 +76,16 @@ A rescan is incremental: a chapter whose size and mtime match its row is not ope
 
 Progress is reported as `library:scan-progress` events with `{ phase, root, done, total, current }`, throttled to one every 50 ms per phase, with the first and last of each phase always sent. Phases: `discovering`, `reading`, `covers`, `saving`, `done`.
 
+### Watching
+
+Every root is watched (`watcher.rs`, the `notify` crate: FSEvents on macOS, ReadDirectoryChangesW on Windows), so a new or changed chapter shows up without a manual scan. Changes are mapped to the series folder they are in, or to the loose archives of the root, and collected per root. A root is rescanned once its changes have been quiet for 1.5 s, or after 20 s of steady changes, so a bulk copy causes a few rescans rather than one per file. The rescan is the normal incremental scan narrowed to the affected series (`Library::scan_entries`), and it sends the same `library:scan-progress` events, `done` included. Hidden and junk names are ignored, and so are files directly in a root that are not archives.
+
+- While any scan runs, collected changes wait and go into one rescan after it.
+- A root that disappears (an unplugged drive, a share going away) loses its watch and its pending changes, and nothing is marked missing; that stays the job of an explicit scan. Roots are checked every 5 s; when the folder is back the watch restarts and the whole root is rescanned once to catch up.
+- Adding a root starts its watch and removing one stops it (`library_add_root` and `library_remove_root` resync the watcher).
+
+Debouncing is a small loop in the watcher thread rather than a debouncer crate, because it has to merge changes per series and hold them while a scan runs.
+
 ### Covers
 
 One cover per series, from its first readable chapter: the page ComicInfo marks `FrontCover`, else the first page. It is downscaled to fit 400 x 600 and stored as JPEG (quality 85). The same image in two series is decoded and stored once. A cover is regenerated only when the chapter it came from changes or its file is gone from the cache.
@@ -96,7 +106,7 @@ One cover per series, from its first readable chapter: the page ComicInfo marks 
 | Command                       | Arguments                          | Returns                 |
 | ----------------------------- | ---------------------------------- | ----------------------- |
 | `library_roots`               |                                    | `LibraryRoot[]`         |
-| `library_add_root`            | `path`                             | `LibraryRoot`           |
+| `library_add_root`            | `path` (also starts its watch)     | `LibraryRoot`           |
 | `library_remove_root`         | `id` (keeps progress and settings) | `boolean`               |
 | `library_scan`                | `rootId` (null for all)            | `ScanSummary`           |
 | `library_series`              |                                    | `SeriesSummary[]`       |
