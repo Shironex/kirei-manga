@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use kirei_core::{AppInfo, PageInfo, SourceKind};
-use kirei_reader::{Direction, LatencySummary, ReaderStats, served_size};
+use kirei_reader::{Direction, LatencySummary, ReaderStats, Resample, served_size};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, Runtime};
 
@@ -112,6 +112,48 @@ pub(crate) async fn set_viewport<R: Runtime>(
     // Changing settings re-queues the read-ahead; keep it off the main thread.
     tauri::async_runtime::spawn_blocking(move || {
         let revision = app.state::<Library>().set_viewport(max_width, max_height);
+        ViewportState { revision }
+    })
+    .await
+    .map_err(|error| error.to_string())
+}
+
+/// Resampling filter, as the webview names it.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) enum ResampleFilter {
+    Lanczos3,
+    Mitchell,
+    Nearest,
+}
+
+impl From<ResampleFilter> for Resample {
+    fn from(filter: ResampleFilter) -> Self {
+        match filter {
+            ResampleFilter::Lanczos3 => Self::Lanczos3,
+            ResampleFilter::Mitchell => Self::Mitchell,
+            ResampleFilter::Nearest => Self::Nearest,
+        }
+    }
+}
+
+/// Sets how pages are resampled and sharpened in the pipeline (`sharpen` is 0
+/// to 100, 0 is off). Tone and colour adjustments stay in the webview as CSS
+/// filters. Returns the render revision, like `set_viewport`; the same values
+/// again keep it.
+#[tauri::command]
+pub(crate) async fn set_render_quality<R: Runtime>(
+    app: AppHandle<R>,
+    resample: ResampleFilter,
+    sharpen: u8,
+) -> Result<ViewportState, String> {
+    if sharpen > 100 {
+        return Err(format!("sharpen {sharpen} is outside 0..=100"));
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        let revision = app
+            .state::<Library>()
+            .set_render_quality(resample.into(), sharpen);
         ViewportState { revision }
     })
     .await
@@ -262,6 +304,19 @@ mod tests {
         assert!(matches!(forward, ReadDirection::Forward));
         let backward: ReadDirection = serde_json::from_str("\"backward\"").unwrap();
         assert!(matches!(backward, ReadDirection::Backward));
+    }
+
+    #[test]
+    fn filters_deserialize_from_the_settings_names() {
+        for (name, expected) in [
+            ("lanczos3", Resample::Lanczos3),
+            ("mitchell", Resample::Mitchell),
+            ("nearest", Resample::Nearest),
+        ] {
+            let filter: ResampleFilter = serde_json::from_str(&format!("\"{name}\"")).unwrap();
+            assert_eq!(Resample::from(filter), expected);
+        }
+        assert!(serde_json::from_str::<ResampleFilter>("\"bicubic\"").is_err());
     }
 
     #[test]

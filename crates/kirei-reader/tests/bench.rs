@@ -7,6 +7,7 @@
 //! ```text
 //! cargo test -p kirei-reader --release --test bench -- --ignored --nocapture original_size
 //! cargo test -p kirei-reader --release --test bench -- --ignored --nocapture viewport_size
+//! cargo test -p kirei-reader --release --test bench -- --ignored --nocapture viewport_sharpened
 //! ```
 
 // Test helpers outside #[test] fns may unwrap: a panic is the failure report.
@@ -147,6 +148,19 @@ fn bench_viewport_size() {
         ..RenderSettings::default()
     };
     bench("viewport hint 1600x1600 device px", settings);
+}
+
+#[test]
+#[ignore = "benchmark: run with --ignored --nocapture"]
+fn bench_viewport_sharpened() {
+    // The same window with the unsharp mask at half strength.
+    let settings = RenderSettings {
+        max_width: Some(1600),
+        max_height: Some(1600),
+        sharpen: 50,
+        ..RenderSettings::default()
+    };
+    bench("viewport hint 1600x1600 device px, sharpen 50", settings);
 }
 
 fn bench(label: &str, settings: RenderSettings) {

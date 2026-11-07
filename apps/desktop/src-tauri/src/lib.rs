@@ -85,6 +85,7 @@ pub fn run() {
             catalog::library_set_series_settings,
             commands::set_viewport,
             commands::page_meta,
+            commands::set_render_quality,
             settings::settings_get,
             settings::settings_set,
             settings::library_purge_orphans,

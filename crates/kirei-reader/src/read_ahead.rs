@@ -61,7 +61,8 @@ pub struct ReaderStats {
     pub cancelled: u64,
     /// Reads that failed (corrupt entry, missing file).
     pub errors: u64,
-    /// Renders that downscaled the page.
+    /// Renders that decoded and re-encoded the page (downscaled, sharpened
+    /// or both).
     pub downscaled: u64,
     /// Renders that served the original bytes because they already fit.
     pub original: u64,
@@ -161,7 +162,7 @@ impl Shared {
         let (page, outcome) = render::render(raw, info, settings, key.revision, cancelled)?;
         self.render.record(start.elapsed());
         let counter = match outcome {
-            Outcome::Downscaled => &self.counters.downscaled,
+            Outcome::Encoded => &self.counters.downscaled,
             Outcome::Original => &self.counters.original,
             Outcome::Fallback => &self.counters.decode_fallbacks,
         };
