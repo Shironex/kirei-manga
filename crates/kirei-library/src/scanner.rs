@@ -30,6 +30,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::comic_info::{self, ComicInfo};
 use crate::covers::{CoverCache, NewCover};
+use crate::identity::{chapter_ident, series_ident};
 use crate::model::{ScanPhase, ScanProgress, ScanSummary};
 use crate::naming::{ParsedName, clean_title, parse_name, title_key};
 use crate::{Result, now_ms};
@@ -834,9 +835,10 @@ fn write(
         let mut upsert_series = tx.prepare_cached(
             "INSERT INTO series (root_id, key, path, title, sort_title, title_from_info,
                  description, writer, year, language, genres, manga, cover_hash, cover_source,
-                 missing, added_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, 0, ?15, ?15)
+                 missing, added_at, updated_at, ident)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, 0, ?15, ?15, ?17)
              ON CONFLICT (key) DO UPDATE SET
+                 ident = excluded.ident,
                  root_id = excluded.root_id,
                  path = excluded.path,
                  title = excluded.title,
@@ -857,9 +859,10 @@ fn write(
         let mut upsert_chapter = tx.prepare_cached(
             "INSERT INTO chapters (series_id, path, kind, title, volume, number, sort_order,
                  page_count, cover_page, file_size, file_mtime, language, scan_group, missing,
-                 error, added_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, 0, ?14, ?15, ?15)
+                 error, added_at, updated_at, ident)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, 0, ?14, ?15, ?15, ?16)
              ON CONFLICT (path) DO UPDATE SET
+                 ident = excluded.ident,
                  series_id = excluded.series_id,
                  kind = excluded.kind,
                  title = excluded.title,
@@ -874,7 +877,37 @@ fn write(
                  scan_group = excluded.scan_group,
                  missing = 0,
                  error = excluded.error,
-                 updated_at = excluded.updated_at",
+                 updated_at = excluded.updated_at
+             RETURNING id",
+        )?;
+        // Progress follows its chapter's current identity and file.
+        let mut refresh_progress = tx.prepare_cached(
+            "UPDATE reading_progress SET ident = ?2, file_size = ?3 WHERE chapter_id = ?1",
+        )?;
+        // An orphan with the same identity and file size comes back to life.
+        let mut relink_progress = tx.prepare_cached(
+            "UPDATE reading_progress SET chapter_id = ?1, orphaned_at = NULL
+             WHERE id = (SELECT id FROM reading_progress
+                         WHERE chapter_id IS NULL AND ident = ?2 AND file_size = ?3
+                         ORDER BY updated_at DESC LIMIT 1)
+               AND NOT EXISTS (SELECT 1 FROM reading_progress WHERE chapter_id = ?1)",
+        )?;
+        let mut relink_settings = tx.prepare_cached(
+            "UPDATE series_settings SET series_id = ?1, orphaned_at = NULL
+             WHERE id = (SELECT id FROM series_settings
+                         WHERE series_id IS NULL AND ident = ?2
+                         ORDER BY updated_at DESC LIMIT 1)
+               AND NOT EXISTS (SELECT 1 FROM series_settings WHERE series_id = ?1)",
+        )?;
+        let orphan_progress: bool = tx.query_row(
+            "SELECT EXISTS (SELECT 1 FROM reading_progress WHERE chapter_id IS NULL)",
+            [],
+            |row| row.get(0),
+        )?;
+        let orphan_settings: bool = tx.query_row(
+            "SELECT EXISTS (SELECT 1 FROM series_settings WHERE series_id IS NULL)",
+            [],
+            |row| row.get(0),
         )?;
         let mut touch_chapter = tx.prepare_cached(
             "UPDATE chapters SET series_id = ?1, sort_order = ?2, missing = 0 WHERE id = ?3",
@@ -886,6 +919,7 @@ fn write(
             let genres = meta
                 .filter(|m| !m.genres.is_empty())
                 .map(|m| m.genres.join(", "));
+            let s_ident = series_ident(&series.candidate_key, &series.path);
             let series_id: i64 = upsert_series.query_row(
                 params![
                     root_id,
@@ -904,17 +938,29 @@ fn write(
                     series.cover_source,
                     now,
                     series.changed,
+                    s_ident,
                 ],
                 |row| row.get(0),
             )?;
+            if orphan_settings {
+                relink_settings.execute(params![series_id, s_ident])?;
+            }
             summary.series += 1;
             for (order, chapter) in series.chapters.iter().enumerate() {
                 let order = i64::try_from(order).unwrap_or(i64::MAX);
                 seen.insert(chapter.candidate.path.as_str());
                 summary.chapters += 1;
+                let c_ident = chapter_ident(&s_ident, &series.path, &chapter.candidate.path);
                 match chapter.status {
                     Status::Unchanged(id) if id > 0 => {
                         touch_chapter.execute(params![series_id, order, id])?;
+                        if orphan_progress {
+                            relink_progress.execute(params![
+                                id,
+                                c_ident,
+                                chapter.candidate.size
+                            ])?;
+                        }
                         summary.unchanged += 1;
                         continue;
                     }
@@ -925,23 +971,35 @@ fn write(
                 if d.error.is_some() {
                     summary.errors += 1;
                 }
-                upsert_chapter.execute(params![
-                    series_id,
-                    chapter.candidate.path,
-                    kind_str(d.kind),
-                    d.title,
-                    d.volume,
-                    d.number,
-                    order,
-                    d.page_count,
-                    d.cover_page,
-                    chapter.candidate.size,
-                    chapter.candidate.mtime,
-                    d.language,
-                    d.scan_group,
-                    d.error,
-                    now,
-                ])?;
+                let chapter_id: i64 = upsert_chapter.query_row(
+                    params![
+                        series_id,
+                        chapter.candidate.path,
+                        kind_str(d.kind),
+                        d.title,
+                        d.volume,
+                        d.number,
+                        order,
+                        d.page_count,
+                        d.cover_page,
+                        chapter.candidate.size,
+                        chapter.candidate.mtime,
+                        d.language,
+                        d.scan_group,
+                        d.error,
+                        now,
+                        c_ident,
+                    ],
+                    |row| row.get(0),
+                )?;
+                refresh_progress.execute(params![chapter_id, c_ident, chapter.candidate.size])?;
+                if orphan_progress {
+                    relink_progress.execute(params![
+                        chapter_id,
+                        c_ident,
+                        chapter.candidate.size
+                    ])?;
+                }
             }
         }
 
