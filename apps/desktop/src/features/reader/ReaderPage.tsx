@@ -7,11 +7,13 @@ import { EmptyState } from '@/components/page/EmptyState';
 import { Button } from '@/components/ui/button';
 import { isTauri } from '@/lib/ipc';
 import { useSettings } from '@/lib/settings/store';
+import { cn } from '@/lib/utils';
 
 import { Tip } from './chrome/Tip';
 import { prefsFromAppSettings } from './model/prefs';
 import { useOpenChapter, type ChapterTarget } from './openChapter';
 import { Reader } from './Reader';
+import { READER_STAGE } from './stage';
 import { useChapter } from './useChapter';
 
 const libraryRoute = getRouteApi('/read/$seriesId/$chapterId');
@@ -143,7 +145,7 @@ function ReaderMessage({
       role="dialog"
       aria-label="Reader"
       aria-busy={loading}
-      className="fixed inset-0 grid grid-rows-[auto_minmax(0,1fr)] bg-[radial-gradient(70%_80%_at_50%_45%,oklch(0.17_calc(var(--accent-c)*0.35)_var(--seed-h)),var(--ink-stage)_75%)]"
+      className={cn(READER_STAGE, 'grid grid-rows-[auto_minmax(0,1fr)]')}
     >
       <header
         data-tauri-drag-region
