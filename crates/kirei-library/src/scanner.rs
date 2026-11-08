@@ -29,7 +29,7 @@ use rayon::prelude::*;
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::comic_info::{self, ComicInfo};
-use crate::covers::{CoverCache, NewCover, pick_cover_page};
+use crate::covers::{COVER_RULE, CoverCache, NewCover, pick_cover_page};
 use crate::identity::{chapter_ident, series_ident};
 use crate::model::{ScanPhase, ScanProgress, ScanSummary};
 use crate::naming::{ParsedName, clean_title, parse_name, title_key};
@@ -694,8 +694,10 @@ fn cover_jobs(
                 .chapters
                 .iter()
                 .find(|c| c.data.error.is_none() && c.data.page_count > 0)?;
+            // The rule version is part of the source, so a new rule makes
+            // every series ask for its cover again.
             let source = format!(
-                "{}|{}|{}",
+                "v{COVER_RULE}|{}|{}|{}",
                 chapter.candidate.path, chapter.candidate.mtime, chapter.data.cover_page
             );
             let known = known_series.get(&series.candidate_key);

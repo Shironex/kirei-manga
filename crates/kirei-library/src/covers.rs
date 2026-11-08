@@ -1,4 +1,5 @@
-//! On-disk cover thumbnails, keyed by the content hash of the source image.
+//! On-disk cover thumbnails, keyed by the content hash of the source image
+//! and the cover rule version.
 //!
 //! The same cover in two archives (a re-release, a duplicate folder) is
 //! decoded and stored once. Files live under `<cache dir>/<hh>/<hash>.jpg`
@@ -22,6 +23,11 @@ use crate::{LibraryError, Result};
 /// wide at its widest, so 500 x 750 keeps it sharp on a 2x screen.
 pub const THUMB_WIDTH: u32 = 500;
 pub const THUMB_HEIGHT: u32 = 750;
+/// Version of the cover rule (page choice, crop, size). It is part of the
+/// cache key: when it changes every cover gets a new hash, so the next scan
+/// makes new thumbnails and the webview, which caches a hash forever, never
+/// shows an old one.
+pub(crate) const COVER_RULE: u32 = 2;
 /// A page wider than tall by more than this is a strip (a title or credits
 /// banner, a spread), not a cover.
 pub(crate) const MAX_COVER_ASPECT: f64 = 1.3;
@@ -65,8 +71,14 @@ impl CoverCache {
             .fold(self.dir.clone(), |path, part| path.join(part))
     }
 
+    /// The cache key of a source image: its bytes and the cover rule.
     pub(crate) fn hash(bytes: &[u8]) -> String {
-        blake3::hash(bytes).to_hex().to_string()
+        blake3::Hasher::new()
+            .update(format!("kirei-cover-v{COVER_RULE}\0").as_bytes())
+            .update(bytes)
+            .finalize()
+            .to_hex()
+            .to_string()
     }
 
     /// True for a BLAKE3 hex digest as [`Self::hash`] writes it.
@@ -374,6 +386,13 @@ mod tests {
         let bytes = [b"not an image".to_vec(), png(248, 350, [1, 2, 3])];
         let picked = pick_cover_page(0, 2, |i| Ok::<_, ()>(bytes[i].clone()));
         assert_eq!(picked.map(|(page, _)| page), Some(0));
+    }
+
+    #[test]
+    fn the_cover_rule_is_part_of_the_hash() {
+        let hash = CoverCache::hash(b"cover");
+        assert_ne!(hash, blake3::hash(b"cover").to_hex().to_string());
+        assert_eq!(hash, CoverCache::hash(b"cover"));
     }
 
     #[test]
