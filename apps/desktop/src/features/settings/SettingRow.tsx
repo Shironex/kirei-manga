@@ -87,9 +87,9 @@ export function SettingRow({
           </span>
         )}
         {help && (
-          <p id={`${id}-help`} className="m-0 mt-0.5 text-sm text-fg-3">
+          <div id={`${id}-help`} className="mt-0.5 text-sm text-fg-3">
             {help}
-          </p>
+          </div>
         )}
         <p aria-live="polite" className="m-0 empty:hidden">
           {error && <span className="mt-1 block text-sm text-err">{error}</span>}
