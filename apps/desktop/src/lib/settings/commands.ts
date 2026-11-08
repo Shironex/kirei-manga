@@ -34,10 +34,6 @@ export function clearCoverCache(): Promise<CoverCacheUsage> {
   return invoke<CoverCacheUsage>('library_clear_cover_cache');
 }
 
-export function getDataDir(): Promise<string> {
-  return invoke<string>('data_dir');
-}
-
 export function openDataDir(): Promise<void> {
   return invoke('open_data_dir');
 }
