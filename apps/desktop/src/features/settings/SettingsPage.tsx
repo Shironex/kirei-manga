@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { getRouteApi } from '@tanstack/react-router';
 
 import { PageHeader } from '@/components/page/PageHeader';
-import { getAppInfo, isTauri, type AppInfo } from '@/lib/ipc';
 import { useSettings } from '@/lib/settings/store';
 import { cn } from '@/lib/utils';
 
@@ -12,11 +11,6 @@ import { DataSection } from './DataSection';
 import { LibrarySection } from './LibrarySection';
 import { ReaderSection } from './ReaderSection';
 import { ShortcutsSection } from './ShortcutsSection';
-
-/** Route loader: the About section shows the build the Rust core reports. */
-export async function loadAbout(): Promise<{ info: AppInfo | null }> {
-  return { info: isTauri() ? await getAppInfo() : null };
-}
 
 const route = getRouteApi('/shell/settings');
 
