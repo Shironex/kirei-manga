@@ -63,6 +63,15 @@ The database copy is made with SQLite's `VACUUM INTO` while the app runs: a cons
 
 The swap waits for a restart because the database is open while the app runs (and Windows cannot rename an open file). A backup without covers keeps the current cover cache; run a scan after restoring to fill in covers whose files are missing. Set aside folders are never removed automatically.
 
+## In the app
+
+Settings, Data (`features/settings/DataSection.tsx`, flows in `useBackup.ts`):
+
+- **Data folder** shows the resolved folder from `data_info` and a Portable tag in portable mode.
+- **Create backup** opens a dialog with an Include covers switch (off by default), then the save dialog. The default name is `kireimanga-<local date>.kireibackup`, and the extension is added when the picker drops it. The row then names the file it saved.
+- **Restore** picks a file and runs `backup_inspect` first. A valid file opens a review dialog with the manifest (date, app version, schema, database size, covers) and says the current data is moved aside, not deleted; **Restore and restart** calls `backup_restore`, then `app_restart`. A refused file (newer schema, damaged, not a backup) opens a dialog that says why in plain words, with the raw message under Details (`describeBackupError` in `lib/settings/data.ts`).
+- After a restart, `lastRestore` shows as a note on the Backup row with the set aside folder, and `restoreError` as a warning.
+
 ## Commands
 
 | Command          | Arguments              | Returns                                                                 |
