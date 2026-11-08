@@ -15,7 +15,8 @@ import { LibraryPage, validateLibrarySearch } from '@/features/library/LibraryPa
 import { parseFileSearch, parsePageSearch } from '@/features/reader/openChapter';
 import { FileReaderPage, LibraryReaderPage } from '@/features/reader/ReaderPage';
 import { SeriesPage } from '@/features/series/SeriesPage';
-import { loadAbout, SettingsPage } from '@/features/settings/SettingsPage';
+import { loadAbout } from '@/features/settings/loadAbout';
+import { SettingsPage } from '@/features/settings/SettingsPage';
 
 import { AppShell } from './shell/AppShell';
 import { NotFound, RouteError, RoutePending, ShellNotFound } from './shell/RouteStates';
