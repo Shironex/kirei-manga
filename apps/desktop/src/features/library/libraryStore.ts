@@ -25,7 +25,10 @@ export interface LibraryState {
   error: string | null;
   roots: LibraryRoot[];
   series: SeriesSummary[];
-  /** The latest progress report while a scan runs, else null. */
+  /**
+   * The latest progress report while a scan runs, else null. Covers scans
+   * started here and rescans the library watcher starts on its own.
+   */
   scan: ScanProgress | null;
   scanError: string | null;
   lastScan: ScanSummary | null;
@@ -33,7 +36,7 @@ export interface LibraryState {
   version: number;
 }
 
-let state: LibraryState = {
+const INITIAL: LibraryState = {
   status: 'loading',
   error: null,
   roots: [],
@@ -43,8 +46,21 @@ let state: LibraryState = {
   lastScan: null,
   version: 0,
 };
+
+let state: LibraryState = INITIAL;
 const subscribers = new Set<() => void>();
 let started = false;
+/** True while a scan started by `rescanLibrary` is in flight. */
+let ownScan = false;
+/** Clears a watcher scan that went quiet without its `done` report. */
+let staleTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * How long a scan the store did not start may stay silent before the
+ * indicator is dropped. A watcher rescan that fails sends no `done`, and
+ * progress arrives per archive, so a minute of silence means it is over.
+ */
+export const STALE_SCAN_MS = 60_000;
 
 function set(patch: Partial<LibraryState>) {
   state = { ...state, ...patch };
@@ -71,6 +87,7 @@ export async function refreshLibrary(): Promise<void> {
 /** Scans every root (or one), then reloads the catalogue. */
 export async function rescanLibrary(rootId?: number): Promise<void> {
   if (state.scan) return;
+  ownScan = true;
   set({
     scan: { phase: 'discovering', root: '', done: 0, total: 0, current: null },
     scanError: null,
@@ -81,9 +98,42 @@ export async function rescanLibrary(rootId?: number): Promise<void> {
   } catch (error) {
     set({ scanError: message(error) });
   } finally {
+    ownScan = false;
+    clearStaleTimer();
     set({ scan: null });
     await refreshLibrary();
   }
+}
+
+function clearStaleTimer() {
+  if (staleTimer) clearTimeout(staleTimer);
+  staleTimer = null;
+}
+
+function finishOutsideScan() {
+  clearStaleTimer();
+  set({ scan: null });
+  void refreshLibrary();
+}
+
+/**
+ * Feeds one `library:scan-progress` report into the store, whoever started
+ * the scan. A scan this store started is finished by `rescanLibrary`; any
+ * other (a watcher rescan) is finished here on its `done` report, which
+ * reloads the catalogue so the grid and the series page pick up the change.
+ */
+export function handleScanProgress(progress: ScanProgress): void {
+  if (ownScan) {
+    set({ scan: progress });
+    return;
+  }
+  if (progress.phase === 'done') {
+    finishOutsideScan();
+    return;
+  }
+  set({ scan: progress, scanError: null });
+  clearStaleTimer();
+  staleTimer = setTimeout(finishOutsideScan, STALE_SCAN_MS);
 }
 
 /** Asks for a folder, adds it as a root and scans it. Resolves false when cancelled. */
@@ -107,9 +157,7 @@ function start() {
   void refreshLibrary();
   if (isTauri()) {
     // Lives as long as the app; one listener feeds every screen.
-    void onScanProgress(progress => {
-      if (state.scan) set({ scan: progress });
-    });
+    void onScanProgress(handleScanProgress);
   }
 }
 
@@ -117,6 +165,18 @@ function subscribe(notify: () => void) {
   start();
   subscribers.add(notify);
   return () => subscribers.delete(notify);
+}
+
+export function getLibraryState(): LibraryState {
+  return state;
+}
+
+/** Back to a fresh store, for tests. */
+export function resetLibraryStore(): void {
+  clearStaleTimer();
+  ownScan = false;
+  started = false;
+  state = INITIAL;
 }
 
 export function useLibrary(): LibraryState {

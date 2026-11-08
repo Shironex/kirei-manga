@@ -85,6 +85,7 @@ Every root is watched (`watcher.rs`, the `notify` crate: FSEvents on macOS, Read
 - While any scan runs, collected changes wait and go into one rescan after it.
 - A root that disappears (an unplugged drive, a share going away) loses its watch and its pending changes, and nothing is marked missing; that stays the job of an explicit scan. Roots are checked every 5 s; when the folder is back the watch restarts and the whole root is rescanned once to catch up.
 - Adding a root starts its watch and removing one stops it (`library_add_root` and `library_remove_root` resync the watcher).
+- The renderer's library store (`features/library/libraryStore.ts`) follows every scan, not only the ones it started: a watcher rescan shows the scan indicator, and its `done` report reloads the catalogue, so the grid and the series page refresh on their own. A watcher scan that fails sends no `done`; the indicator is dropped after a minute without progress.
 
 Debouncing is a small loop in the watcher thread rather than a debouncer crate, because it has to merge changes per series and hold them while a scan runs.
 
