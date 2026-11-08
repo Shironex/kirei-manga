@@ -55,7 +55,9 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          # The workspace manifest holds the build profiles: a profile change
+          # rebuilds every crate, so it must save a fresh cache too.
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml') }}
           restore-keys: ${{ runner.os }}-cargo-
 
       # `-- -D warnings` denies in the workspace crates only, never in
