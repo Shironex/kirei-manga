@@ -35,7 +35,7 @@ pub use backup::{
     apply_pending_restore, inspect_backup, stage_restore,
 };
 pub use comic_info::{ComicInfo, parse as parse_comic_info};
-pub use covers::{THUMB_MAX_HEIGHT, THUMB_MAX_WIDTH};
+pub use covers::{THUMB_HEIGHT, THUMB_WIDTH};
 pub use db::SCHEMA_VERSION;
 pub use error::{LibraryError, Result};
 pub use model::{

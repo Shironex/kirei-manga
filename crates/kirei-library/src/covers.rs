@@ -17,10 +17,11 @@ use crate::model::CoverCacheUsage;
 use crate::palette::{self, Palette};
 use crate::{LibraryError, Result};
 
-/// Thumbnails fit inside this box, keeping the aspect ratio. Covers in the
-/// library grid draw at up to about 200 CSS px wide, so 400 covers 2x screens.
-pub const THUMB_MAX_WIDTH: u32 = 400;
-pub const THUMB_MAX_HEIGHT: u32 = 600;
+/// Thumbnails are cropped to the card's 2:3 portrait shape and sized to fill
+/// it. The largest place a cover is drawn is the series page hero, 250 CSS px
+/// wide at its widest, so 500 x 750 keeps it sharp on a 2x screen.
+pub const THUMB_WIDTH: u32 = 500;
+pub const THUMB_HEIGHT: u32 = 750;
 const JPEG_QUALITY: u8 = 85;
 /// Ceilings for decoding a cover, against decompression bombs.
 const MAX_DIMENSION: u32 = 20_000;
@@ -89,10 +90,16 @@ impl CoverCache {
         reader.limits(limits);
         let decoded = reader.decode().map_err(|e| e.to_string())?;
 
-        let thumb = if decoded.width() > THUMB_MAX_WIDTH || decoded.height() > THUMB_MAX_HEIGHT {
-            decoded.resize(THUMB_MAX_WIDTH, THUMB_MAX_HEIGHT, FilterType::Triangle)
+        // Crop first, so the resize spends every output pixel on what the
+        // card shows, then fill the card. A crop smaller than the card is
+        // kept as it is: upscaling here would only add blur the webview
+        // adds anyway.
+        let (x, y, width, height) = card_crop(decoded.width(), decoded.height());
+        let cropped = decoded.crop_imm(x, y, width, height);
+        let thumb = if width > THUMB_WIDTH {
+            cropped.resize_exact(THUMB_WIDTH, THUMB_HEIGHT, FilterType::CatmullRom)
         } else {
-            decoded
+            cropped
         };
         let rgb = thumb.to_rgb8();
         let palette = palette::sample(&rgb);
@@ -112,6 +119,21 @@ impl CoverCache {
             height: rgb.height(),
             palette,
         })
+    }
+}
+
+/// The 2:3 window of a `width` x `height` image the card shows, as
+/// `(x, y, width, height)`. Too wide: the middle columns. Too tall: the top
+/// rows, where a webtoon strip or a long page keeps its title.
+pub(crate) fn card_crop(width: u32, height: u32) -> (u32, u32, u32, u32) {
+    let (w, h) = (u64::from(width), u64::from(height));
+    let (card_w, card_h) = (u64::from(THUMB_WIDTH), u64::from(THUMB_HEIGHT));
+    if w * card_h > h * card_w {
+        let crop = u32::try_from((h * card_w / card_h).max(1)).unwrap_or(width);
+        ((width - crop) / 2, 0, crop, height)
+    } else {
+        let crop = u32::try_from((w * card_h / card_w).max(1)).unwrap_or(height);
+        (0, 0, width, crop.min(height))
     }
 }
 
@@ -219,12 +241,42 @@ mod tests {
         let bytes = png(1200, 1800, [200, 60, 40]);
         let hash = CoverCache::hash(&bytes);
         let cover = cache.make(&hash, &bytes).unwrap();
-        assert_eq!((cover.width, cover.height), (400, 600));
+        assert_eq!((cover.width, cover.height), (THUMB_WIDTH, THUMB_HEIGHT));
         let path = cache.absolute(&cover.file);
         assert!(path.starts_with(cache.dir()));
         let written = std::fs::read(&path).unwrap();
         assert_eq!(&written[..2], &[0xff, 0xd8], "a JPEG");
         assert!(!cover.palette.fallback);
+    }
+
+    fn make(width: u32, height: u32) -> NewCover {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = CoverCache::new(dir.path()).unwrap();
+        let bytes = png(width, height, [90, 140, 200]);
+        cache.make(&CoverCache::hash(&bytes), &bytes).unwrap()
+    }
+
+    #[test]
+    fn covers_fill_the_card_at_twice_the_hero_size() {
+        // A scan page (Pepper&Carrot), a little wider than 2:3.
+        let page = make(2481, 3503);
+        assert_eq!((page.width, page.height), (500, 750));
+        // A webtoon strip, much taller than 2:3.
+        let strip = make(800, 12_000);
+        assert_eq!((strip.width, strip.height), (500, 750));
+        // A wide page with no portrait page to replace it: the middle 2:3
+        // of it, at its own resolution rather than stretched.
+        let wide = make(2481, 660);
+        assert_eq!((wide.width, wide.height), (440, 660));
+    }
+
+    #[test]
+    fn the_crop_keeps_the_middle_columns_or_the_top_rows() {
+        assert_eq!(card_crop(2481, 3503), (73, 0, 2335, 3503));
+        assert_eq!(card_crop(2481, 660), (1020, 0, 440, 660));
+        assert_eq!(card_crop(800, 12_000), (0, 0, 800, 1200));
+        assert_eq!(card_crop(1200, 1800), (0, 0, 1200, 1800));
+        assert_eq!(card_crop(1, 1), (0, 0, 1, 1));
     }
 
     #[test]
