@@ -310,6 +310,47 @@ fn a_wide_title_strip_gives_way_to_the_first_portrait_page() {
 }
 
 #[test]
+fn a_new_cover_rule_remakes_the_covers_of_the_old_one() {
+    let fixture = fixture();
+    let library = open(&fixture);
+    library.add_root(&fixture.root).unwrap();
+    scan(&library);
+
+    // Turn the catalogue into what the previous rule left behind: sources
+    // without a rule version and one 400x600 thumbnail, still on disk, that
+    // every series points at.
+    library.clear_cover_cache().unwrap();
+    let legacy = "a".repeat(64);
+    let legacy_file = fixture.data.join("covers/aa").join(format!("{legacy}.jpg"));
+    std::fs::create_dir_all(legacy_file.parent().unwrap()).unwrap();
+    std::fs::write(&legacy_file, [0xff, 0xd8, 0xff, 0xd9]).unwrap();
+    let conn = rusqlite::Connection::open(fixture.data.join("library.sqlite3")).unwrap();
+    conn.execute_batch(&format!(
+        "DELETE FROM covers;
+         INSERT INTO covers (hash, file, width, height, palette, created_at)
+         VALUES ('{legacy}', 'aa/{legacy}.jpg', 400, 600,
+                 '{{\"h\":42.0,\"c\":0.15,\"swatches\":[],\"fallback\":false}}', 0);
+         UPDATE series SET cover_hash = '{legacy}', cover_source = substr(cover_source, 4)
+         WHERE cover_source IS NOT NULL;"
+    ))
+    .unwrap();
+    drop(conn);
+
+    assert_eq!(scan(&library).covers_made, 3, "every distinct cover again");
+    let series = library.series().unwrap();
+    let covers: Vec<_> = series.iter().filter_map(|s| s.cover.as_ref()).collect();
+    assert_eq!(covers.len(), 5);
+    assert!(covers.iter().all(|c| c.hash != legacy));
+    let moonlit = by_title(&series, "The Moonlit Bookshop")
+        .cover
+        .clone()
+        .unwrap();
+    assert_eq!((moonlit.width, moonlit.height), (500, 750));
+    // Settled: the next scan has nothing to remake.
+    assert_eq!(scan(&library).covers_made, 0);
+}
+
+#[test]
 fn rescans_are_incremental() {
     let fixture = fixture();
     let library = open(&fixture);

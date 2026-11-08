@@ -19,7 +19,7 @@ pub struct LibraryRoot {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CoverRef {
-    /// Content hash; also the cache key.
+    /// Hash of the source image and the cover rule; also the cache key.
     pub hash: String,
     /// Absolute path of the thumbnail in the app data dir.
     pub path: String,
