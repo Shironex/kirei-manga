@@ -273,6 +273,43 @@ fn covers_are_cached_with_a_palette_from_the_front_cover() {
 }
 
 #[test]
+fn a_wide_title_strip_gives_way_to_the_first_portrait_page() {
+    use std::io::Write;
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("Manga");
+    let chapter = root.join("Strip First").join("Ch.001.cbz");
+    std::fs::create_dir_all(chapter.parent().unwrap()).unwrap();
+    let mut zip = zip::ZipWriter::new(std::fs::File::create(&chapter).unwrap());
+    let options = zip::write::SimpleFileOptions::default();
+    for (name, page) in [
+        ("P00.png", png(372, 99, GREY)),
+        ("P01.png", png(620, 876, TEAL)),
+        ("P02.png", png(620, 876, ORANGE)),
+    ] {
+        zip.start_file(name, options).unwrap();
+        zip.write_all(&page).unwrap();
+    }
+    zip.finish().unwrap();
+
+    let library = Library::open(
+        &dir.path().join("data/library.sqlite3"),
+        &dir.path().join("data/covers"),
+    )
+    .unwrap();
+    library.add_root(&root).unwrap();
+    scan(&library);
+    let cover = library.series().unwrap()[0].cover.clone().unwrap();
+    let teal = srgb_to_oklch(TEAL[0], TEAL[1], TEAL[2]);
+    assert!(
+        hue_distance(cover.palette.h, teal.h) < 3.0,
+        "{:?}",
+        cover.palette
+    );
+    // 620x876 cropped to 2:3 is 584x876, sized down to fill the card.
+    assert_eq!((cover.width, cover.height), (500, 750));
+}
+
+#[test]
 fn rescans_are_incremental() {
     let fixture = fixture();
     let library = open(&fixture);

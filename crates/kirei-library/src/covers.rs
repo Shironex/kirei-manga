@@ -22,6 +22,11 @@ use crate::{LibraryError, Result};
 /// wide at its widest, so 500 x 750 keeps it sharp on a 2x screen.
 pub const THUMB_WIDTH: u32 = 500;
 pub const THUMB_HEIGHT: u32 = 750;
+/// A page wider than tall by more than this is a strip (a title or credits
+/// banner, a spread), not a cover.
+pub(crate) const MAX_COVER_ASPECT: f64 = 1.3;
+/// How many pages from the start are tried for a portrait cover.
+pub(crate) const COVER_CANDIDATES: usize = 6;
 const JPEG_QUALITY: u8 = 85;
 /// Ceilings for decoding a cover, against decompression bombs.
 const MAX_DIMENSION: u32 = 20_000;
@@ -135,6 +140,41 @@ pub(crate) fn card_crop(width: u32, height: u32) -> (u32, u32, u32, u32) {
         let crop = u32::try_from((w * card_h / card_w).max(1)).unwrap_or(height);
         (0, 0, width, crop.min(height))
     }
+}
+
+/// True when a page of this size can be a cover (not a wide strip).
+pub(crate) fn is_cover_shaped(width: u32, height: u32) -> bool {
+    height > 0 && f64::from(width) / f64::from(height) <= MAX_COVER_ASPECT
+}
+
+/// Picks the cover among the first pages: `read(i)` returns page `i`'s bytes.
+/// From `first` on, up to [`COVER_CANDIDATES`] pages are read and the first
+/// one that is not much wider than tall wins; when every one is wide, or no
+/// size can be read, `first` stays the cover. Returns the page and its bytes,
+/// or `None` when `first` itself cannot be read.
+pub(crate) fn pick_cover_page<E>(
+    first: usize,
+    page_count: usize,
+    mut read: impl FnMut(usize) -> std::result::Result<Vec<u8>, E>,
+) -> Option<(usize, Vec<u8>)> {
+    let first_bytes = read(first).ok()?;
+    if image_size(&first_bytes).is_none_or(|(w, h)| is_cover_shaped(w, h)) {
+        return Some((first, first_bytes));
+    }
+    let last = page_count.min(first.saturating_add(COVER_CANDIDATES));
+    (first + 1..last)
+        .filter_map(|page| read(page).ok().map(|bytes| (page, bytes)))
+        .find(|(_, bytes)| image_size(bytes).is_some_and(|(w, h)| is_cover_shaped(w, h)))
+        .or(Some((first, first_bytes)))
+}
+
+/// Pixel size from the image header, without decoding the pixels.
+fn image_size(bytes: &[u8]) -> Option<(u32, u32)> {
+    ImageReader::new(Cursor::new(bytes))
+        .with_guessed_format()
+        .ok()?
+        .into_dimensions()
+        .ok()
 }
 
 impl CoverCache {
@@ -277,6 +317,63 @@ mod tests {
         assert_eq!(card_crop(800, 12_000), (0, 0, 800, 1200));
         assert_eq!(card_crop(1200, 1800), (0, 0, 1200, 1800));
         assert_eq!(card_crop(1, 1), (0, 0, 1, 1));
+    }
+
+    #[test]
+    fn wide_strips_are_not_cover_shaped() {
+        assert!(is_cover_shaped(2481, 3503));
+        assert!(is_cover_shaped(1300, 1000), "1.3 is the limit");
+        assert!(!is_cover_shaped(1301, 1000));
+        assert!(!is_cover_shaped(2481, 660));
+        assert!(!is_cover_shaped(10, 0));
+    }
+
+    fn pick(pages: &[Option<(u32, u32)>]) -> Option<usize> {
+        let images: Vec<Option<Vec<u8>>> = pages
+            .iter()
+            .map(|size| size.map(|(w, h)| png(w, h, [10, 10, 10])))
+            .collect();
+        pick_cover_page(0, images.len(), |i| images[i].clone().ok_or(())).map(|(page, bytes)| {
+            assert_eq!(Some(&bytes), images[page].as_ref());
+            page
+        })
+    }
+
+    #[test]
+    fn a_wide_first_page_gives_way_to_the_first_portrait_page() {
+        let strip = Some((248, 66));
+        let portrait = Some((248, 350));
+        assert_eq!(pick(&[portrait, strip]), Some(0));
+        assert_eq!(pick(&[strip, portrait, portrait]), Some(1));
+        assert_eq!(
+            pick(&[strip, strip, None, portrait]),
+            Some(3),
+            "skips unreadable pages"
+        );
+        assert_eq!(
+            pick(&[strip, strip, strip]),
+            Some(0),
+            "all wide: the first page"
+        );
+        assert_eq!(pick(&[strip]), Some(0));
+        assert_eq!(pick(&[None, portrait]), None, "the first page must read");
+    }
+
+    #[test]
+    fn only_the_first_pages_are_tried() {
+        let strip = Some((248, 66));
+        let mut pages = vec![strip; COVER_CANDIDATES];
+        pages.push(Some((248, 350)));
+        assert_eq!(pick(&pages), Some(0));
+        pages.swap(COVER_CANDIDATES - 1, COVER_CANDIDATES);
+        assert_eq!(pick(&pages), Some(COVER_CANDIDATES - 1));
+    }
+
+    #[test]
+    fn a_page_whose_size_cannot_be_read_stays_the_cover() {
+        let bytes = [b"not an image".to_vec(), png(248, 350, [1, 2, 3])];
+        let picked = pick_cover_page(0, 2, |i| Ok::<_, ()>(bytes[i].clone()));
+        assert_eq!(picked.map(|(page, _)| page), Some(0));
     }
 
     #[test]
