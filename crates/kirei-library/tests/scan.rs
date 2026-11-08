@@ -244,7 +244,7 @@ fn covers_are_cached_with_a_palette_from_the_front_cover() {
         "{:?}",
         cover.palette
     );
-    assert_eq!((cover.width, cover.height), (400, 600));
+    assert_eq!((cover.width, cover.height), (500, 750));
     let path = Path::new(&cover.path);
     assert!(path.starts_with(fixture.data.join("covers")));
     // The webview asks for covers by hash; the path comes back only for a hash.
