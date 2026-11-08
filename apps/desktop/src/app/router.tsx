@@ -13,13 +13,17 @@ import { BrowsePage } from '@/features/browse/BrowsePage';
 import { DownloadsPage } from '@/features/downloads/DownloadsPage';
 import { LibraryPage, validateLibrarySearch } from '@/features/library/LibraryPage';
 import { parseFileSearch, parsePageSearch } from '@/features/reader/openChapter';
-import { FileReaderPage, LibraryReaderPage } from '@/features/reader/ReaderPage';
 import { SeriesPage } from '@/features/series/SeriesPage';
 import { loadAbout } from '@/features/settings/loadAbout';
-import { SettingsPage } from '@/features/settings/SettingsPage';
 
 import { AppShell } from './shell/AppShell';
-import { NotFound, RouteError, RoutePending, ShellNotFound } from './shell/RouteStates';
+import {
+  NotFound,
+  ReaderPending,
+  RouteError,
+  RoutePending,
+  ShellNotFound,
+} from './shell/RouteStates';
 
 /**
  * Route tree. Code-based (no codegen step) and fully typed: `<Link to>` and
@@ -32,7 +36,15 @@ import { NotFound, RouteError, RoutePending, ShellNotFound } from './shell/Route
  *     /dev/design  /dev/engine (dev builds only)
  *   /read/$seriesId/$chapterId  full-window reader, outside the shell
  *   /read/file?path=            the reader on an archive or folder from disk
+ *
+ * The library and the series page are in the main chunk so first paint and
+ * the step into a series stay instant. Settings and the reader load their
+ * own chunk on first visit (preloaded on link hover, `defaultPreload`), and
+ * the dev pages are dropped from production builds.
  */
+
+const readerPage = (name: 'LibraryReaderPage' | 'FileReaderPage') =>
+  lazyRouteComponent(() => import('@/features/reader/ReaderPage'), name);
 
 const rootRoute = createRootRoute({
   component: Outlet,
@@ -82,7 +94,7 @@ const settingsRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/settings',
   loader: loadAbout,
-  component: SettingsPage,
+  component: lazyRouteComponent(() => import('@/features/settings/SettingsPage'), 'SettingsPage'),
 });
 
 // Dev routes are always in the tree (so links type-check) but render nothing and
@@ -113,14 +125,16 @@ const readerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/read/$seriesId/$chapterId',
   validateSearch: parsePageSearch,
-  component: LibraryReaderPage,
+  component: readerPage('LibraryReaderPage'),
+  pendingComponent: ReaderPending,
 });
 
 const readFileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/read/file',
   validateSearch: parseFileSearch,
-  component: FileReaderPage,
+  component: readerPage('FileReaderPage'),
+  pendingComponent: ReaderPending,
 });
 
 const routeTree = rootRoute.addChildren([
