@@ -4,6 +4,7 @@ import { LibraryBig, RotateCw } from 'lucide-react';
 import { EmptyState } from '@/components/page/EmptyState';
 import { PageHeader } from '@/components/page/PageHeader';
 import { Button } from '@/components/ui/button';
+import { READER_STAGE } from '@/features/reader/stage';
 
 import { ShellFrame } from './AppShell';
 
@@ -40,6 +41,11 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
       </code>
     </EmptyState>
   );
+}
+
+/** Pending screen of the full-window reader routes: the reader's empty stage. */
+export function ReaderPending() {
+  return <div aria-busy="true" aria-label="Loading the reader" className={READER_STAGE} />;
 }
 
 /** Loading placeholder shaped like a page: title, lead and a row of covers. */
