@@ -91,7 +91,11 @@ Debouncing is a small loop in the watcher thread rather than a debouncer crate, 
 
 ### Covers
 
-One cover per series, from its first readable chapter: the page ComicInfo marks `FrontCover`, else the first page. It is downscaled to fit 400 x 600 and stored as JPEG (quality 85). The same image in two series is decoded and stored once. A cover is regenerated only when the chapter it came from changes or its file is gone from the cache.
+One cover per series, from its first readable chapter: the page ComicInfo marks `FrontCover`, else the first page, unless that page is a wide strip (wider than tall by more than 1.3, like a title or credits banner). Then the first page within the first six that is not wide becomes the cover, and if there is none the first page stays.
+
+The cover is cropped to the card's 2:3 portrait shape before it is resized (the middle columns of a page that is too wide, the top rows of one that is too tall, such as a webtoon strip), then sized to 500 x 750 and stored as JPEG (quality 85). That is twice the widest place a cover is drawn (the series page hero, 250 CSS px), so it stays sharp on a 2x screen. A crop smaller than that is kept at its own size, never upscaled. The same image in two series is decoded and stored once.
+
+The cache key is the BLAKE3 hash of the cover rule version (`COVER_RULE` in `covers.rs`) and the source image bytes, and each series remembers the rule version with the chapter, file time and page its cover came from. A cover is regenerated when that chapter changes, when its file is gone from the cache, or when the rule version changes: bump `COVER_RULE` whenever the page choice, crop or size changes, and the next scan remakes every cover under new hashes, so the webview (which caches a hash forever) never shows an old thumbnail. Thumbnails made under an old rule stay in the cache until it is cleared.
 
 The webview loads thumbnails through the `kirei-cover` scheme (`kirei-cover://localhost/<hash>` on macOS, `http://kirei-cover.localhost/<hash>` on Windows; `coverUrl()` in `library.ts` builds it). The hash is the only input: anything that is not 64 lowercase hex digits is refused, and `Library::cover_path` builds the file path inside the cache from the hash alone, so a request can never name a path. A hash always names the same bytes, so responses carry the hash as `ETag` and `Cache-Control: public, max-age=31536000, immutable`. The CSP allows this scheme in `img-src` and nothing else; the asset protocol stays off.
 
