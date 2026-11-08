@@ -29,7 +29,7 @@ use rayon::prelude::*;
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::comic_info::{self, ComicInfo};
-use crate::covers::{CoverCache, NewCover};
+use crate::covers::{CoverCache, NewCover, pick_cover_page};
 use crate::identity::{chapter_ident, series_ident};
 use crate::model::{ScanPhase, ScanProgress, ScanSummary};
 use crate::naming::{ParsedName, clean_title, parse_name, title_key};
@@ -160,7 +160,9 @@ struct PlannedSeries {
 struct CoverJob {
     series: usize,
     path: String,
+    /// The ComicInfo front cover, or 0 when the chapter names none.
     page: usize,
+    page_count: usize,
     source: String,
 }
 
@@ -712,6 +714,7 @@ fn cover_jobs(
                 series: index,
                 path: chapter.candidate.path.clone(),
                 page: usize::try_from(chapter.data.cover_page).unwrap_or(0),
+                page_count: usize::try_from(chapter.data.page_count).unwrap_or(0),
                 source,
             })
         })
@@ -731,7 +734,15 @@ fn make_cover(
     let Ok(source) = kirei_archive::open_with(Path::new(&job.path), &options) else {
         return CoverOutcome::Failed;
     };
-    let Ok(bytes) = source.read_page(job.page) else {
+    // A front cover ComicInfo names is taken as it is. Otherwise the first
+    // page wins unless it is a wide strip (a title or credits banner), in
+    // which case the first portrait page after it does.
+    let bytes = if job.page > 0 {
+        source.read_page(job.page).ok()
+    } else {
+        pick_cover_page(0, job.page_count, |page| source.read_page(page)).map(|(_, bytes)| bytes)
+    };
+    let Some(bytes) = bytes else {
         return CoverOutcome::Failed;
     };
     let hash = CoverCache::hash(&bytes);
