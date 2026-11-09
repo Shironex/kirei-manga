@@ -20,11 +20,12 @@ import { useAdjustments } from './hooks/useAdjustments';
 import { useAutoHide } from './hooks/useAutoHide';
 import { useElementSize } from './hooks/useElementSize';
 import { useFullscreen } from './hooks/useFullscreen';
+import { useNextChapter } from './hooks/useNextChapter';
 import { usePreload } from './hooks/usePreload';
 import { useProgress } from './hooks/useProgress';
-import { useReaderPrefs } from './hooks/useReaderPrefs';
+import { initialPrefs, useReaderPrefs } from './hooks/useReaderPrefs';
 import { useRenderQuality } from './hooks/useRenderQuality';
-import { useSeriesSettings } from './hooks/useSeriesSettings';
+import { latestSeriesSettings, useSeriesSettings } from './hooks/useSeriesSettings';
 import { useViewportHint, type PageBox } from './hooks/useViewportHint';
 import { useZoomPan, ZOOM_STEP } from './hooks/useZoomPan';
 import { cssFilter, defaultAdjustments, isNeutral, type Resample } from './model/adjust';
@@ -39,7 +40,7 @@ import {
   type PagedPosition,
 } from './model/screens';
 import { isTall, sliceStrip } from './model/split';
-import type { LoadedChapter } from './useChapter';
+import { handOver, nextTarget, type LoadedChapter } from './useChapter';
 import { EndCard } from './view/EndCard';
 import { PagedView, STAGE_INSET } from './view/PagedView';
 import { WebtoonView, type WebtoonHandle } from './view/WebtoonView';
@@ -51,6 +52,16 @@ const WEBTOON_SCALE_MAX = 2;
 /** Screens of pages the webview preloads ahead, and behind. */
 const PRELOAD_AHEAD = 2;
 const PRELOAD_BEHIND = 1;
+/**
+ * The next chapter opens ahead once the reader is this far into a webtoon
+ * chapter, or this many pages from the end of a paged one.
+ */
+const NEAR_END_PROGRESS = 0.5;
+const NEAR_END_PAGES = 4;
+/** Pages of the next chapter laid under a webtoon chapter's last strip. */
+const TAIL_PAGES = 6;
+/** Progress at which the tail's first pages are fetched into the webview. */
+const TAIL_PRELOAD_PROGRESS = 0.8;
 
 const BACKGROUNDS: Record<Background, string> = {
   glow: 'bg-[radial-gradient(70%_80%_at_50%_45%,oklch(0.17_calc(var(--accent-c)*0.35)_var(--seed-h)),var(--ink-stage)_75%)]',
@@ -186,7 +197,7 @@ export function Reader({
   const [statsOpen, setStatsOpen] = useState(false);
   const [scrubbing, setScrubbing] = useState(false);
   const [chromeHover, setChromeHover] = useState(false);
-  const [webtoonScale, setWebtoonScale] = useState(1);
+  const [webtoonScale, setWebtoonScale] = useState(chapter.carry?.webtoonScale ?? 1);
   const [measured, setMeasured] = useState<ReadonlyMap<number, number>>(() => new Map());
   const fullscreen = useFullscreen();
   const chrome = useAutoHide(panelOpen || scrubbing || chromeHover);
@@ -249,11 +260,14 @@ export function Reader({
   );
 
   const box = stage.width > 0 ? renderBox(webtoon ? null : fit, inner, columnWidth) : undefined;
-  const viewportRevision = useViewportHint(box, webtoon ? 1 : zoom.zoom);
+  // A chapter reading flowed into starts with the revision of the one before.
+  const seed = chapter.carry?.revision;
+  const viewportRevision = useViewportHint(box, webtoon ? 1 : zoom.zoom, seed);
   const qualityRevision = useRenderQuality(
     adjustments.resample,
     adjustments.sharpen,
-    options.splitTall
+    options.splitTall,
+    seed
   );
   // Both calls bump the same counter, so the later answer is the one in effect.
   const revision =
@@ -298,16 +312,65 @@ export function Reader({
     if (isTauri()) focusPage(source.id, page, direction).catch(() => {});
   }, [source.id, page]);
 
+  // Open the next chapter ahead near the end, so moving on is instant and a
+  // webtoon can lay its first pages under the last strip.
+  const nearEnd = webtoon
+    ? progress >= NEAR_END_PROGRESS
+    : atEnd || lastVisiblePage(screens, { page, atEnd }) >= pages.length - NEAR_END_PAGES;
+  const upcoming = useNextChapter(chapter.next, nearEnd);
+  const { detectWebtoon } = options;
+  const tail = useMemo(() => {
+    if (!webtoon || !upcoming) return null;
+    // Only when the next chapter opens in webtoon too; otherwise the end card.
+    const settings =
+      upcoming.seriesId === null ? undefined : latestSeriesSettings(upcoming.seriesId);
+    const next = initialPrefs(
+      { ...upcoming, settings: settings ?? upcoming.settings },
+      defaults,
+      detectWebtoon
+    );
+    if (next.prefs.mode !== 'webtoon') return null;
+    const id = upcoming.source.id;
+    return {
+      pages: upcoming.pages.slice(0, TAIL_PAGES),
+      urlFor: (index: number) => pageUrl(id, index, revision),
+    };
+  }, [webtoon, upcoming, defaults, detectWebtoon, revision]);
+
+  /**
+   * Moves on to the next chapter, telling it where reading left off: the
+   * page and share of it when a webtoon flows into its tail, plus the zoom
+   * and the series settings with any save still pending.
+   */
+  const goNext = useCallback(
+    (at?: { page: number; offset: number }) => {
+      const next = chapter.next;
+      if (!next) return;
+      handOver(nextTarget(next), {
+        page: at?.page ?? 0,
+        offset: at?.offset ?? 0,
+        carry: { webtoonScale, revision: at ? revision : undefined },
+        settings: chapter.seriesId === null ? undefined : latestSeriesSettings(chapter.seriesId),
+      });
+      onNextChapter();
+    },
+    [chapter.next, chapter.seriesId, webtoonScale, revision, onNextChapter]
+  );
+
   // Warm the webview's cache with the next screens.
   const preload = useMemo(() => {
-    if (!ready || webtoon) return [];
+    if (!ready) return [];
+    if (webtoon) {
+      if (!tail || progress < TAIL_PRELOAD_PROGRESS) return [];
+      return tail.pages.slice(0, 2).map((_, index) => tail.urlFor(index));
+    }
     const at = screens.findIndex(group => group.includes(page));
     const near = [
       ...screens.slice(at + 1, at + 1 + PRELOAD_AHEAD),
       ...screens.slice(Math.max(0, at - PRELOAD_BEHIND), at),
     ];
     return near.flat().map(urlFor);
-  }, [ready, webtoon, screens, page, urlFor]);
+  }, [ready, webtoon, tail, progress, screens, page, urlFor]);
   usePreload(preload);
 
   const finished = atEnd || (webtoon && progress >= 0.995);
@@ -319,19 +382,19 @@ export function Reader({
   const step = useCallback(
     (delta: number) => {
       if (webtoon) {
-        if (delta > 0 && progress >= 0.995 && chapter.next) onNextChapter();
+        if (delta > 0 && progress >= 0.995 && chapter.next && !tail) goNext();
         else webtoonRef.current?.scrollScreens(delta);
         return;
       }
       if (atEnd && delta > 0 && chapter.next) {
-        onNextChapter();
+        goNext();
         return;
       }
       setPosition(current =>
         stepParts(screens, { page, atEnd: current.atEnd, part: current.part }, delta, partsOf)
       );
     },
-    [webtoon, progress, atEnd, chapter.next, onNextChapter, screens, page, partsOf]
+    [webtoon, progress, atEnd, chapter.next, tail, goNext, screens, page, partsOf]
   );
 
   const jump = useCallback(
@@ -441,7 +504,7 @@ export function Reader({
     <EndCard
       label={chapter.label}
       next={chapter.next}
-      onNext={onNextChapter}
+      onNext={() => goNext()}
       onBack={() => (webtoon ? webtoonRef.current?.scrollScreens(-1) : step(-1))}
       backLabel={webtoon ? 'Scroll back' : 'Back a page'}
       onOpenFile={onOpenFile}
@@ -499,11 +562,14 @@ export function Reader({
                 measured={measured}
                 urlFor={urlFor}
                 startPage={page}
+                startOffset={chapter.startOffset}
+                tail={tail}
+                onEnterTail={(index, offset) => goNext({ page: index, offset })}
                 onMeasure={onMeasure}
                 onFocus={index => setPosition({ page: index, atEnd: false })}
                 onProgress={setProgress}
                 onToggleChrome={chrome.toggle}
-                onPastEnd={() => chapter.next && onNextChapter()}
+                onPastEnd={() => goNext()}
                 footer={endCard}
               />
             ) : (
