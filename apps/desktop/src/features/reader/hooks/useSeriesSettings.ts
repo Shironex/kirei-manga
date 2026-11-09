@@ -9,6 +9,18 @@ const SAVE_DELAY_MS = 400;
 
 export type SettingsWriter = (key: string, value: unknown) => void;
 
+/** The settings each series' reader wrote last, including writes not saved yet. */
+const latest = new Map<number, unknown>();
+
+/**
+ * The settings a reader of `seriesId` wrote last in this session, or
+ * `undefined` when none did. The next chapter starts from these, since the
+ * save of the last change can still be waiting.
+ */
+export function latestSeriesSettings(seriesId: number): unknown {
+  return latest.get(seriesId);
+}
+
 /**
  * One writer for a series' settings object, shared by every reader feature
  * that keeps something there (`reader` prefs, image `adjust`ments). Each
@@ -36,6 +48,7 @@ export function useSeriesSettings(seriesId: number | null, initial: unknown): Se
     (key, value) => {
       if (seriesId === null) return;
       stored.current = mergeSettings(stored.current, key, value);
+      latest.set(seriesId, stored.current);
       pending.current = true;
       clearTimeout(timer.current);
       timer.current = setTimeout(flush, SAVE_DELAY_MS);
