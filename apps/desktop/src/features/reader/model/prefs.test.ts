@@ -3,12 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS } from '@/lib/settings/contract';
 
 import {
+  chosenMode,
   DEFAULT_PREFS,
   directionFromComicInfo,
   mergeSettings,
   parsePrefs,
   prefsFromAppSettings,
   prefsFromSettings,
+  startMode,
 } from './prefs';
 
 describe('parsePrefs', () => {
@@ -65,5 +67,32 @@ describe('directionFromComicInfo', () => {
     expect(directionFromComicInfo('No', 'rtl')).toBe('ltr');
     expect(directionFromComicInfo('Yes', 'ltr')).toBe('ltr');
     expect(directionFromComicInfo(null, 'rtl')).toBe('rtl');
+  });
+});
+
+describe('chosenMode', () => {
+  it('reads a mode the reader chose', () => {
+    expect(chosenMode({ reader: { mode: 'single', modeChosen: true } }, 'single')).toBe('single');
+    expect(chosenMode({ reader: { mode: 'webtoon', modeChosen: false } }, 'single')).toBeNull();
+  });
+
+  it('treats older entries as a choice only when they differ from the default', () => {
+    expect(chosenMode({ reader: { mode: 'double' } }, 'single')).toBe('double');
+    expect(chosenMode({ reader: { mode: 'single' } }, 'single')).toBeNull();
+    expect(chosenMode(null, 'single')).toBeNull();
+    expect(chosenMode({ reader: { mode: 'sideways', modeChosen: true } }, 'single')).toBeNull();
+  });
+});
+
+describe('startMode', () => {
+  const strips = [{ width: 800, height: 6000 }];
+  const pages = [{ width: 1200, height: 1800 }];
+
+  it('opens tall strip chapters in webtoon unless the series chose a mode', () => {
+    const base = { chosen: null, appDefault: 'single' as const, detectWebtoon: true };
+    expect(startMode({ ...base, pages: strips })).toBe('webtoon');
+    expect(startMode({ ...base, pages })).toBe('single');
+    expect(startMode({ ...base, chosen: 'double', pages: strips })).toBe('double');
+    expect(startMode({ ...base, detectWebtoon: false, pages: strips })).toBe('single');
   });
 });

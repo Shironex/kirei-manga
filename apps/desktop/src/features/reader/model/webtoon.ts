@@ -1,5 +1,26 @@
 import { ratioOf } from './fit';
+import { isTall } from './split';
 import type { PageSize } from './spreads';
+
+/** Share of the pages with a known size that must be tall strips. */
+export const WEBTOON_SHARE = 0.5;
+
+/**
+ * True when a chapter reads as a webtoon: at least half of its pages with a
+ * known size are tall strips. Uses only the header sizes `page_meta` already
+ * returns, so it costs nothing at open. Covers and credit pages of normal
+ * shape do not tip it, and a chapter with no sizes at all is not one.
+ */
+export function looksLikeWebtoon(pages: readonly PageSize[]): boolean {
+  let sized = 0;
+  let tall = 0;
+  for (const page of pages) {
+    if (!page.width || !page.height) continue;
+    sized += 1;
+    if (isTall(page)) tall += 1;
+  }
+  return sized > 0 && tall >= sized * WEBTOON_SHARE;
+}
 
 /** Where every strip of a webtoon chapter sits in the scroll column. */
 export interface StripLayout {
