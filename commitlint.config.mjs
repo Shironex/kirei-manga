@@ -20,6 +20,7 @@ export default {
         'library',
         'mangadex',
         'download',
+        'anilist',
         // Desktop app
         'desktop',
         'ui',
