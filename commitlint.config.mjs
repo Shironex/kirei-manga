@@ -18,6 +18,7 @@ export default {
         'archive',
         'reader',
         'library',
+        'mangadex',
         // Desktop app
         'desktop',
         'ui',
