@@ -1,6 +1,6 @@
 # Library
 
-The local library lives in `crates/kirei-library`: a SQLite catalogue, the folder scanner that fills it, reading progress, per-series settings, and a cover cache with the palette each cover seeds the theme with. The desktop shell wraps it in thin commands (`apps/desktop/src-tauri/src/catalog.rs`) and the renderer calls them through `apps/desktop/src/lib/library.ts`.
+The local library lives in `crates/kirei-library`: a SQLite catalogue, the folder scanner that fills it, reading progress, per-series settings, collections, tags and smart filters (see `docs/collections.md`), and a cover cache with the palette each cover seeds the theme with. The desktop shell wraps it in thin commands (`apps/desktop/src-tauri/src/catalog.rs`) and the renderer calls them through `apps/desktop/src/lib/library.ts`.
 
 User files are only ever read. Removing a root, or an archive vanishing, changes rows in the database and never anything on disk. Removing a root keeps reading progress and series settings (see Keeping progress).
 
@@ -22,7 +22,7 @@ Timestamps and file mtimes are `INTEGER` Unix milliseconds (UTC), so there is on
 
 SQL files in `crates/kirei-library/migrations/`, embedded at compile time and listed in `db.rs`. `PRAGMA user_version` records the last one applied. Each migration runs in one transaction with its version bump, so a failure leaves the previous version intact. A database from a newer build is refused rather than guessed at. Migrations are append only: never edit a shipped file, add the next number. `tests/migrations.rs` builds a v1 fixture database and opens it with the current build to prove the forward path, including that progress and settings come through with their identities.
 
-## Schema (v3)
+## Schema (v7)
 
 | Table              | One row per                              | Notes                                                                                                                                                              |
 | ------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -32,13 +32,17 @@ SQL files in `crates/kirei-library/migrations/`, embedded at compile time and li
 | `reading_progress` | chapter that has been opened             | `chapter_id` (nullable, `ON DELETE SET NULL`), `ident`, `file_size`, 0 based `page`, `page_count`, `completed` (sticky), `updated_at`, `orphaned_at`.              |
 | `series_settings`  | series with saved reader settings        | `series_id` (nullable, `ON DELETE SET NULL`), `ident`, `orphaned_at`; `settings` is a JSON blob owned by the UI (reader mode, filters, adjustments).               |
 | `app_settings`     | app setting the user changed             | Dotted `key`, JSON `value`. Contract and defaults in `kirei_core::AppSettings`; see `docs/settings.md`.                                                         |
+| `series_refs`      | series the user organised                | Local `series_id` (nullable, `ON DELETE SET NULL`) with `series_ident`, and/or `source` + `remote_id` for a MangaDex title; cached remote `title` and `cover_url`; `want_at` while in Want to Read. See `docs/collections.md`. |
+| `tags`, `series_tags` | free tag, and tag on a ref            | Tag names unique ignoring case; a tag on no ref is deleted.                                                                                                       |
+| `collections`, `collection_items` | collection, and its member | Both ordered by `position`; `cover_ref` picks the member whose cover stands for the collection.                                                                   |
+| `smart_filters`    | saved smart filter                       | `name`, `query` (JSON of `FilterQuery`), `pinned` to Home, `position`.                                                                                             |
 | `covers`           | distinct cover image                     | Keyed by the BLAKE3 hash of the source image bytes. Thumbnail file, size, and `palette` JSON.                                                                     |
 | `tracker_links`    | series linked to an AniList entry        | `series_key` (`local:<series ident>` or `mangadex:<uuid>`), `media_id`, `source`, cached `remote_*` state, `synced_progress`. No foreign keys; see `docs/tracking.md`. |
 | `tracker_queue`    | AniList entry with an update waiting     | One row per entry: `progress`, `status`, `score`, `state` (`pending`, `blocked`, `failed`), `attempts`, `revision`, `next_attempt_at`.                              |
 
-The tracking tables come from `0005_tracking.sql`. The file only creates its own tables (`IF NOT EXISTS`) and references no other table.
+The tracking tables come from `0005_tracking.sql` and the collection tables from `0007_collections.sql`. Each file only creates its own tables (`IF NOT EXISTS`); the collection file reads `series` and nothing newer.
 
-Deleting a root cascades to its series and chapters only. Tracker links are keyed by the series identity and stay too. Progress and settings survive as orphans (below). Cover rows and thumbnail files stay; they are shared by content and cost little.
+Deleting a root cascades to its series and chapters only. Tracker links are keyed by the series identity and stay too. Progress, settings and series refs (tags, collections, Want to Read) survive as orphans (below). Cover rows and thumbnail files stay; they are shared by content and cost little.
 
 ### Keeping progress
 
@@ -48,11 +52,11 @@ Progress and settings hang off a stable identity, not off row ids or absolute pa
 - `chapters.ident` is `<series ident>|<path relative to the series folder>` with `/` separators.
 - Progress also stores the chapter's `file_size` as its fingerprint (for an image folder, the sum of its image sizes).
 
-Removing a root deletes its series and chapter rows; the foreign keys null `chapter_id` and `series_id` on the progress and settings rows, which then count as orphans, and `remove_root` stamps `orphaned_at`. Every list and detail query goes through the live link, so orphans never show in the UI. During a scan, an orphan is re-linked to a chapter (or series) with the same `ident`; progress also needs the same `file_size`. That covers re-adding the same path and moving the folder under a different root, because the identity contains no root. A chapter that changes in place keeps its row, so its progress stays as before and only the stored fingerprint is refreshed.
+Removing a root deletes its series and chapter rows; the foreign keys null `chapter_id` and `series_id` on the progress and settings rows, which then count as orphans, and `remove_root` stamps `orphaned_at`. Every list and detail query goes through the live link, so orphans never show in the UI. During a scan, an orphan is re-linked to a chapter (or series) with the same `ident`; progress also needs the same `file_size`. Series refs follow the same rule through `series_refs.series_ident`, so a re-added folder gets its tags, collections and Want to Read back. That covers re-adding the same path and moving the folder under a different root, because the identity contains no root. A chapter that changes in place keeps its row, so its progress stays as before and only the stored fingerprint is refreshed.
 
 Why this over a content hash: the scanner already knows size per chapter without opening anything, so the fingerprint costs nothing, and a rename of the folder or file (rather than a move) is the only case it cannot follow. Why not the first page hash: it needs opening every archive again. Accepted limits: a replacement file of exactly the same name and byte size inherits the progress, and two roots holding a series of the same folder name each get their own progress (an orphan is claimed once).
 
-`Library::purge_orphans(older_than_days)` deletes orphans whose `orphaned_at` (falling back to `updated_at`) is at least that old and returns the counts. Nothing calls it automatically; the Settings screen's "Clean up hidden progress" button calls it through `library_purge_orphans`, after `count_orphans` told the confirm dialog how many rows go. Like `clear_cover_cache` it is refused while a scan runs. `prune_covers` deletes the cover thumbnails (and `covers` rows) that no series points at, such as those of deleted series or an older cover rule, and returns the space freed; `unused_covers` previews it. `ident` columns for rows that predate migration 2 are backfilled when the database opens.
+`Library::purge_orphans(older_than_days)` deletes orphans whose `orphaned_at` (falling back to `updated_at`) is at least that old and returns the counts. It also deletes the series refs of removed folders that carry no tag, collection or Want to Read (`shelf` in the counts); refs that still carry one stay for the folder to come back. Nothing calls it automatically; the Settings screen's "Clean up hidden progress" button calls it through `library_purge_orphans`, after `count_orphans` told the confirm dialog how many rows go. Like `clear_cover_cache` it is refused while a scan runs. `prune_covers` deletes the cover thumbnails (and `covers` rows) that no series points at, such as those of deleted series or an older cover rule, and returns the space freed; `unused_covers` previews it. `ident` columns for rows that predate migration 2 are backfilled when the database opens.
 
 ### Palette
 
