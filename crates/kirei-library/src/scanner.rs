@@ -862,6 +862,8 @@ pub(crate) fn kind_str(kind: SourceKind) -> &'static str {
         SourceKind::Zip => "zip",
         SourceKind::Rar => "rar",
         SourceKind::Folder => "folder",
+        // The scanner only finds local files; an online source is never stored.
+        SourceKind::Online => "online",
     }
 }
 
