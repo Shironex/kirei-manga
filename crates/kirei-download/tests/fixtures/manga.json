@@ -1,0 +1,94 @@
+{
+  "result": "ok",
+  "response": "entity",
+  "data": {
+    "id": "0b1f2c3d-0000-4000-8000-000000000001",
+    "type": "manga",
+    "attributes": {
+      "title": {
+        "en": "The Moonlit Bookshop"
+      },
+      "altTitles": [
+        {
+          "pl": "Księgarnia w blasku księżyca"
+        },
+        {
+          "ja-ro": "Tsukiakari no Shoten"
+        }
+      ],
+      "description": {
+        "en": "A bookshop that opens after midnight.",
+        "pl": "Księgarnia otwarta po północy."
+      },
+      "isLocked": false,
+      "links": {
+        "al": "123456",
+        "mal": "7890",
+        "raw": "https://publisher.example/moonlit"
+      },
+      "originalLanguage": "ja",
+      "lastVolume": "",
+      "lastChapter": "",
+      "publicationDemographic": "seinen",
+      "status": "ongoing",
+      "year": 2022,
+      "contentRating": "safe",
+      "tags": [
+        {
+          "id": "b9af3a63-f058-46de-a9a0-e0c13906197a",
+          "type": "tag",
+          "attributes": {
+            "name": {
+              "en": "Mystery"
+            },
+            "description": {},
+            "group": "genre",
+            "version": 1
+          },
+          "relationships": []
+        }
+      ],
+      "state": "published",
+      "chapterNumbersResetOnNewVolume": false,
+      "createdAt": "2022-03-01T10:00:00+00:00",
+      "updatedAt": "2026-10-30T18:22:41+00:00",
+      "version": 12,
+      "availableTranslatedLanguages": ["en", "pl"],
+      "latestUploadedChapter": "5c0a1b2c-0000-4000-8000-000000000003"
+    },
+    "relationships": [
+      {
+        "id": "a1a1a1a1-0000-4000-8000-0000000000a1",
+        "type": "author",
+        "attributes": {
+          "name": "Hinata Okawa"
+        }
+      },
+      {
+        "id": "a1a1a1a1-0000-4000-8000-0000000000a1",
+        "type": "artist",
+        "attributes": {
+          "name": "Hinata Okawa"
+        }
+      },
+      {
+        "id": "c0c0c0c0-0000-4000-8000-0000000000c1",
+        "type": "cover_art",
+        "attributes": {
+          "description": "",
+          "volume": "1",
+          "fileName": "c0ffee00-1111-4222-8333-444455556666.jpg",
+          "locale": "ja",
+          "createdAt": "2022-03-01T10:00:00+00:00",
+          "updatedAt": "2022-03-01T10:00:00+00:00",
+          "version": 1
+        }
+      },
+      {
+        "id": "0b1f2c3d-0000-4000-8000-000000000002",
+        "type": "manga",
+        "related": "side_story"
+      }
+    ]
+  }
+}
