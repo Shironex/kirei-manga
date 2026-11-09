@@ -63,6 +63,24 @@ After changing a model or a stop frame, rebuild and run `pnpm posters:landing` s
 
 Both run in the `landing` job of `.github/workflows/ci.yml`.
 
+## Display font
+
+The headings and the brand name use a cut-down Bricolage Grotesque, `apps/landing/src/assets/fonts/bricolage-display.woff2` (65.0 kB, down from 131.5 kB), declared in `apps/landing/src/styles/display-font.css`. It keeps weight 600 to 700, width 75% to 90% and the full optical size axis, and only Basic Latin plus curly quotes and the ellipsis. If display copy (any `h1`, `h2` or `h3`, the tour headings, or the brand name) needs another character, widen `--unicodes`, match `unicode-range` in `display-font.css`, and rerun. The same goes for a heading weight or width outside those ranges.
+
+Made with fonttools 4.68.0 in a throwaway venv, from the repo root, after `pnpm install`:
+
+```sh
+python3 -m venv /tmp/ft && /tmp/ft/bin/pip install fonttools==4.68.0 brotli
+SRC=apps/landing/node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-standard-normal.woff2
+/tmp/ft/bin/fonttools varLib.instancer "$SRC" wght=600:700 wdth=75:90 -o /tmp/bricolage-limited.ttf
+/tmp/ft/bin/pyftsubset /tmp/bricolage-limited.ttf \
+  --unicodes=20-7E,A0,2018-2019,201C-201D,2026 \
+  --flavor=woff2 --no-hinting --desubroutinize \
+  --output-file=apps/landing/src/assets/fonts/bricolage-display.woff2
+```
+
+On Windows the venv tools live in `ft\Scripts\` instead of `ft/bin/`; run the same commands from Git Bash with paths adjusted.
+
 ## Deploy (Coolify)
 
 The site is a Coolify application, uuid `q94eolyvc98izz59js4vskzy`, built from `Dockerfile.landing`: a pnpm build stage, then `serve` on port 3000 as a non-root user (uid 10001). It is a static site, so there are no runtime env vars.
