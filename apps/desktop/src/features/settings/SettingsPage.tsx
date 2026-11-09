@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getRouteApi } from '@tanstack/react-router';
 
 import { PageHeader } from '@/components/page/PageHeader';
@@ -11,23 +11,12 @@ import { AppearanceSection } from './AppearanceSection';
 import { DataSection } from './DataSection';
 import { DownloadsSection } from './DownloadsSection';
 import { LibrarySection } from './LibrarySection';
+import { OnlineSection } from './OnlineSection';
 import { ReaderSection } from './ReaderSection';
+import { SECTIONS, type SectionId } from './sections';
 import { ShortcutsSection } from './ShortcutsSection';
 
 const route = getRouteApi('/shell/settings');
-
-const SECTIONS = [
-  { id: 'appearance', label: 'Appearance' },
-  { id: 'reader', label: 'Reader' },
-  { id: 'library', label: 'Library' },
-  { id: 'downloads', label: 'Downloads' },
-  { id: 'accounts', label: 'Accounts' },
-  { id: 'data', label: 'Data' },
-  { id: 'shortcuts', label: 'Shortcuts' },
-  { id: 'about', label: 'About' },
-] as const;
-
-type SectionId = (typeof SECTIONS)[number]['id'];
 
 /** The last section whose heading has reached the top of the scroll area, for the nav highlight. */
 function useActiveSection(initial: SectionId): [SectionId, (id: SectionId) => void] {
@@ -68,15 +57,24 @@ function useActiveSection(initial: SectionId): [SectionId, (id: SectionId) => vo
 
 export function SettingsPage() {
   const { info } = route.useLoaderData();
+  const { section: opened } = route.useSearch();
   const { error } = useSettings();
   const [active, setActive] = useActiveSection('appearance');
 
-  const jump = (id: SectionId) => {
-    setActive(id);
-    const section = document.getElementById(`settings-${id}`);
-    section?.scrollIntoView({ block: 'start' });
-    section?.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
-  };
+  const jump = useCallback(
+    (id: SectionId) => {
+      setActive(id);
+      const section = document.getElementById(`settings-${id}`);
+      section?.scrollIntoView({ block: 'start' });
+      section?.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
+    },
+    [setActive]
+  );
+
+  // A link such as "Sign in again" opens the page on its section.
+  useEffect(() => {
+    if (opened) jump(opened);
+  }, [opened, jump]);
 
   return (
     <>
@@ -112,8 +110,9 @@ export function SettingsPage() {
           <AppearanceSection />
           <ReaderSection />
           <LibrarySection />
-          <DownloadsSection />
+          <OnlineSection />
           <AccountsSection />
+          <DownloadsSection />
           <DataSection />
           <ShortcutsSection />
           <AboutSection info={info} />
