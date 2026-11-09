@@ -1,5 +1,6 @@
 import { NAV_SHORTCUTS } from '@/app/shell/useShortcuts';
 import { chapterLabel, type SeriesDetail, type SeriesSummary } from '@/lib/library';
+import type { ShelfOverview } from '@/lib/shelf';
 
 import { prepare, queryWords, scoreSearchable } from './fuzzy';
 import type { IndexEntry, PaletteItem, PaletteSection } from './types';
@@ -8,8 +9,9 @@ import type { IndexEntry, PaletteItem, PaletteSection } from './types';
  * What the palette can find. Series are indexed from the library store and
  * memoised on the array the store hands out, so typing never rebuilds it and
  * a rescan rebuilds it once. Chapters are indexed per series on demand (the
- * catalogue has no cheap list of every chapter). Pages, settings and actions
- * are fixed.
+ * catalogue has no cheap list of every chapter). Collections, smart filters
+ * and tags come from the shelf store, memoised the same way. Pages, settings
+ * and actions are fixed.
  */
 
 const entry = (item: PaletteItem, extra = ''): IndexEntry => ({
@@ -19,6 +21,7 @@ const entry = (item: PaletteItem, extra = ''): IndexEntry => ({
 
 const PAGES: [path: keyof typeof NAV_SHORTCUTS, title: string, extra: string][] = [
   ['/library', 'Library', 'home shelf series'],
+  ['/collections', 'Collections', 'lists tags smart filters want to read shelves'],
   ['/browse', 'Browse', 'online mangadex discover'],
   ['/downloads', 'Downloads', 'queue offline'],
   ['/stats', 'Reading stats', 'streak heatmap year in review hours history'],
@@ -120,6 +123,67 @@ export function seriesEntries(series: readonly SeriesSummary[]): IndexEntry[] {
   return built;
 }
 
+const shelfIndexes = new WeakMap<ShelfOverview, IndexEntry[]>();
+
+const count = (n: number) => `${n.toLocaleString('en')} series`;
+
+/** Want to Read, every collection, smart filter and tag, memoised on the overview. */
+export function shelfEntries(overview: ShelfOverview): IndexEntry[] {
+  let built = shelfIndexes.get(overview);
+  if (!built) {
+    built = [
+      entry(
+        {
+          id: 'collection:want',
+          section: 'shelf',
+          title: 'Want to Read',
+          subtitle: `List, ${count(overview.wantCount)}`,
+          target: { type: 'shelf', shelf: { kind: 'collection', id: 'want' } },
+        },
+        'list later queue plan to read bookmark'
+      ),
+      ...overview.collections.map(c =>
+        entry(
+          {
+            id: `collection:${c.id}`,
+            section: 'shelf',
+            title: c.name,
+            subtitle: `Collection, ${count(c.count)}`,
+            target: { type: 'shelf', shelf: { kind: 'collection', id: String(c.id) } },
+          },
+          'collection list shelf'
+        )
+      ),
+      ...overview.filters.map(f =>
+        entry(
+          {
+            id: `filter:${f.id}`,
+            section: 'shelf',
+            title: f.name,
+            subtitle: f.pinned ? 'Smart filter, on Home' : 'Smart filter',
+            target: { type: 'shelf', shelf: { kind: 'filter', id: f.id } },
+          },
+          'smart filter saved search'
+        )
+      ),
+      ...overview.tags.map(t =>
+        entry(
+          {
+            id: `tag:${t.id}`,
+            section: 'shelf',
+            title: t.name,
+            subtitle: `Tag, ${count(t.count)}`,
+            target: { type: 'shelf', shelf: { kind: 'tag', id: t.id } },
+          },
+          'tag'
+        )
+      ),
+    ];
+    shelfIndexes.set(overview, built);
+  }
+  return built;
+}
+
 /** Entries for the readable chapters of one series. The series title also finds them. */
 export function chapterEntries(
   detail: Pick<SeriesDetail, 'id' | 'title' | 'chapters'>
@@ -167,6 +231,7 @@ export function searchEntries(
 /** How many results each group shows for a typed query. */
 export const SECTION_LIMITS: Record<Exclude<PaletteSection, 'recent'>, number> = {
   series: 8,
+  shelf: 5,
   chapters: 6,
   pages: 3,
   settings: 5,

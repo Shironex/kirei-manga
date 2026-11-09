@@ -4,11 +4,12 @@ import type { Searchable } from './fuzzy';
 
 /** The groups of results, in the order the palette lists them. */
 export type PaletteSection =
-  'recent' | 'series' | 'chapters' | 'pages' | 'settings' | 'actions' | 'online';
+  'recent' | 'series' | 'shelf' | 'chapters' | 'pages' | 'settings' | 'actions' | 'online';
 
 export const SECTION_LABELS: Record<PaletteSection, string> = {
   recent: 'Recent',
   series: 'Series',
+  shelf: 'Collections and filters',
   chapters: 'Chapters',
   pages: 'Go to',
   settings: 'Settings',
@@ -19,6 +20,7 @@ export const SECTION_LABELS: Record<PaletteSection, string> = {
 export const SECTION_ORDER: readonly PaletteSection[] = [
   'recent',
   'series',
+  'shelf',
   'chapters',
   'pages',
   'settings',
@@ -26,10 +28,15 @@ export const SECTION_ORDER: readonly PaletteSection[] = [
   'online',
 ];
 
+/** A collection (or `want` for Want to Read), a smart filter or a tag page. */
+export type ShelfTarget =
+  { kind: 'collection'; id: string } | { kind: 'filter'; id: number } | { kind: 'tag'; id: number };
+
 /** Everything a target may need to run; supplied by the palette host. */
 export interface PaletteContext {
   goTo: (to: NavPath) => void;
   goToSeries: (seriesId: number) => void;
+  goToShelf: (target: ShelfTarget) => void;
   openChapter: (seriesId: number, chapterId: number) => void;
   close: () => void;
 }
@@ -38,6 +45,7 @@ export interface PaletteContext {
 export type PaletteTarget =
   | { type: 'series'; seriesId: number }
   | { type: 'chapter'; seriesId: number; chapterId: number }
+  | { type: 'shelf'; shelf: ShelfTarget }
   | { type: 'page'; to: NavPath }
   | { type: 'section'; section: string }
   | { type: 'action'; action: PaletteActionId }

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { SeriesSummary } from '@/lib/library';
 
 import { matchPositions, prepare, queryWords, scoreSearchable } from './fuzzy';
-import { chapterEntries, searchEntries, seriesEntries, staticEntries } from './index';
+import { chapterEntries, searchEntries, seriesEntries, shelfEntries, staticEntries } from './index';
 import { pushRecent, RECENT_LIMIT, resolveRecents } from './recents';
 import type { PaletteItem } from './types';
 
@@ -196,5 +196,64 @@ describe('recents', () => {
     );
     expect(out.map(r => r.id)).toEqual(['series:1', 'page:/library']);
     expect(out[1]?.keys).toEqual(['Ctrl', '1']);
+  });
+});
+
+describe('shelf entries', () => {
+  const overview = {
+    wantCount: 2,
+    collections: [
+      {
+        id: 3,
+        name: 'Summer shelf',
+        position: 0,
+        count: 4,
+        coverRefId: null,
+        preview: [],
+        updatedAt: 0,
+      },
+    ],
+    tags: [{ id: 5, name: 'Cosy', count: 1 }],
+    filters: [
+      {
+        id: 8,
+        name: 'Unread isekai',
+        query: {
+          tags: [],
+          tagMode: 'any' as const,
+          excludeTags: [],
+          collections: [],
+          wantToRead: null,
+          status: [],
+          minUnread: null,
+          languages: [],
+          source: null,
+          addedWithinDays: null,
+          sort: 'title' as const,
+        },
+        pinned: true,
+        position: 0,
+        updatedAt: 0,
+      },
+    ],
+  };
+
+  it('finds collections, filters, tags and Want to Read by name', () => {
+    const entries = shelfEntries(overview);
+    const find = (q: string) => searchEntries(entries, q, 5).map(h => h.item.id);
+    expect(find('summer')).toEqual(['collection:3']);
+    expect(find('isekai')).toEqual(['filter:8']);
+    expect(find('cosy')).toEqual(['tag:5']);
+    expect(find('want')).toEqual(['collection:want']);
+    expect(find('later')).toEqual(['collection:want']);
+  });
+
+  it('is memoised on the overview, and recents drop what is gone', () => {
+    const entries = shelfEntries(overview);
+    expect(shelfEntries(overview)).toBe(entries);
+    const current = new Map(entries.map(e => [e.item.id, e.item]));
+    const gone = { ...entries[1]!.item, id: 'collection:99' };
+    const shown = resolveRecents([entries[1]!.item, gone], current, () => true);
+    expect(shown.map(i => i.id)).toEqual(['collection:3']);
   });
 });

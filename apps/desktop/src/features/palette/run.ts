@@ -48,6 +48,8 @@ export async function runItem(item: PaletteItem, ctx: PaletteContext): Promise<v
       return ctx.goToSeries(target.seriesId);
     case 'chapter':
       return ctx.openChapter(target.seriesId, target.chapterId);
+    case 'shelf':
+      return ctx.goToShelf(target.shelf);
     case 'page':
       return ctx.goTo(target.to);
     case 'section':

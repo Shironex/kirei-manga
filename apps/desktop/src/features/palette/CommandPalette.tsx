@@ -6,6 +6,7 @@ import {
   CornerDownLeft,
   Globe,
   History,
+  Layers,
   Library,
   Search,
   Settings,
@@ -28,6 +29,7 @@ import { usePaletteResults } from './usePaletteResults';
 const ICONS: Record<PaletteSection, LucideIcon> = {
   recent: History,
   series: Library,
+  shelf: Layers,
   chapters: BookOpen,
   pages: Search,
   settings: Settings,
@@ -106,6 +108,15 @@ export function CommandPalette() {
       goTo: to => void navigate({ to }),
       goToSeries: seriesId =>
         void navigate({ to: '/series/$seriesId', params: { seriesId: String(seriesId) } }),
+      goToShelf: target => {
+        if (target.kind === 'collection') {
+          void navigate({ to: '/collections/$collectionId', params: { collectionId: target.id } });
+        } else if (target.kind === 'filter') {
+          void navigate({ to: '/filters/$filterId', params: { filterId: String(target.id) } });
+        } else {
+          void navigate({ to: '/tags/$tagId', params: { tagId: String(target.id) } });
+        }
+      },
       openChapter: (seriesId, chapterId) => openChapter({ kind: 'library', seriesId, chapterId }),
       close: () => setPaletteOpen(false),
     }),
