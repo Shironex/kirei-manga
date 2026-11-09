@@ -260,6 +260,11 @@ pub(crate) const EMPTY_REF: &str = "series_refs.want_at IS NULL
     AND NOT EXISTS (SELECT 1 FROM collection_items i WHERE i.ref_id = series_refs.id)
     AND NOT EXISTS (SELECT 1 FROM collections c WHERE c.cover_ref = series_refs.id)";
 
+/// A reference row a removed folder left behind: a local series whose row
+/// is gone. With [`EMPTY_REF`] it is what the orphan purge deletes; one that
+/// still carries a tag, a collection or Want to Read waits for the folder.
+pub(crate) const ORPHAN_REF: &str = "series_refs.series_id IS NULL AND series_refs.source IS NULL";
+
 /// Deletes tags nobody carries and reference rows that hold nothing any
 /// more.
 fn prune(conn: &Connection) -> Result<()> {

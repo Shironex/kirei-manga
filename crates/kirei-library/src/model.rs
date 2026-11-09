@@ -159,4 +159,6 @@ pub struct CoverCacheUsage {
 pub struct OrphanPurge {
     pub progress: usize,
     pub settings: usize,
+    /// Empty series references of removed folders (see `docs/collections.md`).
+    pub shelf: usize,
 }
