@@ -13,7 +13,7 @@
     "build": "pnpm --filter @kireimanga/desktop build",
     "dev:landing": "pnpm --filter @kireimanga/landing dev",
     "build:landing": "pnpm --filter @kireimanga/landing build",
-    "og:landing": "pnpm --filter @kireimanga/landing og",
+    "posters:landing": "pnpm --filter @kireimanga/landing posters",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
