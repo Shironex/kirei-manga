@@ -3,7 +3,6 @@ import { Link } from '@tanstack/react-router';
 import { Check, CircleDashed, Download, Users } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { DOWNLOADS_READY } from '@/features/downloads/requestDownload';
 import { openMangaDex, type Chapter, type Marker } from '@/lib/online';
 import { cn } from '@/lib/utils';
 
@@ -154,7 +153,7 @@ function ChapterRow({
             variant="quiet"
             size="icon-sm"
             aria-label={`Download ${label}`}
-            title={DOWNLOADS_READY ? 'Download' : 'Downloads arrive in a later update'}
+            title="Download for offline reading"
             className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
             onClick={onDownload}
           >
