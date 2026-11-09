@@ -9,12 +9,17 @@ import {
   redirect,
 } from '@tanstack/react-router';
 
-import { BrowsePage } from '@/features/browse/BrowsePage';
+import {
+  BrowseFollowingPage,
+  BrowseSearchPage,
+  BrowseUpdatesPage,
+} from '@/features/browse/BrowsePage';
 import { DownloadsPage } from '@/features/downloads/DownloadsPage';
 import { LibraryPage, validateLibrarySearch } from '@/features/library/LibraryPage';
 import { parseFileSearch, parsePageSearch } from '@/features/reader/openChapter';
 import { SeriesPage } from '@/features/series/SeriesPage';
 import { loadAbout } from '@/features/settings/loadAbout';
+import { validateSettingsSearch } from '@/features/settings/sections';
 
 import { AppShell } from './shell/AppShell';
 import {
@@ -31,11 +36,14 @@ import {
  *
  *   /                          redirects to /library
  *   shell layout (rail + ambient)
- *     /library  /browse  /downloads  /stats  /settings
+ *     /library  /downloads  /stats  /settings?section=
+ *     /browse  /browse/updates  /browse/following
  *     /series/$seriesId
+ *     /online/$mangaId            a MangaDex series
  *     /dev/design  /dev/engine (dev builds only)
  *   /read/$seriesId/$chapterId  full-window reader, outside the shell
  *   /read/file?path=            the reader on an archive or folder from disk
+ *   /read/online/$mangaId/$chapterId  a MangaDex chapter in the reader
  *
  * The library and the series page are in the main chunk so first paint and
  * the step into a series stay instant. Settings, stats and the reader load their
@@ -81,7 +89,28 @@ const seriesRoute = createRoute({
 const browseRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/browse',
-  component: BrowsePage,
+  component: BrowseSearchPage,
+});
+
+const browseUpdatesRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: '/browse/updates',
+  component: BrowseUpdatesPage,
+});
+
+const browseFollowingRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: '/browse/following',
+  component: BrowseFollowingPage,
+});
+
+const onlineSeriesRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: '/online/$mangaId',
+  component: lazyRouteComponent(
+    () => import('@/features/online/OnlineSeriesPage'),
+    'OnlineSeriesPage'
+  ),
 });
 
 const downloadsRoute = createRoute({
@@ -99,6 +128,7 @@ const statsRoute = createRoute({
 const settingsRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/settings',
+  validateSearch: validateSettingsSearch,
   loader: loadAbout,
   component: lazyRouteComponent(() => import('@/features/settings/SettingsPage'), 'SettingsPage'),
 });
@@ -143,12 +173,25 @@ const readFileRoute = createRoute({
   pendingComponent: ReaderPending,
 });
 
+const readOnlineRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/read/online/$mangaId/$chapterId',
+  component: lazyRouteComponent(
+    () => import('@/features/online/OnlineReaderPage'),
+    'OnlineReaderPage'
+  ),
+  pendingComponent: ReaderPending,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   shellRoute.addChildren([
     libraryRoute,
     seriesRoute,
     browseRoute,
+    browseUpdatesRoute,
+    browseFollowingRoute,
+    onlineSeriesRoute,
     downloadsRoute,
     statsRoute,
     settingsRoute,
@@ -157,6 +200,7 @@ const routeTree = rootRoute.addChildren([
   ]),
   readerRoute,
   readFileRoute,
+  readOnlineRoute,
 ]);
 
 export function createAppRouter() {
