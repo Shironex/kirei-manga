@@ -44,7 +44,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # Fails in seconds, before any runner spends half an hour building, and
       # names every missing secret at once. Values are only tested for being
@@ -141,7 +141,7 @@ jobs:
       VERSION: ${{ needs.preflight.outputs.version }}
       BUNDLE_DIR: target/${{ matrix.target }}/release/bundle
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup
 
@@ -311,7 +311,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
@@ -359,7 +359,7 @@ jobs:
       PRERELEASE: ${{ needs.preflight.outputs.prerelease }}
     steps:
       # Full history and tags: the notes cover the range since the last tag.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -412,7 +412,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install minisign
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends minisign
