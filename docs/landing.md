@@ -27,37 +27,42 @@ The home page is one sticky full-viewport stage behind scrolling stop sections: 
 
 ## 3D contract
 
-Files under `apps/landing/public/3d/`:
+Files under `apps/landing/public/3d/`, all web ready: KTX2 (etc1s) textures, meshopt geometry, real size in metres, origin at the bottom centre, front towards +Z.
 
 | File | Loaded | Purpose |
 | --- | --- | --- |
-| `scene.glb` | optional, island only | The desk set. When missing, the procedural blockout in `src/scene/Desk.tsx` stands in. |
-| `mascot.glb` | optional, island only | Kirei, 12 cm tall, base at the origin, KTX2 (etc1s) textures, meshopt geometry. Placed on `mascot_anchor` and plays its first animation. When missing, a flat stand-in sprite (`kirei-standin.webp`) is used. |
+| `props/desk.glb` | island only | The desk, 1.10 m by 0.56 m. Lifted so its top sits at `DESK_TOP` (0.75 m). |
+| `props/volume_open.glb`, `tea.glb`, `lamp.glb`, `shelf.glb`, `tablet.glb`, `bookend.glb`, `volume_stack.glb` | island only | One file per prop, placed at its anchor in `src/scene/props.ts` (position on the desk top and a turn about Y). |
+| `mascot.glb` | island only | Kirei, 18 cm tall. Her front looks down +X, so the scene turns her to face the Library camera. Stands on `mascot_anchor` and plays her first animation if she has one. |
 | `posters/*.webp` | always | The static stage for phones, reduced motion, no WebGL and the first paint. |
-| `decoders/` | island only | Draco, Basis (KTX2) transcoders, copied from `three` at `dev` and `build` time by `scripts/copy-decoders.mjs`. Gitignored. Served locally, no CDN. |
+| `kirei-standin.webp` | island only, without `mascot.glb` | A flat cut-out of Kirei, used only while `mascot.glb` is missing. |
+| `decoders/` | island only | Draco and Basis (KTX2) transcoders, copied from `three` at `dev` and `build` time by `scripts/copy-decoders.mjs`. Gitignored. Served locally, no CDN. |
 
-Named nodes `scene.glb` may carry (all optional, read by `src/scene/anchors.ts`; missing ones fall back to the defaults in `src/tour/stops.ts`):
+Which files exist is read at build time (`astro.config.mjs`), so a missing file never costs a request. Every prop starts as a procedural blockout (`src/scene/Desk.tsx`) and is swapped for its file once it loads; a prop whose file is missing or fails keeps its blockout, alone. The scene goes live once every prop has loaded or failed.
 
-- `stop_<id>_cam` and `stop_<id>_look` for each stop id (`hero`, `reader`, `theme`, `archives`, `library`): camera position and look target.
-- `ribbon_00`, `ribbon_01`, ...: control points of the page ribbon, in order. Four or more replace the default path.
-- `mascot_anchor`: where Kirei stands (on the volume stack).
-- `lamp_light` and `lamp_target`: the desk lamp's spot light.
-- `prop_<name>`: groups for the props (`volume_open`, `tea`, `lamp`, `shelf`, `tablet`, `bookend`, `volume_stack`).
+Named parts the scene dresses:
 
-The glowing page ribbon is not in `scene.glb`. It is built in code (`src/scene/Ribbon.tsx`) along a centripetal Catmull-Rom curve through the ribbon points, and the camera rig follows the same curve between stops.
+- `tablet.glb`: the mesh with material `screen` (UVs 0 to 1) shows a painted manga page.
+- `volume_stack.glb`: materials `cover_1` to `cover_3` (UVs 0 to 1 per face) wear the painted covers of the fictional series, bottom to top Stardust Relay, Akane Signal and The Moonlit Bookshop; `pages` becomes cream paper. Kirei stands on the top of the stack, measured from the file.
+- `desk.glb`: its grey is pushed towards black with an even soft gloss (its compressed normal and roughness maps show blocks in a glossy highlight, so they are dropped).
+- `lamp.glb`: a warm glow and the spot light sit under the shade (`LAMP_BULB` in `src/scene/props.ts`), aimed at the open volume.
 
-After changing a model or a stop frame, rebuild and run `pnpm posters:landing` so the posters and `og.png` match the live scene. Commit the regenerated files.
+Anchors the scene places on the props (`src/scene/anchors.ts`): `mascot_anchor` (top of the stack), `lamp_light` (the bulb) and `lamp_target` (the open volume). The camera stops and the ribbon's course are in `src/tour/stops.ts`, in the same desk coordinates as the prop anchors.
+
+The glowing page ribbon is not a file. It is built in code (`src/scene/Ribbon.tsx`) along a centripetal Catmull-Rom curve through the ribbon points, from the open volume past every prop to Kirei's feet, and the camera rig follows the same curve between stops.
+
+After changing a model, a prop anchor or a stop frame, rebuild and run `pnpm posters:landing` so the posters and `og.png` match the live scene. Commit the regenerated files.
 
 ## Budgets and checks
 
-`scripts/check-budget.mjs` reads `dist` and fails above these limits (text is counted gzipped):
+`scripts/check-budget.mjs` reads `dist` and fails above these limits. Whatever the serve container compresses (text, wasm and the GLBs) is counted gzipped:
 
 | Measure | Limit |
 | --- | --- |
 | First view JS | 15 kB |
 | First view total (HTML, CSS, eager JS, preloads, eager images) | 450 kB |
 | 3D island JS | 400 kB |
-| 3D island assets (models and the Basis transcoder) | 1600 kB |
+| 3D island assets (the prop files, the mascot and the Basis transcoder) | 2400 kB |
 
 `scripts/check-page.mjs` runs axe (WCAG 2.1 A and AA) at 1440, 390 and 320 px wide, checks for sideways scroll and the 16px phone gutter, loads the page with JavaScript off, and checks that reduced motion keeps the posters.
 
@@ -91,7 +96,7 @@ At the 1.0 master swap (when `rewrite/tauri` becomes `master`):
 
 1. Point the application at `master` with `Dockerfile.landing` as the Dockerfile and the repo root as the build context.
 2. Set its watch paths to `apps/landing/**` so only landing changes redeploy it. Add `Dockerfile.landing` too if the Dockerfile should trigger a deploy on its own.
-3. Turn maintenance mode off and deploy once by hand; check `/`, `/404`, `/og.png` and `/3d/mascot.glb` answer.
+3. Turn maintenance mode off and deploy once by hand; check `/`, `/404`, `/og.png`, `/3d/mascot.glb` and `/3d/props/desk.glb` answer.
 
 `Dockerfile.landing` pins pnpm through corepack and must match `packageManager` in the root `package.json` (10.34.9 at the time of writing). Bump both together.
 
@@ -99,5 +104,4 @@ The download buttons link to `releases/latest` on GitHub. Until 1.0 is published
 
 ## Placeholders
 
-- The desk props are a procedural blockout until a modelled `scene.glb` lands.
 - The screenshots section uses the approved prototype captures from `docs/design/screenshots`; real captures of the finished app replace them with the release.
