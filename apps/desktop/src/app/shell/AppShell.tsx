@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Outlet, useRouterState } from '@tanstack/react-router';
 
+import { useMangaDexPalette } from '@/features/online/useMangaDexPalette';
 import { CommandPalette } from '@/features/palette/CommandPalette';
 
 import { Ambient } from './Ambient';
@@ -24,6 +25,7 @@ export function AppShell() {
 /** The frame on its own, for screens rendered outside the shell route (not found). */
 export function ShellFrame({ children }: { children: ReactNode }) {
   useShortcuts();
+  useMangaDexPalette();
   const pathname = useRouterState({ select: s => s.location.pathname });
 
   return (

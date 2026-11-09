@@ -25,11 +25,13 @@ const PAGES: [path: keyof typeof NAV_SHORTCUTS, title: string, extra: string][] 
   ['/settings', 'Settings', 'preferences options'],
 ];
 
-/** Sections of the Settings screen. Ids match `SECTIONS` in `SettingsPage`. */
+/** Sections of the Settings screen. Ids match `SECTIONS` in `settings/sections.ts`. */
 const SETTINGS: [section: string, title: string, extra: string][] = [
   ['appearance', 'Appearance', 'theme colour strength glass motion ambient'],
   ['reader', 'Reader settings', 'mode direction fit filter spreads page'],
   ['library', 'Library settings', 'folders roots scan covers cache orphans progress'],
+  ['online', 'MangaDex settings', 'online languages polish ratings data saver notifications'],
+  ['accounts', 'Accounts', 'sign in login mangadex keychain session'],
   ['downloads', 'Download settings', 'offline cbz folder data saver concurrency follows'],
   ['accounts', 'Accounts', 'anilist tracking sign in login sync progress tracker'],
   ['data', 'Data and backup', 'backup restore export import data folder portable'],
