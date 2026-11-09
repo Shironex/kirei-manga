@@ -312,6 +312,10 @@ export type CoverSize = 256 | 512 | 'full';
  * fetched in Rust and handed over as bytes, never hotlinked.
  */
 export function onlineCoverUrl(manga: Pick<Manga, 'id' | 'cover'>, size: CoverSize = 256) {
-  if (!manga.cover) return null;
-  return convertFileSrc(`cover/${manga.id}/${manga.cover.fileName}/${size}`, ONLINE_SCHEME);
+  return manga.cover ? coverFileUrl(manga.id, manga.cover.fileName, size) : null;
+}
+
+/** The same URL from a manga id and a cover file name kept on their own. */
+export function coverFileUrl(mangaId: string, fileName: string, size: CoverSize = 256) {
+  return convertFileSrc(`cover/${mangaId}/${fileName}/${size}`, ONLINE_SCHEME);
 }
