@@ -256,6 +256,40 @@ fn the_selection_shelf_counts_what_the_selection_carries() {
 }
 
 #[test]
+fn the_orphan_purge_drops_empty_references_and_keeps_the_rest() {
+    let fx = scanned();
+    let lib = &fx.library;
+    let (ash, bloom) = (id_of(lib, "Ash"), id_of(lib, "Bloom"));
+    lib.tag_series(&[local(ash)], "Kept").unwrap();
+    lib.set_want_to_read(&[local(bloom), remote("d-1", "Dex")], true)
+        .unwrap();
+    lib.remove_root(lib.roots().unwrap()[0].id).unwrap();
+
+    // A reference a removed folder left with nothing on it (an older build
+    // or a half finished edit), next to the two that still carry something.
+    let conn = Connection::open(fx._dir.path().join("data/library.sqlite3")).unwrap();
+    conn.execute(
+        "INSERT INTO series_refs (series_ident, created_at, updated_at) VALUES ('dir:Gone', 0, 0)",
+        [],
+    )
+    .unwrap();
+    let refs = |conn: &Connection| -> i64 {
+        conn.query_row("SELECT count(*) FROM series_refs", [], |row| row.get(0))
+            .unwrap()
+    };
+    assert_eq!(refs(&conn), 4);
+
+    assert_eq!(lib.count_orphans().unwrap().shelf, 1);
+    assert_eq!(lib.purge_orphans(0).unwrap().shelf, 1);
+    assert_eq!(lib.count_orphans().unwrap().shelf, 0);
+    // The tagged orphan, the wanted orphan and the MangaDex title stay.
+    assert_eq!(refs(&conn), 3);
+    lib.scan(None, &|_| {}).unwrap();
+    assert_eq!(lib.tags().unwrap()[0].count, 0);
+    assert_eq!(lib.want_to_read().unwrap().len(), 1);
+}
+
+#[test]
 fn the_shelf_survives_a_removed_and_re_added_folder() {
     let fx = scanned();
     let lib = &fx.library;

@@ -73,6 +73,7 @@ pub use tracking::{
 };
 pub use watcher::{LibraryWatcher, WatchConfig, WatchProgress};
 
+use collections::{EMPTY_REF, ORPHAN_REF};
 use covers::CoverCache;
 
 /// Milliseconds since the Unix epoch, the unit of every stored timestamp.
@@ -186,7 +187,9 @@ impl Library {
     }
 
     /// Deletes progress and settings whose chapter or series is gone and has
-    /// been for at least `older_than_days` (0 purges every orphan). Never
+    /// been for at least `older_than_days` (0 purges every orphan), and the
+    /// series references such series left that carry no tag, collection or
+    /// Want to Read. References that still carry one are kept. Never
     /// called on its own: it is for an explicit "forget old progress" action.
     pub fn purge_orphans(&self, older_than_days: u32) -> Result<OrphanPurge> {
         // A scan can adopt orphans again, so the two never overlap.
@@ -204,8 +207,18 @@ impl Library {
              WHERE series_id IS NULL AND coalesce(orphaned_at, updated_at) <= ?1",
             [cutoff],
         )?;
+        let shelf = tx.execute(
+            &format!(
+                "DELETE FROM series_refs WHERE {ORPHAN_REF} AND {EMPTY_REF} AND updated_at <= ?1"
+            ),
+            [cutoff],
+        )?;
         tx.commit()?;
-        Ok(OrphanPurge { progress, settings })
+        Ok(OrphanPurge {
+            progress,
+            settings,
+            shelf,
+        })
     }
 
     /// How many orphans [`Self::purge_orphans`]`(0)` would delete, without
@@ -219,6 +232,9 @@ impl Library {
         Ok(OrphanPurge {
             progress: count("SELECT count(*) FROM reading_progress WHERE chapter_id IS NULL")?,
             settings: count("SELECT count(*) FROM series_settings WHERE series_id IS NULL")?,
+            shelf: count(&format!(
+                "SELECT count(*) FROM series_refs WHERE {ORPHAN_REF} AND {EMPTY_REF}"
+            ))?,
         })
     }
 
