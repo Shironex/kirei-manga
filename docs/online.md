@@ -7,7 +7,7 @@ Browsing, following and reading MangaDex inside KireiManga (#43). The API client
 | Layer      | Path                                          | Role                                                                                      |
 | ---------- | --------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | State      | `apps/desktop/src-tauri/src/online/mod.rs`    | `Online`: the one shared `MangaDex` client, session and network state, the cover cache     |
-| Keychain   | `src-tauri/src/online/credentials.rs`         | Client id, client secret and session tokens in the OS keychain, wired to `TokenSink`       |
+| Keychain   | `src-tauri/src/online/credentials.rs`         | Client id, client secret and session tokens through the shared `keychain.rs` helper, wired to `TokenSink` |
 | Commands   | `src-tauri/src/online/commands.rs`            | Every `online_*` command and the typed `OnlineError`                                       |
 | Sync       | `src-tauri/src/online/sync.rs`                | Follows, the updates feed, read markers both ways, the grouped feed                        |
 | Schedule   | `src-tauri/src/online/refresh.rs`             | The background refresh and the new chapter notification                                    |
@@ -105,7 +105,8 @@ Signing out forgets follows, statuses, feed and markers (`online_forget_account`
 
 | Hook                                     | Where                                                         |
 | ---------------------------------------- | ------------------------------------------------------------- |
-| Download action on chapter rows          | `apps/desktop/src/features/downloads/requestDownload.ts`: `requestDownload(chapterIds)` and `DOWNLOADS_READY`, called by `OnlineChapterList` |
-| The shared client                        | `app.state::<Online>().client()` in Rust                     |
+| Download action on chapter rows          | `requestDownload(chapterIds)` from `apps/desktop/src/lib/downloads.ts`, called by `OnlineSeriesPage` for a row of `OnlineChapterList` |
+| Automatic downloads                      | `downloads::auto_download_new` with the fresh chapter ids of each feed refresh (not the first), in `online/refresh.rs` |
+| The shared client for other slices       | `mangadex_client::shared(app)` returns the client held by `Online` |
 | AniList id of a series                   | `SeriesView.anilistId` from `online_series`                   |
-| Accounts row                             | Add a row next to `MangaDexAccount` in `features/settings/AccountsSection.tsx` |
+| Accounts row                             | `MangaDexAccount` (`features/online/MangaDexAccount.tsx`) sits in `features/settings/AccountsSection.tsx` next to the AniList row |
