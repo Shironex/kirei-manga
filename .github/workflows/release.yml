@@ -225,6 +225,10 @@ jobs:
       - name: Build the bundle
         shell: bash
         env:
+          # The AniList client id is public (it is in every authorize URL), so
+          # it is a repository variable, not a secret. Unset, the build ships
+          # with AniList sign in turned off. See docs/tracking.md.
+          KIREI_ANILIST_CLIENT_ID: ${{ vars.ANILIST_CLIENT_ID }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ matrix.platform == 'macos' && vars.MACOS_SIGNING_ENABLED == 'true' && secrets.APPLE_CERTIFICATE || '' }}
