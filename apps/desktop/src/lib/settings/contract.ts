@@ -21,6 +21,8 @@ export type ResampleFilter = 'lanczos3' | 'mitchell' | 'nearest';
  */
 export type KeyBindings = Record<string, string[]>;
 
+export type TrackingConflict = 'higher' | 'local';
+
 export interface AppSettings {
   'appearance.strength': ThemeStrength;
   'appearance.coverColours': boolean;
@@ -41,6 +43,9 @@ export interface AppSettings {
   'reader.detectWebtoon': boolean;
   'reader.splitTall': boolean;
   'reader.keys': KeyBindings;
+  'tracking.enabled': boolean;
+  'tracking.autoUpdate': boolean;
+  'tracking.conflict': TrackingConflict;
 }
 
 export type SettingKey = keyof AppSettings;
@@ -64,6 +69,9 @@ export const DEFAULT_SETTINGS: Readonly<AppSettings> = Object.freeze({
   'reader.detectWebtoon': true,
   'reader.splitTall': true,
   'reader.keys': {},
+  'tracking.enabled': false,
+  'tracking.autoUpdate': true,
+  'tracking.conflict': 'higher',
 });
 
 export const SETTINGS_CHANGED_EVENT = 'settings:changed';
