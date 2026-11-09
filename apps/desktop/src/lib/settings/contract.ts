@@ -20,6 +20,7 @@ export type ResampleFilter = 'lanczos3' | 'mitchell' | 'nearest';
  * `kirei_core::KeyBindings`; the commands live in `features/reader/model/keys`.
  */
 export type KeyBindings = Record<string, string[]>;
+export type ContentRating = 'safe' | 'suggestive' | 'erotica' | 'pornographic';
 
 export type TrackingConflict = 'higher' | 'local';
 
@@ -46,6 +47,14 @@ export interface AppSettings {
   'tracking.enabled': boolean;
   'tracking.autoUpdate': boolean;
   'tracking.conflict': TrackingConflict;
+  /** MangaDex language codes, preferred first. Never empty, at most six, no repeats. */
+  'online.languages': string[];
+  'online.onlyMyLanguage': boolean;
+  /** Never empty; Rust stores them sorted. */
+  'online.contentRatings': ContentRating[];
+  'online.dataSaver': boolean;
+  'online.notifications': boolean;
+  'online.autoRefresh': boolean;
 }
 
 export type SettingKey = keyof AppSettings;
@@ -72,6 +81,12 @@ export const DEFAULT_SETTINGS: Readonly<AppSettings> = Object.freeze({
   'tracking.enabled': false,
   'tracking.autoUpdate': true,
   'tracking.conflict': 'higher',
+  'online.languages': ['pl', 'en'],
+  'online.onlyMyLanguage': false,
+  'online.contentRatings': ['safe', 'suggestive'],
+  'online.dataSaver': false,
+  'online.notifications': true,
+  'online.autoRefresh': true,
 });
 
 export const SETTINGS_CHANGED_EVENT = 'settings:changed';

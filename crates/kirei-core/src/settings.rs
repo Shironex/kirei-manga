@@ -202,6 +202,125 @@ pub enum TrackingConflict {
     Local,
 }
 
+/// A MangaDex content rating, as the online settings store it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ContentRating {
+    Safe,
+    Suggestive,
+    Erotica,
+    Pornographic,
+}
+
+/// The longest language chain the online settings accept.
+pub const MAX_LANGUAGES: usize = 6;
+
+/// The reading languages for online chapters, preferred first, then the
+/// fallbacks in order. Polish then English by default. MangaDex language
+/// codes: two or three lowercase letters, optionally a region or script
+/// (`pt-br`, `es-la`, `ja-ro`). Never empty, no repeats.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "Vec<String>", into = "Vec<String>")]
+pub struct LanguageChain(Vec<String>);
+
+impl LanguageChain {
+    pub fn as_slice(&self) -> &[String] {
+        &self.0
+    }
+}
+
+impl Default for LanguageChain {
+    fn default() -> Self {
+        Self(vec!["pl".to_owned(), "en".to_owned()])
+    }
+}
+
+/// True for codes like `pl`, `en`, `pt-br` or `zh-hk`.
+pub fn is_language_code(code: &str) -> bool {
+    let mut parts = code.split('-');
+    let main = parts.next().unwrap_or_default();
+    let main_ok = (2..=3).contains(&main.len()) && main.bytes().all(|b| b.is_ascii_lowercase());
+    let rest_ok = match (parts.next(), parts.next()) {
+        (None, _) => true,
+        (Some(region), None) => {
+            (2..=4).contains(&region.len())
+                && region
+                    .bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
+        }
+        _ => false,
+    };
+    main_ok && rest_ok
+}
+
+impl TryFrom<Vec<String>> for LanguageChain {
+    type Error = String;
+
+    fn try_from(codes: Vec<String>) -> Result<Self, Self::Error> {
+        if codes.is_empty() {
+            return Err("pick at least one language".to_owned());
+        }
+        if codes.len() > MAX_LANGUAGES {
+            return Err(format!("at most {MAX_LANGUAGES} languages"));
+        }
+        let mut seen = Vec::with_capacity(codes.len());
+        for code in codes {
+            if !is_language_code(&code) {
+                return Err(format!("`{code}` is not a MangaDex language code"));
+            }
+            if seen.contains(&code) {
+                return Err(format!("`{code}` is listed twice"));
+            }
+            seen.push(code);
+        }
+        Ok(Self(seen))
+    }
+}
+
+impl From<LanguageChain> for Vec<String> {
+    fn from(chain: LanguageChain) -> Self {
+        chain.0
+    }
+}
+
+/// The content ratings online searches and chapter lists include. Safe and
+/// suggestive by default; erotica and pornographic stay off until chosen.
+/// Never empty; stored sorted without repeats.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "Vec<ContentRating>", into = "Vec<ContentRating>")]
+pub struct ContentRatings(Vec<ContentRating>);
+
+impl ContentRatings {
+    pub fn as_slice(&self) -> &[ContentRating] {
+        &self.0
+    }
+}
+
+impl Default for ContentRatings {
+    fn default() -> Self {
+        Self(vec![ContentRating::Safe, ContentRating::Suggestive])
+    }
+}
+
+impl TryFrom<Vec<ContentRating>> for ContentRatings {
+    type Error = String;
+
+    fn try_from(mut ratings: Vec<ContentRating>) -> Result<Self, Self::Error> {
+        ratings.sort();
+        ratings.dedup();
+        if ratings.is_empty() {
+            return Err("pick at least one content rating".to_owned());
+        }
+        Ok(Self(ratings))
+    }
+}
+
+impl From<ContentRatings> for Vec<ContentRating> {
+    fn from(ratings: ContentRatings) -> Self {
+        ratings.0
+    }
+}
+
 /// Every app setting with its default. Serializes to a flat object keyed by
 /// the dotted setting keys.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -262,6 +381,23 @@ pub struct AppSettings {
     pub tracking_auto_update: bool,
     #[serde(rename = "tracking.conflict")]
     pub tracking_conflict: TrackingConflict,
+    /// Reading languages for MangaDex chapters, preferred first.
+    #[serde(rename = "online.languages")]
+    pub online_languages: LanguageChain,
+    /// Only the preferred language: never fill gaps from the fallbacks.
+    #[serde(rename = "online.onlyMyLanguage")]
+    pub online_only_my_language: bool,
+    #[serde(rename = "online.contentRatings")]
+    pub online_content_ratings: ContentRatings,
+    /// Smaller, more compressed MangaDex pages.
+    #[serde(rename = "online.dataSaver")]
+    pub online_data_saver: bool,
+    /// A system notification when followed series get new chapters.
+    #[serde(rename = "online.notifications")]
+    pub online_notifications: bool,
+    /// Refresh the updates feed in the background while signed in.
+    #[serde(rename = "online.autoRefresh")]
+    pub online_auto_refresh: bool,
 }
 
 impl Default for AppSettings {
@@ -287,6 +423,12 @@ impl Default for AppSettings {
             tracking_enabled: false,
             tracking_auto_update: true,
             tracking_conflict: TrackingConflict::default(),
+            online_languages: LanguageChain::default(),
+            online_only_my_language: false,
+            online_content_ratings: ContentRatings::default(),
+            online_data_saver: false,
+            online_notifications: true,
+            online_auto_refresh: true,
         }
     }
 }
@@ -376,6 +518,15 @@ mod tests {
         assert_eq!(value["downloads.dataSaver"], false);
         assert_eq!(value["downloads.concurrency"], 2);
         assert_eq!(value["downloads.autoFollows"], false);
+        assert_eq!(value["online.languages"], json!(["pl", "en"]));
+        assert_eq!(value["online.onlyMyLanguage"], false);
+        assert_eq!(
+            value["online.contentRatings"],
+            json!(["safe", "suggestive"])
+        );
+        assert_eq!(value["online.dataSaver"], false);
+        assert_eq!(value["online.notifications"], true);
+        assert_eq!(value["online.autoRefresh"], true);
     }
 
     #[test]
@@ -401,7 +552,7 @@ mod tests {
     #[test]
     fn keys_cover_every_field() {
         let keys = AppSettings::keys();
-        assert_eq!(keys.len(), 20);
+        assert_eq!(keys.len(), 26);
         assert!(keys.contains(&"reader.detectSpreads".to_owned()));
     }
 
@@ -456,6 +607,48 @@ mod tests {
         assert_eq!(
             next.get("reader.keys"),
             Some(json!({ "next": ["Space", "j"], "prev": ["Shift+Space", "k"] }))
+        );
+    }
+
+    #[test]
+    fn language_chains_are_validated() {
+        let next = AppSettings::default()
+            .with("online.languages", json!(["pt-br", "en"]))
+            .unwrap();
+        assert_eq!(next.online_languages.as_slice(), ["pt-br", "en"]);
+        for bad in [
+            json!([]),
+            json!(["pl", "pl"]),
+            json!(["Polish"]),
+            json!(["pl-"]),
+            json!(["en", "pl", "de", "fr", "es", "it", "ja"]),
+        ] {
+            assert!(
+                AppSettings::default()
+                    .with("online.languages", bad.clone())
+                    .is_err(),
+                "{bad}"
+            );
+        }
+        assert!(is_language_code("zh-hk"));
+        assert!(is_language_code("ja-ro"));
+        assert!(!is_language_code("e"));
+        assert!(!is_language_code("en-us-x"));
+    }
+
+    #[test]
+    fn content_ratings_are_never_empty_and_stored_sorted() {
+        let next = AppSettings::default()
+            .with("online.contentRatings", json!(["erotica", "safe", "safe"]))
+            .unwrap();
+        assert_eq!(
+            next.get("online.contentRatings"),
+            Some(json!(["safe", "erotica"]))
+        );
+        assert!(
+            AppSettings::default()
+                .with("online.contentRatings", json!([]))
+                .is_err()
         );
     }
 
