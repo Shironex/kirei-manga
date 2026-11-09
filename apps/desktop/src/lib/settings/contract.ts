@@ -14,6 +14,12 @@ export type ReaderMode = 'single' | 'double' | 'webtoon';
 export type ReadingDirection = 'rtl' | 'ltr';
 export type PageFit = 'screen' | 'width' | 'height' | 'original';
 export type ResampleFilter = 'lanczos3' | 'mitchell' | 'nearest';
+/**
+ * Reader command name to the keys that run it, only when the user changed
+ * something (empty means the built-in bindings). Mirrors
+ * `kirei_core::KeyBindings`; the commands live in `features/reader/model/keys`.
+ */
+export type KeyBindings = Record<string, string[]>;
 
 export interface AppSettings {
   'appearance.strength': ThemeStrength;
@@ -32,6 +38,9 @@ export interface AppSettings {
   /** Chapters downloaded at the same time, 1 to 4. */
   'downloads.concurrency': number;
   'downloads.autoFollows': boolean;
+  'reader.detectWebtoon': boolean;
+  'reader.splitTall': boolean;
+  'reader.keys': KeyBindings;
 }
 
 export type SettingKey = keyof AppSettings;
@@ -52,6 +61,9 @@ export const DEFAULT_SETTINGS: Readonly<AppSettings> = Object.freeze({
   'downloads.dataSaver': false,
   'downloads.concurrency': 2,
   'downloads.autoFollows': false,
+  'reader.detectWebtoon': true,
+  'reader.splitTall': true,
+  'reader.keys': {},
 });
 
 export const SETTINGS_CHANGED_EVENT = 'settings:changed';

@@ -10,7 +10,9 @@
 //! Keys are documented in `docs/settings.md`. Renaming one is a breaking change
 //! for stored data: add a new key instead.
 
-use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, HashMap};
+
+use serde::{Deserialize, Deserializer, Serialize, de::Error as _};
 use serde_json::{Map, Value};
 
 /// How much colour the cover in focus brings into the interface.
@@ -130,6 +132,63 @@ fn absolute_folder<'de, D: serde::Deserializer<'de>>(
     }
 }
 
+/// Most reader commands a binding map may name, keys one command may have,
+/// and the longest command or key name.
+const MAX_BOUND_COMMANDS: usize = 64;
+const MAX_KEYS_PER_COMMAND: usize = 4;
+const MAX_NAME_LEN: usize = 32;
+
+/// Reader keyboard bindings: command name (`next`, `toggle-ui`) to the keys
+/// that run it (`Space`, `Shift+ArrowLeft`, `f`). Empty means the built-in
+/// bindings. The renderer owns the command list and the key names; Rust only
+/// checks the shape and that no key runs two commands.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(transparent)]
+pub struct KeyBindings(pub BTreeMap<String, Vec<String>>);
+
+impl KeyBindings {
+    fn validate(map: &BTreeMap<String, Vec<String>>) -> Result<(), String> {
+        if map.len() > MAX_BOUND_COMMANDS {
+            return Err(format!("more than {MAX_BOUND_COMMANDS} commands"));
+        }
+        let mut owner: HashMap<&str, &str> = HashMap::new();
+        for (command, keys) in map {
+            let valid_name = !command.is_empty()
+                && command.len() <= MAX_NAME_LEN
+                && command
+                    .bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
+            if !valid_name {
+                return Err(format!("`{command}` is not a command name"));
+            }
+            if keys.len() > MAX_KEYS_PER_COMMAND {
+                return Err(format!(
+                    "`{command}` has more than {MAX_KEYS_PER_COMMAND} keys"
+                ));
+            }
+            for key in keys {
+                if key.is_empty() || key.chars().count() > MAX_NAME_LEN {
+                    return Err(format!("`{key}` is not a key name"));
+                }
+                if let Some(other) = owner.insert(key, command) {
+                    return Err(format!(
+                        "`{key}` is bound to both `{other}` and `{command}`"
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<'de> Deserialize<'de> for KeyBindings {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let map = BTreeMap::<String, Vec<String>>::deserialize(deserializer)?;
+        Self::validate(&map).map_err(D::Error::custom)?;
+        Ok(Self(map))
+    }
+}
+
 /// Every app setting with its default. Serializes to a flat object keyed by
 /// the dotted setting keys.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -172,6 +231,16 @@ pub struct AppSettings {
     /// Queue new chapters of followed series as they appear in the feed.
     #[serde(rename = "downloads.autoFollows")]
     pub downloads_auto_follows: bool,
+    /// Open chapters of tall strips in webtoon mode when the series has no
+    /// mode of its own.
+    #[serde(rename = "reader.detectWebtoon")]
+    pub reader_detect_webtoon: bool,
+    /// Show tall strips in screen sized parts in the paged modes.
+    #[serde(rename = "reader.splitTall")]
+    pub reader_split_tall: bool,
+    /// Reader keyboard bindings that differ from the built-in ones.
+    #[serde(rename = "reader.keys")]
+    pub reader_keys: KeyBindings,
 }
 
 impl Default for AppSettings {
@@ -191,6 +260,9 @@ impl Default for AppSettings {
             downloads_data_saver: false,
             downloads_concurrency: DownloadConcurrency::default(),
             downloads_auto_follows: false,
+            reader_detect_webtoon: true,
+            reader_split_tall: true,
+            reader_keys: KeyBindings::default(),
         }
     }
 }
@@ -245,7 +317,8 @@ impl AppSettings {
     fn to_map(&self) -> Map<String, Value> {
         match serde_json::to_value(self) {
             Ok(Value::Object(map)) => map,
-            // A struct of enums and bools always serializes to an object.
+            // A struct of enums, bools and string maps always serializes to an
+            // object.
             _ => Map::new(),
         }
     }
@@ -269,6 +342,9 @@ mod tests {
         assert_eq!(value["reader.fit"], "screen");
         assert_eq!(value["reader.filter"], "lanczos3");
         assert_eq!(value["reader.detectSpreads"], true);
+        assert_eq!(value["reader.detectWebtoon"], true);
+        assert_eq!(value["reader.splitTall"], true);
+        assert_eq!(value["reader.keys"], json!({}));
         assert_eq!(value["downloads.folder"], Value::Null);
         assert_eq!(value["downloads.dataSaver"], false);
         assert_eq!(value["downloads.concurrency"], 2);
@@ -298,7 +374,7 @@ mod tests {
     #[test]
     fn keys_cover_every_field() {
         let keys = AppSettings::keys();
-        assert_eq!(keys.len(), 14);
+        assert_eq!(keys.len(), 17);
         assert!(keys.contains(&"reader.detectSpreads".to_owned()));
     }
 
@@ -339,6 +415,48 @@ mod tests {
             AppSettings::default().with("reader.fit", Value::Null),
             Err(SettingError::InvalidValue { .. })
         ));
+    }
+
+    #[test]
+    fn key_bindings_are_stored_as_given() {
+        let next = AppSettings::default()
+            .with(
+                "reader.keys",
+                json!({ "next": ["Space", "j"], "prev": ["Shift+Space", "k"] }),
+            )
+            .unwrap();
+        assert_eq!(next.reader_keys.0["next"], ["Space", "j"]);
+        assert_eq!(
+            next.get("reader.keys"),
+            Some(json!({ "next": ["Space", "j"], "prev": ["Shift+Space", "k"] }))
+        );
+    }
+
+    #[test]
+    fn key_bindings_refuse_a_key_on_two_commands() {
+        let message = AppSettings::default()
+            .with("reader.keys", json!({ "next": ["j"], "prev": ["j"] }))
+            .unwrap_err()
+            .to_string();
+        assert!(message.contains("bound to both"), "{message}");
+    }
+
+    #[test]
+    fn key_bindings_refuse_bad_shapes() {
+        for value in [
+            json!({ "Next Page": ["j"] }),
+            json!({ "next": ["a", "b", "c", "d", "e"] }),
+            json!({ "next": [""] }),
+            json!({ "next": "j" }),
+            json!(["next"]),
+        ] {
+            assert!(
+                AppSettings::default()
+                    .with("reader.keys", value.clone())
+                    .is_err(),
+                "{value}"
+            );
+        }
     }
 
     #[test]
