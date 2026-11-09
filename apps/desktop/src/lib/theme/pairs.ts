@@ -39,6 +39,8 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
   { fg: ['--accent'], bg: ['--ink-0', '--accent-wash'], min: AA_TEXT, use: 'Current chapter page' },
   { fg: ['--fg-1'], bg: ['--ink-stage', '--glass'], min: AA_TEXT, use: 'Reader chrome title' },
   { fg: ['--fg-3'], bg: ['--ink-stage', '--glass'], min: AA_TEXT, use: 'Reader chrome meta' },
+  { fg: ['--fg-2'], bg: ['--ink-stage', '--glass'], min: AA_TEXT, use: 'Reader panel labels' },
+  { fg: ['--accent'], bg: ['--ink-stage', '--glass'], min: AA_TEXT, use: 'Reader chrome accent' },
   { fg: ['--ok'], bg: ['--ink-1'], min: AA_TEXT, use: 'Success text' },
   { fg: ['--warn'], bg: ['--ink-1'], min: AA_TEXT, use: 'Warning text' },
   { fg: ['--err'], bg: ['--ink-0'], min: AA_TEXT, use: 'Error text' },

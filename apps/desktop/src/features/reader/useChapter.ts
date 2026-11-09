@@ -5,7 +5,7 @@ import {
   getSeriesDetail,
   getSeriesSettings,
   type ChapterEntry,
-  type Palette,
+  type CoverRef,
 } from '@/lib/library';
 import { closeSource, openSource, pageMeta, type OpenedSource, type PageMeta } from '@/lib/reader';
 
@@ -35,7 +35,8 @@ export interface LoadedChapter {
   manga: string | null;
   /** Stored series settings, `null` for a file or nothing stored yet. */
   settings: unknown;
-  palette: Palette | null;
+  /** The series cover, whose colours tint the reader chrome; `null` for a file. */
+  cover: CoverRef | null;
   next: ChapterLink | null;
 }
 
@@ -78,7 +79,7 @@ async function load(target: ChapterTarget): Promise<LoadedChapter> {
       startPage: clampPage(target.page ?? 0, source.pages.length),
       manga: null,
       settings: null,
-      palette: null,
+      cover: null,
       next: null,
     };
   }
@@ -117,7 +118,7 @@ async function load(target: ChapterTarget): Promise<LoadedChapter> {
     startPage: clampPage(target.page ?? resume, source.pages.length),
     manga: detail.manga,
     settings,
-    palette: detail.cover?.palette ?? null,
+    cover: detail.cover,
     next: link(detail.id, nextChapter),
   };
 }
