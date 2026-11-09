@@ -43,6 +43,14 @@ impl Library {
         Ok((id, source))
     }
 
+    /// Registers a source opened elsewhere (a MangaDex chapter) under a
+    /// fresh id, so its pages go through the same cache and protocol.
+    pub(crate) fn register(&self, source: Arc<dyn PageSource>) -> SourceId {
+        let id = self.next_id.fetch_add(1, Ordering::Relaxed);
+        self.lock().insert(id, source);
+        id
+    }
+
     pub(crate) fn source(&self, id: SourceId) -> Option<Arc<dyn PageSource>> {
         self.lock().get(&id).cloned()
     }

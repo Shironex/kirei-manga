@@ -44,6 +44,9 @@ tauri-plugin-window-state = "2.5"
 tauri-plugin-updater = "2.10"
 # Compares the versions the two update feeds announce.
 semver = "1"
+# System notifications for new chapters of followed series. Sent from Rust
+# only, so the webview gets no notification permission. MIT OR Apache-2.0.
+tauri-plugin-notification = "2.7"
 
 # Archive backends (kirei-archive). Reading only: `deflate-flate2-zlib-rs` is
 # the one decoder CBZ files use in practice, and it skips the zopfli encoder

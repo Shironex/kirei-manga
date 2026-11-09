@@ -10,6 +10,7 @@ mod downloads;
 mod keychain;
 mod library;
 mod mangadex_client;
+mod online;
 mod protocol;
 mod settings;
 mod stats;
@@ -27,6 +28,7 @@ pub fn run() {
     }
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(window_state.build());
     // Only a release build updates itself. Without the plugin and its state the
     // update commands answer "disabled" instead of failing.
@@ -44,7 +46,11 @@ pub fn run() {
             let data = data::DataState::init(app.handle());
             let catalog = catalog::Catalog::open(data.paths());
             app.manage(catalog::Watch::start(app.handle(), &catalog));
+            let online = online::setup(app.handle(), catalog.library().ok().as_deref());
             app.manage(catalog);
+            // Before the downloads: they share this client (`mangadex_client::shared`).
+            app.manage(online);
+            online::refresh::start(app.handle());
             // After the library: the downloads folder is kept as a root.
             let downloads = downloads::Downloads::start(app.handle(), data.paths());
             app.manage(data);
@@ -84,6 +90,17 @@ pub fn run() {
                         &path,
                         if_none_match.as_deref(),
                     ));
+                });
+            },
+        )
+        .register_asynchronous_uri_scheme_protocol(
+            online::cover::SCHEME,
+            |ctx, request, responder| {
+                let app = ctx.app_handle().clone();
+                let path = request.uri().path().to_owned();
+                tauri::async_runtime::spawn(async move {
+                    let online = app.state::<online::Online>();
+                    responder.respond(online::cover::respond(&online, &path).await);
                 });
             },
         )
@@ -151,6 +168,24 @@ pub fn run() {
             tracking::tracking_report_progress,
             tracking::tracking_queue,
             tracking::tracking_retry,
+            online::commands::online_account,
+            online::commands::online_sign_in,
+            online::commands::online_sign_out,
+            online::commands::online_search,
+            online::commands::online_tags,
+            online::commands::online_series,
+            online::commands::online_chapters,
+            online::commands::online_set_series_language,
+            online::commands::online_follow,
+            online::commands::online_set_reading_status,
+            online::commands::online_follows,
+            online::commands::online_feed,
+            online::commands::online_refresh_feed,
+            online::commands::online_mark_feed_seen,
+            online::commands::online_open_chapter,
+            online::commands::online_record_progress,
+            online::commands::online_mark_read,
+            online::commands::online_open_mangadex,
         ])
         .run(tauri::generate_context!());
 
