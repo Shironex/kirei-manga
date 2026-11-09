@@ -37,6 +37,7 @@ jobs:
             reader
             library
             mangadex
+            download
             desktop
             ui
             tauri
