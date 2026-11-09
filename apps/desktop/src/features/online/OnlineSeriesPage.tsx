@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Cover } from '@/features/library/Cover';
+import { TrackingCard } from '@/features/tracking/TrackingCard';
 import { requestDownload } from '@/lib/downloads';
 import {
   getOnlineChapters,
@@ -52,6 +53,7 @@ import {
 } from './model';
 import { OnlineChapterList } from './OnlineChapterList';
 import { MangaDexCredit, OnlineStatus } from './OnlineStatus';
+import { useAnilistLink } from './useAnilistLink';
 import { useOnlineQuery } from './useOnlineQuery';
 
 const route = getRouteApi('/shell/online/$mangaId');
@@ -78,6 +80,7 @@ export function OnlineSeriesPage() {
 
   const title = series.data ? mangaTitle(series.data.manga, chain) : 'MangaDex series';
   const headingRef = usePageHeading(title);
+  const trackingVersion = useAnilistLink(mangaId, series.data?.anilistId ?? null, title);
 
   if (series.status === 'error' && !series.data) {
     return (
@@ -275,6 +278,15 @@ export function OnlineSeriesPage() {
           )}
         </div>
       </header>
+
+      <div className="mb-8 max-w-[420px]">
+        <TrackingCard
+          series={{ kind: 'mangadex', id: mangaId }}
+          title={title}
+          year={manga.year}
+          version={trackingVersion}
+        />
+      </div>
 
       <section aria-labelledby="online-chapters" className="max-w-[860px]">
         <div className="mb-3 flex flex-wrap items-center gap-3">
