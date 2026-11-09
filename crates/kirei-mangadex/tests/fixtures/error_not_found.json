@@ -1,0 +1,12 @@
+{
+  "result": "error",
+  "errors": [
+    {
+      "id": "3e8f6a40-0000-4000-8000-0000000000ee",
+      "status": 404,
+      "title": "Not found",
+      "detail": "Manga could not be found",
+      "context": null
+    }
+  ]
+}

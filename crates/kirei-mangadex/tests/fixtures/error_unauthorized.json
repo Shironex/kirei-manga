@@ -1,0 +1,12 @@
+{
+  "result": "error",
+  "errors": [
+    {
+      "id": "3e8f6a40-0000-4000-8000-0000000000ef",
+      "status": 401,
+      "title": "unauthorized_http_exception",
+      "detail": "Token expired",
+      "context": null
+    }
+  ]
+}
