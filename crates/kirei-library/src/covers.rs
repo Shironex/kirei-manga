@@ -7,6 +7,7 @@
 //! leaves a half written thumbnail behind. The cache only ever writes inside
 //! its own directory; the user's archives are opened read-only.
 
+use std::collections::HashSet;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
@@ -217,6 +218,49 @@ impl CoverCache {
             let _ = std::fs::remove_dir(shard);
         }
         Ok(freed)
+    }
+
+    /// Thumbnails whose relative path is not in `keep`: what a prune would
+    /// free, without deleting anything.
+    pub(crate) fn unreferenced(&self, keep: &HashSet<String>) -> Result<CoverCacheUsage> {
+        self.sweep(keep, false)
+    }
+
+    /// Deletes every thumbnail whose relative path is not in `keep` (covers
+    /// of deleted series and of older cover rule versions) and returns what
+    /// was freed. Only the cache's own `<hh>/` folders are touched.
+    pub(crate) fn prune(&self, keep: &HashSet<String>) -> Result<CoverCacheUsage> {
+        let freed = self.sweep(keep, true)?;
+        for shard in self.shards()? {
+            // Best effort: only an empty folder goes.
+            let _ = std::fs::remove_dir(shard);
+        }
+        Ok(freed)
+    }
+
+    fn sweep(&self, keep: &HashSet<String>, delete: bool) -> Result<CoverCacheUsage> {
+        let mut total = CoverCacheUsage::default();
+        for shard in self.shards()? {
+            let shard_name = shard.file_name().map(|n| n.to_string_lossy().into_owned());
+            let entries =
+                std::fs::read_dir(&shard).map_err(|source| LibraryError::io(&shard, source))?;
+            for entry in entries.filter_map(std::result::Result::ok) {
+                let Ok(meta) = entry.metadata() else { continue };
+                let name = entry.file_name().to_string_lossy().into_owned();
+                let relative = format!("{}/{name}", shard_name.as_deref().unwrap_or_default());
+                if !meta.is_file() || keep.contains(&relative) {
+                    continue;
+                }
+                if delete {
+                    let path = entry.path();
+                    std::fs::remove_file(&path)
+                        .map_err(|source| LibraryError::io(&path, source))?;
+                }
+                total.bytes += meta.len();
+                total.files += 1;
+            }
+        }
+        Ok(total)
     }
 
     /// The two-hex-digit shard folders the thumbnails live in.
@@ -437,5 +481,27 @@ mod tests {
         assert_eq!(cache.clear().unwrap(), usage);
         assert_eq!(cache.usage().unwrap(), CoverCacheUsage::default());
         assert!(dir.path().join("keep.txt").exists());
+    }
+
+    #[test]
+    fn prune_keeps_only_the_referenced_thumbnails() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = CoverCache::new(dir.path()).unwrap();
+        let mut files = Vec::new();
+        for rgb in [[200, 30, 30], [30, 200, 30], [30, 30, 200]] {
+            let bytes = png(40, 60, rgb);
+            files.push(cache.make(&CoverCache::hash(&bytes), &bytes).unwrap().file);
+        }
+        let keep: HashSet<String> = HashSet::from([files[0].clone()]);
+
+        let preview = cache.unreferenced(&keep).unwrap();
+        assert_eq!(preview.files, 2);
+        assert_eq!(cache.usage().unwrap().files, 3, "a preview deletes nothing");
+
+        assert_eq!(cache.prune(&keep).unwrap(), preview);
+        assert!(cache.absolute(&files[0]).exists());
+        assert!(!cache.absolute(&files[1]).exists());
+        assert!(!cache.absolute(&files[2]).exists());
+        assert_eq!(cache.prune(&keep).unwrap(), CoverCacheUsage::default());
     }
 }

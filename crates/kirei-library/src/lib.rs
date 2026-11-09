@@ -166,6 +166,8 @@ impl Library {
     /// been for at least `older_than_days` (0 purges every orphan). Never
     /// called on its own: it is for an explicit "forget old progress" action.
     pub fn purge_orphans(&self, older_than_days: u32) -> Result<OrphanPurge> {
+        // A scan can adopt orphans again, so the two never overlap.
+        let _guard = self.begin_scan()?;
         let cutoff = now_ms() - i64::from(older_than_days) * 86_400_000;
         let conn = self.conn();
         let tx = conn.unchecked_transaction()?;
@@ -181,6 +183,20 @@ impl Library {
         )?;
         tx.commit()?;
         Ok(OrphanPurge { progress, settings })
+    }
+
+    /// How many orphans [`Self::purge_orphans`]`(0)` would delete, without
+    /// deleting anything.
+    pub fn count_orphans(&self) -> Result<OrphanPurge> {
+        let conn = self.conn();
+        let count = |sql: &str| -> Result<usize> {
+            let n: i64 = conn.query_row(sql, [], |row| row.get(0))?;
+            Ok(usize::try_from(n).unwrap_or_default())
+        };
+        Ok(OrphanPurge {
+            progress: count("SELECT count(*) FROM reading_progress WHERE chapter_id IS NULL")?,
+            settings: count("SELECT count(*) FROM series_settings WHERE series_id IS NULL")?,
+        })
     }
 
     pub fn roots(&self) -> Result<Vec<LibraryRoot>> {
@@ -521,6 +537,38 @@ impl Library {
     pub fn clear_cover_cache(&self) -> Result<CoverCacheUsage> {
         let _guard = self.begin_scan()?;
         self.covers.clear()
+    }
+
+    /// Thumbnail files no series points at (deleted series, older cover rule
+    /// versions): what [`Self::prune_covers`] would free.
+    pub fn unused_covers(&self) -> Result<CoverCacheUsage> {
+        let keep = self.referenced_cover_files()?;
+        self.covers.unreferenced(&keep)
+    }
+
+    /// Deletes the thumbnails no series points at and the `covers` rows that
+    /// described them, and returns what was freed. Thumbnails in use stay.
+    /// Refused while a scan runs, like [`Self::clear_cover_cache`].
+    pub fn prune_covers(&self) -> Result<CoverCacheUsage> {
+        let _guard = self.begin_scan()?;
+        let keep = self.referenced_cover_files()?;
+        let freed = self.covers.prune(&keep)?;
+        self.conn().execute(
+            "DELETE FROM covers WHERE hash NOT IN
+                 (SELECT cover_hash FROM series WHERE cover_hash IS NOT NULL)",
+            [],
+        )?;
+        Ok(freed)
+    }
+
+    /// Relative paths of the thumbnails some series uses.
+    fn referenced_cover_files(&self) -> Result<std::collections::HashSet<String>> {
+        let conn = self.conn();
+        let mut stmt = conn.prepare_cached(
+            "SELECT DISTINCT c.file FROM covers c JOIN series s ON s.cover_hash = c.hash",
+        )?;
+        let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
     /// Where the thumbnail for a cover hash would be, or `None` when `hash`
