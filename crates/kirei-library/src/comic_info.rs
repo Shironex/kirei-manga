@@ -21,6 +21,12 @@ pub struct ComicInfo {
     pub scan_group: Option<String>,
     /// Index of the page marked `Type="FrontCover"`, if any.
     pub front_cover: Option<usize>,
+    /// `<Web>`: one or more links, separated by spaces.
+    pub web: Option<String>,
+    /// The MangaDex series id, read from a `mangadex.org/title/<id>` link in
+    /// `<Web>`. Downloaded chapters carry it so the library can tie them to
+    /// the series online.
+    pub mangadex_id: Option<String>,
 }
 
 /// Parses the XML. Malformed input yields whatever was read before the error,
@@ -110,8 +116,26 @@ fn assign(info: &mut ComicInfo, field: &str, value: &str) {
         }
         "Manga" => info.manga = text(),
         "ScanInformation" | "Translator" if info.scan_group.is_none() => info.scan_group = text(),
+        "Web" => {
+            info.web = text();
+            info.mangadex_id = value.split_whitespace().find_map(mangadex_title_id);
+        }
         _ => {}
     }
+}
+
+/// The series id in a `https://mangadex.org/title/<id>[/slug]` link.
+fn mangadex_title_id(link: &str) -> Option<String> {
+    let rest = link
+        .strip_prefix("https://")
+        .or_else(|| link.strip_prefix("http://"))?;
+    let rest = rest.strip_prefix("www.").unwrap_or(rest);
+    let id = rest
+        .strip_prefix("mangadex.org/title/")?
+        .split(['/', '?', '#'])
+        .next()?;
+    let valid = id.len() == 36 && id.chars().all(|c| c.is_ascii_hexdigit() || c == '-');
+    valid.then(|| id.to_ascii_lowercase())
 }
 
 #[cfg(test)]
@@ -151,6 +175,25 @@ mod tests {
         assert_eq!(info.manga.as_deref(), Some("No"));
         assert_eq!(info.scan_group.as_deref(), Some("Grupa Kitsune"));
         assert_eq!(info.front_cover, Some(1));
+    }
+
+    #[test]
+    fn reads_the_mangadex_id_from_the_web_links() {
+        let info = parse(
+            br#"<ComicInfo><Web>https://mangadex.org/chapter/5c0a1b2c-0000-4000-8000-000000000001 https://mangadex.org/title/0B1F2C3D-0000-4000-8000-000000000001/moonlit</Web></ComicInfo>"#,
+        );
+        assert_eq!(
+            info.mangadex_id.as_deref(),
+            Some("0b1f2c3d-0000-4000-8000-000000000001")
+        );
+        assert!(
+            info.web
+                .as_deref()
+                .is_some_and(|web| web.contains("/chapter/"))
+        );
+        let other = parse(b"<ComicInfo><Web>https://example.org/title/x</Web></ComicInfo>");
+        assert_eq!(other.mangadex_id, None);
+        assert_eq!(mangadex_title_id("https://mangadex.org/title/short"), None);
     }
 
     #[test]
