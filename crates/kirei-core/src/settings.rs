@@ -79,6 +79,57 @@ pub enum ResampleFilter {
     Nearest,
 }
 
+/// Chapters downloaded at the same time, 1 to 4. Each chapter keeps a few
+/// pages in flight, and every page shares the app wide MangaDex budgets, so
+/// more chapters never means faster than MangaDex allows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(transparent)]
+pub struct DownloadConcurrency(u8);
+
+impl DownloadConcurrency {
+    pub const MIN: u8 = 1;
+    pub const MAX: u8 = 4;
+
+    pub fn get(self) -> u8 {
+        self.0
+    }
+}
+
+impl Default for DownloadConcurrency {
+    fn default() -> Self {
+        Self(2)
+    }
+}
+
+impl<'de> Deserialize<'de> for DownloadConcurrency {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = u8::deserialize(deserializer)?;
+        if (Self::MIN..=Self::MAX).contains(&value) {
+            Ok(Self(value))
+        } else {
+            Err(serde::de::Error::custom(format!(
+                "expected {} to {} chapters at a time, got {value}",
+                Self::MIN,
+                Self::MAX
+            )))
+        }
+    }
+}
+
+/// `downloads.folder`: null for the default folder in the data directory, or
+/// an absolute path.
+fn absolute_folder<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<String>, D::Error> {
+    let value = Option::<String>::deserialize(deserializer)?;
+    match value {
+        Some(path) if path.trim().is_empty() || !std::path::Path::new(&path).is_absolute() => Err(
+            serde::de::Error::custom("expected an absolute folder path or null"),
+        ),
+        other => Ok(other),
+    }
+}
+
 /// Every app setting with its default. Serializes to a flat object keyed by
 /// the dotted setting keys.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -109,6 +160,18 @@ pub struct AppSettings {
     /// Show wide pages alone in double page mode.
     #[serde(rename = "reader.detectSpreads")]
     pub reader_detect_spreads: bool,
+    /// Where downloaded chapters go; `None` is `downloads/` in the data
+    /// folder. The folder is added to the library as a root.
+    #[serde(rename = "downloads.folder", deserialize_with = "absolute_folder")]
+    pub downloads_folder: Option<String>,
+    /// Download MangaDex's smaller recompressed pages.
+    #[serde(rename = "downloads.dataSaver")]
+    pub downloads_data_saver: bool,
+    #[serde(rename = "downloads.concurrency")]
+    pub downloads_concurrency: DownloadConcurrency,
+    /// Queue new chapters of followed series as they appear in the feed.
+    #[serde(rename = "downloads.autoFollows")]
+    pub downloads_auto_follows: bool,
 }
 
 impl Default for AppSettings {
@@ -124,6 +187,10 @@ impl Default for AppSettings {
             reader_fit: PageFit::default(),
             reader_filter: ResampleFilter::default(),
             reader_detect_spreads: true,
+            downloads_folder: None,
+            downloads_data_saver: false,
+            downloads_concurrency: DownloadConcurrency::default(),
+            downloads_auto_follows: false,
         }
     }
 }
@@ -202,12 +269,36 @@ mod tests {
         assert_eq!(value["reader.fit"], "screen");
         assert_eq!(value["reader.filter"], "lanczos3");
         assert_eq!(value["reader.detectSpreads"], true);
+        assert_eq!(value["downloads.folder"], Value::Null);
+        assert_eq!(value["downloads.dataSaver"], false);
+        assert_eq!(value["downloads.concurrency"], 2);
+        assert_eq!(value["downloads.autoFollows"], false);
+    }
+
+    #[test]
+    fn download_settings_are_validated() {
+        let settings = AppSettings::default();
+        assert!(settings.with("downloads.concurrency", json!(0)).is_err());
+        assert!(settings.with("downloads.concurrency", json!(5)).is_err());
+        let four = settings.with("downloads.concurrency", json!(4)).unwrap();
+        assert_eq!(four.downloads_concurrency.get(), 4);
+        assert!(
+            settings
+                .with("downloads.folder", json!("relative/dir"))
+                .is_err()
+        );
+        assert!(settings.with("downloads.folder", json!("")).is_err());
+        let absolute = std::env::temp_dir().to_string_lossy().into_owned();
+        let moved = settings.with("downloads.folder", json!(absolute)).unwrap();
+        assert_eq!(moved.downloads_folder.as_deref(), Some(absolute.as_str()));
+        let reset = moved.with("downloads.folder", Value::Null).unwrap();
+        assert_eq!(reset.downloads_folder, None);
     }
 
     #[test]
     fn keys_cover_every_field() {
         let keys = AppSettings::keys();
-        assert_eq!(keys.len(), 10);
+        assert_eq!(keys.len(), 14);
         assert!(keys.contains(&"reader.detectSpreads".to_owned()));
     }
 

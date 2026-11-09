@@ -26,6 +26,12 @@ export interface AppSettings {
   'reader.fit': PageFit;
   'reader.filter': ResampleFilter;
   'reader.detectSpreads': boolean;
+  /** Absolute folder for downloads; null is `downloads/` in the data folder. */
+  'downloads.folder': string | null;
+  'downloads.dataSaver': boolean;
+  /** Chapters downloaded at the same time, 1 to 4. */
+  'downloads.concurrency': number;
+  'downloads.autoFollows': boolean;
 }
 
 export type SettingKey = keyof AppSettings;
@@ -42,6 +48,10 @@ export const DEFAULT_SETTINGS: Readonly<AppSettings> = Object.freeze({
   'reader.fit': 'screen',
   'reader.filter': 'lanczos3',
   'reader.detectSpreads': true,
+  'downloads.folder': null,
+  'downloads.dataSaver': false,
+  'downloads.concurrency': 2,
+  'downloads.autoFollows': false,
 });
 
 export const SETTINGS_CHANGED_EVENT = 'settings:changed';
