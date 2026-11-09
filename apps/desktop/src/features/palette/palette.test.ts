@@ -90,7 +90,7 @@ describe('palette index', () => {
     const chapter = (id: number, number: number, missing = false) => ({
       id,
       path: `/c/${id}`,
-      kind: 'cbz' as const,
+      kind: 'zip' as const,
       title: null,
       volume: null,
       number,
