@@ -2,7 +2,11 @@
 //!
 //! Release builds only. A debug build (`pnpm tauri dev`) has no updater: the
 //! plugin is not registered and [`update_check`] answers `disabled`, which the
-//! Settings screen shows as "not available in this build".
+//! Settings screen shows as "not available in this build". A portable Windows
+//! copy has none either: the update is the NSIS installer, which would install
+//! a second copy into the user profile instead of updating the portable folder.
+//! A portable macOS copy updates in place, since the bundle is swapped where it
+//! sits.
 //!
 //! # Two feeds
 //!
@@ -35,7 +39,10 @@ const PRERELEASE_FEED: &str =
 
 /// Whether this build updates itself at all.
 pub(crate) fn is_supported() -> bool {
-    !cfg!(debug_assertions)
+    if cfg!(debug_assertions) {
+        return false;
+    }
+    !(cfg!(windows) && crate::data::is_portable())
 }
 
 /// Managed state of a build with an updater: the update the last check found,

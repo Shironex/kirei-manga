@@ -53,6 +53,15 @@ fn resolve<R: Runtime>(app: &AppHandle<R>) -> Result<DataPaths, String> {
     Ok(paths)
 }
 
+/// Whether this copy runs in portable mode. Checked before the app handle
+/// exists, like [`portable_window_state`].
+pub(crate) fn is_portable() -> bool {
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| paths::portable_root(&exe))
+        .is_some()
+}
+
 /// The window-state file to use in portable mode. Plugins are registered
 /// before the app handle exists, so this checks the marker on its own;
 /// `None` keeps the plugin's default, which is the installed data root.
