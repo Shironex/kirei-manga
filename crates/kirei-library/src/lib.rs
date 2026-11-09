@@ -19,6 +19,7 @@ mod error;
 mod identity;
 mod model;
 mod naming;
+mod online;
 mod palette;
 mod scanner;
 mod settings;
@@ -47,6 +48,7 @@ pub use model::{
     ScanProgress, ScanSummary, SeriesDetail, SeriesSummary,
 };
 pub use naming::{ParsedName, clean_title, parse_name, title_key};
+pub use online::{FeedItem, NewFeedItem, OnlineSeries, ReadMarker};
 pub use palette::{
     FALLBACK_CHROMA, FALLBACK_HUE, MAX_SEED_CHROMA, Oklch, Palette, sample as sample_palette,
     srgb_to_oklch,
