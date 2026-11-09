@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   chapterLabel,
@@ -19,6 +19,17 @@ export interface ChapterLink {
   title: string | null;
 }
 
+/**
+ * What a reader hands the next chapter when it flows into it, so the next one
+ * opens at the same zoom and shows pages at once.
+ */
+export interface ReaderCarry {
+  /** Zoom of the webtoon column. */
+  webtoonScale: number;
+  /** Render revision in effect, when the next chapter keeps the same box. */
+  revision?: number;
+}
+
 /** An opened chapter with everything the reader screen shows around it. */
 export interface LoadedChapter {
   source: OpenedSource;
@@ -31,6 +42,10 @@ export interface LoadedChapter {
   chapterId: number | null;
   /** Page to start on (0 based): the saved progress or the requested page. */
   startPage: number;
+  /** Share of the start page already scrolled past in webtoon, 0 to 1. */
+  startOffset: number;
+  /** Handed over by the chapter before, when reading flowed into this one. */
+  carry: ReaderCarry | null;
   /** ComicInfo `<Manga>`, for the default direction. */
   manga: string | null;
   /** Stored series settings, `null` for a file or nothing stored yet. */
@@ -77,6 +92,8 @@ async function load(target: ChapterTarget): Promise<LoadedChapter> {
       seriesId: null,
       chapterId: null,
       startPage: clampPage(target.page ?? 0, source.pages.length),
+      startOffset: 0,
+      carry: null,
       manga: null,
       settings: null,
       cover: null,
@@ -116,6 +133,8 @@ async function load(target: ChapterTarget): Promise<LoadedChapter> {
     seriesId: detail.id,
     chapterId: chapter.id,
     startPage: clampPage(target.page ?? resume, source.pages.length),
+    startOffset: 0,
+    carry: null,
     manga: detail.manga,
     settings,
     cover: detail.cover,
@@ -129,10 +148,120 @@ function targetKey(target: ChapterTarget): string {
     : `lib:${target.seriesId}:${target.chapterId}:${target.page ?? ''}`;
 }
 
+/** The target that opens `next` from its first page, as the end card does. */
+export function nextTarget(next: ChapterLink): ChapterTarget {
+  return { kind: 'library', seriesId: next.seriesId, chapterId: next.chapterId, page: 0 };
+}
+
+/** Where reading left off when one chapter flowed into the next. */
+export interface Handoff {
+  page: number;
+  offset: number;
+  carry: ReaderCarry;
+  /** The series settings as the reader last wrote them (a save may be pending). */
+  settings: unknown;
+}
+
+interface Prefetch {
+  promise: Promise<LoadedChapter>;
+  chapter: LoadedChapter | null;
+  /** Readers that still want it: the one before (prefetching), the one using it. */
+  holders: number;
+  handoff: Handoff | null;
+  shown: LoadedChapter | null;
+}
+
+/**
+ * Chapters opened ahead of time, by target key. The reader opens the next
+ * chapter while the current one nears its end, so moving on needs no
+ * loading screen and the webtoon strip can show the next pages under the
+ * last ones. An entry closes its source once nobody holds it.
+ */
+const prefetched = new Map<string, Prefetch>();
+
+function release(key: string, entry: Prefetch): void {
+  entry.holders -= 1;
+  // Deferred, so the reader that takes over (mounting in the same commit as
+  // the old one unmounts, or remounting under StrictMode) can hold it first.
+  setTimeout(() => {
+    if (entry.holders > 0 || prefetched.get(key) !== entry) return;
+    prefetched.delete(key);
+    entry.promise.then(chapter => closeSource(chapter.source.id)).catch(() => {});
+  }, 0);
+}
+
+function hold(key: string, entry: Prefetch): () => void {
+  entry.holders += 1;
+  return () => release(key, entry);
+}
+
+/**
+ * Opens `target` ahead of time (or joins an open in flight) and holds it
+ * until `release` is called. A failed open is dropped, so the normal open
+ * can try again and show the error.
+ */
+export function prefetchChapter(target: ChapterTarget): {
+  promise: Promise<LoadedChapter>;
+  release: () => void;
+} {
+  const key = targetKey(target);
+  let entry = prefetched.get(key);
+  if (!entry) {
+    const created: Prefetch = {
+      promise: load(target),
+      chapter: null,
+      holders: 0,
+      handoff: null,
+      shown: null,
+    };
+    created.promise.then(
+      chapter => {
+        created.chapter = chapter;
+      },
+      () => {
+        if (prefetched.get(key) === created) prefetched.delete(key);
+      }
+    );
+    prefetched.set(key, created);
+    entry = created;
+  }
+  return { promise: entry.promise, release: hold(key, entry) };
+}
+
+/** Tells a prefetched chapter where the reader left off before opening it. */
+export function handOver(target: ChapterTarget, handoff: Handoff): void {
+  const entry = prefetched.get(targetKey(target));
+  if (entry && !entry.shown) entry.handoff = handoff;
+}
+
+/** A prefetched chapter that is ready, with its handoff applied (once, then kept). */
+export function prefetchedChapter(target: ChapterTarget): LoadedChapter | null {
+  return readyChapter(targetKey(target));
+}
+
+function readyChapter(key: string): LoadedChapter | null {
+  const entry = prefetched.get(key);
+  if (!entry?.chapter) return null;
+  if (!entry.shown) {
+    const { chapter, handoff } = entry;
+    entry.shown = handoff
+      ? {
+          ...chapter,
+          settings: handoff.settings ?? chapter.settings,
+          startPage: clampPage(handoff.page, chapter.pages.length),
+          startOffset: Math.min(1, Math.max(0, handoff.offset)),
+          carry: handoff.carry,
+        }
+      : chapter;
+  }
+  return entry.shown;
+}
+
 /**
  * Opens the chapter a target names and closes its source when the target
  * changes or the reader unmounts. A load that finishes after the target moved
- * on is closed right away instead of shown.
+ * on is closed right away instead of shown. A chapter the previous one opened
+ * ahead (`prefetchChapter`) is taken over as it is, already loaded.
  */
 export function useChapter(target: ChapterTarget): ChapterState {
   const [state, setState] = useState<{ key: string; value: ChapterState }>(() => ({
@@ -140,8 +269,12 @@ export function useChapter(target: ChapterTarget): ChapterState {
     value: { status: 'loading' },
   }));
   const key = targetKey(target);
+  // Opened ahead by the chapter before: shown in the first render, no loading.
+  const ready = useMemo(() => readyChapter(key), [key]);
 
   useEffect(() => {
+    const entry = prefetched.get(key);
+    if (ready && entry) return hold(key, entry);
     let alive = true;
     let opened: number | null = null;
     load(target).then(
@@ -162,5 +295,6 @@ export function useChapter(target: ChapterTarget): ChapterState {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
+  if (ready) return { status: 'ready', chapter: ready };
   return state.key === key ? state.value : { status: 'loading' };
 }
