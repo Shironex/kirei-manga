@@ -9,6 +9,7 @@ export const NAV_SHORTCUTS = {
   '/browse': '2',
   '/downloads': '3',
   '/stats': '4',
+  '/collections': '5',
   '/settings': ',',
 } as const;
 

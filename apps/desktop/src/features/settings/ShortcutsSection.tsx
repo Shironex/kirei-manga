@@ -12,6 +12,7 @@ const NAV_LABELS: Record<NavPath, string> = {
   '/browse': 'Go to browse',
   '/downloads': 'Go to downloads',
   '/stats': 'Go to reading stats',
+  '/collections': 'Go to collections',
   '/settings': 'Open settings',
 };
 
