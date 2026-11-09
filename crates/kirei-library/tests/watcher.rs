@@ -453,3 +453,34 @@ fn a_notice_that_changes_no_chapter_costs_no_rescan() {
     });
     assert_eq!(events.rescans(), 1);
 }
+
+#[test]
+fn a_catch_up_that_finds_nothing_does_not_block_a_scan() {
+    let fx = fixture();
+    let root_id = fx.library.roots().unwrap()[0].id;
+
+    // A manual scan that stops in its saving phase until released.
+    let (release_tx, release_rx) = mpsc::channel::<()>();
+    let (saving_tx, saving_rx) = mpsc::channel::<()>();
+    let release_rx = Mutex::new(release_rx);
+    let library = fx.library.clone();
+    let scan = std::thread::spawn(move || {
+        library
+            .scan(None, &|p| {
+                if p.phase == ScanPhase::Saving && p.done == 0 {
+                    let _ = saving_tx.send(());
+                    let _ = release_rx.lock().unwrap().recv();
+                }
+            })
+            .unwrap()
+    });
+    saving_rx.recv().unwrap();
+
+    // Nothing changed on disk, so the check takes no flag and reports
+    // nothing instead of failing with ScanInProgress.
+    let found = fx.library.catch_up(root_id, &|_| {});
+    assert!(matches!(found, Ok(None)), "{found:?}");
+
+    release_tx.send(()).unwrap();
+    scan.join().unwrap();
+}
