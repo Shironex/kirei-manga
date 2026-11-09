@@ -70,7 +70,7 @@ MangaDex signs in third party apps with a personal API client. The Accounts sect
 
 Credentials never go into settings, the database or an IPC payload. A launch restores the session only when a username was stored, so a fresh install never touches the keychain. On a machine with no keychain the session lives in memory until the app closes, and the Accounts section says so.
 
-When MangaDex refuses to refresh the session, the client clears the tokens and the app moves to `expired`: the banner and the Accounts row ask to sign in again. The AniList account (#45) gets its own row in the same section.
+When MangaDex refuses to refresh the session, the client clears the tokens and the app moves to `expired`: the banner and the Accounts row ask to sign in again. The AniList sign in (#45, `docs/tracking.md`) sits in the same section, below the MangaDex row.
 
 ## Sync
 
@@ -101,7 +101,13 @@ Sent from Rust through `tauri-plugin-notification` after a scheduled refresh fin
 | `online_read`   | Read markers and page progress per chapter, with the pending flag for unsent changes |
 | `online_state`  | Small values: last refresh, when the feed was last seen, the signed-in username      |
 
-Signing out forgets follows, statuses, feed and markers (`online_forget_account`). Migration 0005 is a placeholder for the AniList tracking slice (#112), which replaces it.
+Signing out forgets follows, statuses, feed and markers (`online_forget_account`).
+
+## AniList tracking
+
+A MangaDex series whose page names its AniList entry (`SeriesView.anilistId`, from the series' `al` link) is linked on its own the first time its page opens: `tracking_link` with origin `mangadex` (`useAnilistLink`), skipped when the series already has a link. The series page shows the same tracking card as a library series, so the link can be changed or made by hand.
+
+Finishing a MangaDex chapter (reaching its last page) calls `tracking_report_progress` with the whole chapter number (`12.5` counts as 12; a oneshot sends nothing), once per chapter (`sendOnlineProgress` in `features/online/onlineProgress.ts`). Rust queues it only when tracking and auto update are on and the series is linked; the rules for conflicts are in `docs/tracking.md`.
 
 ## For other slices
 
@@ -110,5 +116,4 @@ Signing out forgets follows, statuses, feed and markers (`online_forget_account`
 | Download action on chapter rows          | `requestDownload(chapterIds)` from `apps/desktop/src/lib/downloads.ts`, called by `OnlineSeriesPage` for a row of `OnlineChapterList` |
 | Automatic downloads                      | `downloads::auto_download_new` with the fresh chapter ids of each feed refresh (not the first), in `online/refresh.rs` |
 | The shared client for other slices       | `mangadex_client::shared(app)` returns the client held by `Online` |
-| AniList id of a series                   | `SeriesView.anilistId` from `online_series`                   |
 | Accounts row                             | `MangaDexAccount` (`features/online/MangaDexAccount.tsx`) sits in `features/settings/AccountsSection.tsx` next to the AniList row |
