@@ -68,7 +68,7 @@ Layout rules, loosest first:
 - Archives loose in a root are grouped into series by the title parsed from their names, so `[Group] Title - 011.cbz` and `Title - 012.cbz` form one series.
 - Hidden files, `__MACOSX`, `@eaDir`, `#recycle`, `$RECYCLE.BIN` and `System Volume Information` are skipped.
 
-Names are parsed loosely (`naming.rs`): `Vol.02 Ch.011`, `v02c011`, `c011.5`, `[Group] Title - 011`, `Ch.001-005`, `#12`, Polish `Tom 1 Rozdział 3`, `t02 r009`, `rozdz. 12`, Japanese `第3巻` and `第11話`. Tags in brackets (groups, years, `Digital`, `[v2]`) are dropped from titles; a leading tag becomes the scan group. `ComicInfo.xml`, when an archive or folder has one, overrides the parsed series title, chapter title, number and volume, and fills summary, writer, year, language, genres, the `Manga` reading direction and the front cover page.
+Names are parsed loosely (`naming.rs`): `Vol.02 Ch.011`, `v02c011`, `c011.5`, `[Group] Title - 011`, `Ch.001-005`, `#12`, Polish `Tom 1 Rozdział 3`, `t02 r009`, `rozdz. 12`, Japanese `第3巻` and `第11話`. Tags in brackets (groups, years, `Digital`, `[v2]`) are dropped from titles; a leading tag becomes the scan group. `ComicInfo.xml`, when an archive or folder has one, overrides the parsed series title, chapter title, number and volume, and fills summary, writer, year, language, genres, the `Manga` reading direction and the front cover page. `ComicInfo::mangadex_id` reads a MangaDex series id from a `mangadex.org/title/<id>` link in `<Web>`, which downloaded chapters carry (see `docs/downloads.md`); it is parsed but not stored yet.
 
 Chapters are ordered by number (then volume), then volume alone for volume-only releases, then natural path order.
 

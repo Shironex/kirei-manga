@@ -39,6 +39,12 @@ Appearance keys are applied to `<html>` by `useAppearanceSettings()`, mounted on
 | `reader.fit`            | `'screen' \| 'width' \| 'height' \| 'original'`     | `'screen'`   | Reader (#29): page sizing against the window                                              |
 | `reader.filter`         | `'lanczos3' \| 'mitchell' \| 'nearest'`             | `'lanczos3'` | Reader quality (#30): maps one to one onto `kirei_reader::Resample`                       |
 | `reader.detectSpreads`  | `boolean`                                           | `true`       | Reader (#29): show wide pages alone in double page mode                                   |
+| `downloads.folder`      | `string \| null`                                   | `null`       | Downloads (#44): absolute folder for archives; null is `downloads/` in the data folder. Kept as a library root, see `docs/downloads.md` |
+| `downloads.dataSaver`   | `boolean`                                           | `false`      | Downloads (#44): queue MangaDex's smaller `data-saver` pages; fixed per job when queued   |
+| `downloads.concurrency` | `number`, 1 to 4                                    | `2`          | Downloads (#44): chapters downloaded at the same time; applied at once                    |
+| `downloads.autoFollows` | `boolean`                                           | `false`      | Downloads (#44): `autoDownloadNew` queues new chapters from the follow feed only when on  |
+
+`downloads.concurrency` is refused outside 1 to 4 and `downloads.folder` unless it is null or an absolute path; `settings_set` applies a changed download key to the running queue at once (see `downloads::apply_settings`).
 
 The reader keys are defaults. A choice made inside the reader belongs in that series' `series_settings` blob and wins over these.
 
