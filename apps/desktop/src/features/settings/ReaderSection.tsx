@@ -28,6 +28,8 @@ export function ReaderSection() {
   const [fit, setFit, fitError] = useSettingControl('reader.fit');
   const [filter, setFilter, filterError] = useSettingControl('reader.filter');
   const [spreads, setSpreads, spreadsError] = useSettingControl('reader.detectSpreads');
+  const [webtoon, setWebtoon, webtoonError] = useSettingControl('reader.detectWebtoon');
+  const [split, setSplit, splitError] = useSettingControl('reader.splitTall');
 
   return (
     <SettingsSection
@@ -121,6 +123,34 @@ export function ReaderSection() {
               aria-describedby="pref-spreads-help"
               checked={spreads}
               onCheckedChange={setSpreads}
+            />
+          }
+        />
+        <SettingRow
+          id="pref-webtoon"
+          label="Detect webtoons"
+          help="Open chapters of tall strips in webtoon mode, unless you picked a mode for that series."
+          error={webtoonError}
+          control={
+            <Switch
+              id="pref-webtoon"
+              aria-describedby="pref-webtoon-help"
+              checked={webtoon}
+              onCheckedChange={setWebtoon}
+            />
+          }
+        />
+        <SettingRow
+          id="pref-split"
+          label="Split tall pages"
+          help="In single and double page modes at screen fit, show a tall strip one screen at a time instead of shrinking it."
+          error={splitError}
+          control={
+            <Switch
+              id="pref-split"
+              aria-describedby="pref-split-help"
+              checked={split}
+              onCheckedChange={setSplit}
             />
           }
         />
