@@ -9,8 +9,8 @@ use std::path::{Path, PathBuf};
 use common::cbz;
 use kirei_core::{DataMode, DataPaths};
 use kirei_library::{
-    BackupManifest, BackupOptions, Library, LibraryError, SCHEMA_VERSION, apply_pending_restore,
-    inspect_backup, stage_restore,
+    BackupManifest, BackupOptions, Library, LibraryError, ReadingClock, SCHEMA_VERSION,
+    apply_pending_restore, inspect_backup, stage_restore,
 };
 use serde_json::json;
 
@@ -189,6 +189,39 @@ fn a_backup_restores_the_library_it_was_made_from() {
 
     // Nothing else pending: a second launch does nothing.
     assert!(apply_pending_restore(&fx.paths).unwrap().is_none());
+}
+
+#[test]
+fn reading_stats_survive_a_backup_and_restore() {
+    let fx = fixture();
+    let library = fx.open();
+    let moonlit = series_id(&library, "Moonlit");
+    let chapter = library.series_detail(moonlit).unwrap().unwrap().chapters[1].id;
+    // 2026-03-08 20:00 at UTC+1, a page a minute for three minutes.
+    let start = 1_772_996_400_000;
+    for page in 0..4 {
+        library
+            .record_reading(chapter, page, ReadingClock::at(start + page * 60_000, 60))
+            .unwrap();
+    }
+    let clock = ReadingClock::at(start + 3_600_000, 60);
+    let before = library.reading_stats(2026, clock).unwrap();
+    assert_eq!(before.year_totals.active_ms, 180_000);
+    assert_eq!(before.year_totals.chapters_finished, 1);
+    library
+        .create_backup(&fx.backup_path(), &options(false))
+        .unwrap();
+
+    // Forget everything, then restore.
+    let root = library.roots().unwrap()[0].id;
+    library.remove_root(root).unwrap();
+    drop(library);
+    std::fs::remove_file(fx.paths.database()).unwrap();
+    stage_restore(&fx.backup_path(), &fx.paths).unwrap();
+    apply_pending_restore(&fx.paths).unwrap().unwrap();
+
+    let library = fx.open();
+    assert_eq!(library.reading_stats(2026, clock).unwrap(), before);
 }
 
 #[test]
