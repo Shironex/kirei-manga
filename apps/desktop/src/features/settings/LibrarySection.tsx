@@ -5,7 +5,7 @@ import type { LibraryRoot, ScanProgress } from '@/lib/library';
 import { formatBytes } from '@/lib/reader';
 
 import { ConfirmButton } from './ConfirmButton';
-import { formatAgo, plural } from './format';
+import { describeOrphans, formatAgo, plural } from './format';
 import { SettingRow, SettingsList, SettingsSection } from './SettingRow';
 import { useLibraryMaintenance, type ScanTarget } from './useLibraryMaintenance';
 
@@ -34,7 +34,8 @@ function isScanning(scanning: ScanTarget | null, root: LibraryRoot): boolean {
 
 export function LibrarySection() {
   const library = useLibraryMaintenance();
-  const { roots, cache, scanning, progress, busy } = library;
+  const { roots, cache, orphans, unused, scanning, progress, busy } = library;
+  const orphanCount = orphans ? orphans.progress + orphans.settings : 0;
 
   return (
     <SettingsSection
@@ -140,20 +141,67 @@ export function LibrarySection() {
           id="hidden-progress"
           labelFor={false}
           label="Clean up hidden progress"
-          help="Progress and series settings of removed folders, kept in case the folder comes back."
+          help={
+            <span className="tabular">
+              {orphans && orphanCount === 0
+                ? 'Nothing hidden. Progress of removed folders shows up here.'
+                : orphans
+                  ? `${describeOrphans(orphans)} of removed folders, kept in case the folder comes back.`
+                  : 'Progress and series settings of removed folders, kept in case the folder comes back.'}
+            </span>
+          }
           control={
             <ConfirmButton
               variant="ghost"
               size="sm"
-              disabled={!library.available || busy}
+              disabled={!library.available || busy || orphanCount === 0}
               aria-describedby="hidden-progress-help"
               title="Delete hidden progress?"
-              description="Reading progress and series settings of folders you removed are deleted for good. Progress of folders still in the library is not touched."
+              description={
+                <>
+                  {orphans ? describeOrphans(orphans) : 'Reading progress and series settings'} of
+                  folders you removed will be deleted for good. Progress of folders still in the
+                  library is not touched.
+                </>
+              }
               confirmLabel="Delete"
               danger
               onConfirm={() => void library.purge()}
             >
               Clean up
+            </ConfirmButton>
+          }
+        />
+        <SettingRow
+          id="unused-covers"
+          labelFor={false}
+          label="Remove unused thumbnails"
+          help={
+            <span className="tabular">
+              {unused && unused.files === 0
+                ? 'Every thumbnail belongs to a series.'
+                : unused
+                  ? `${plural(unused.files, 'thumbnail')} (${formatBytes(unused.bytes)}) no series uses, left by deleted series or an older cover rule.`
+                  : 'Thumbnails no series uses, left by deleted series or an older cover rule.'}
+            </span>
+          }
+          control={
+            <ConfirmButton
+              variant="ghost"
+              size="sm"
+              disabled={!library.available || busy || !unused || unused.files === 0}
+              aria-describedby="unused-covers-label unused-covers-help"
+              title="Remove unused thumbnails?"
+              description={
+                unused
+                  ? `${plural(unused.files, 'thumbnail')} (${formatBytes(unused.bytes)}) that no series uses will be deleted. Covers you see in the library are not touched.`
+                  : 'Thumbnails no series uses will be deleted.'
+              }
+              confirmLabel="Remove"
+              danger
+              onConfirm={() => void library.prune()}
+            >
+              Remove
             </ConfirmButton>
           }
         />

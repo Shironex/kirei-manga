@@ -56,9 +56,12 @@ Never rename a shipped key: stored rows would be ignored. Add a new key instead.
 | --------------------------- | ------------------------------------------- | ------------------ |
 | `settings_get`              |                                             | `AppSettings`      |
 | `settings_set`              | `key`, `value`                              | `AppSettings`, emits `settings:changed`; refuses unknown keys and wrong values with a message |
-| `library_purge_orphans`     | `olderThanDays` (null for all)              | `{ progress, settings }` |
+| `library_count_orphans`     |                                             | `{ progress, settings }` that a purge would delete; deletes nothing |
+| `library_purge_orphans`     | `olderThanDays` (null for all)              | `{ progress, settings }` deleted; refused while a scan runs |
 | `library_cover_cache`       |                                             | `{ bytes, files }` |
 | `library_clear_cover_cache` |                                             | `{ bytes, files }` freed; refused while a scan runs; the next scan makes covers again |
+| `library_unused_covers`     |                                             | `{ bytes, files }` of thumbnails no series uses (deleted series, older cover rules); deletes nothing |
+| `library_prune_covers`      |                                             | `{ bytes, files }` freed; thumbnails in use stay; refused while a scan runs |
 | `data_dir`                  |                                             | path (the portable `data` folder in portable mode, see `docs/data.md`) |
 | `open_data_dir`             |                                             | opens it in Finder or Explorer |
 | `open_link`                 | `link`: `website`, `repository`, `issues`, `notices` | opens a fixed URL in the browser |
