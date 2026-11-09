@@ -14,6 +14,6 @@ pub use app::AppInfo;
 pub use page::{ImageFormat, PageInfo, SourceKind};
 pub use paths::{DataMode, DataPaths};
 pub use settings::{
-    AppSettings, MotionPreference, PageFit, ReaderMode, ReadingDirection, ResampleFilter,
-    SettingError, ThemeStrength,
+    AppSettings, DownloadConcurrency, MotionPreference, PageFit, ReaderMode, ReadingDirection,
+    ResampleFilter, SettingError, ThemeStrength,
 };
