@@ -60,7 +60,7 @@
   "plugins": {
     "updater": {
       "endpoints": ["https://github.com/Shironex/kirei-manga/releases/latest/download/latest.json"],
-      "pubkey": "REPLACE_WITH_UPDATER_PUBLIC_KEY",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU5RkFEQzE0OEREOUZDOTcKUldTWC9ObU5GTno2V1lUUXVxdFJwc2RaV1lzZWZsb3dDN0FlYlc1WGRiRi82aUdHNmh6WW5PYTUK",
       "windows": {
         "installMode": "passive"
       }
