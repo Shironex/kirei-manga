@@ -5,7 +5,7 @@ permissions:
 
 on:
   push:
-    branches: [master, rewrite/tauri]
+    branches: [master]
     paths-ignore: ['docs/**', '**/*.md']
   # No branch filter, so stacked PRs (based on another feature branch) are
   # checked too.
