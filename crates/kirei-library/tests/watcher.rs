@@ -429,3 +429,27 @@ fn a_root_missing_at_start_is_caught_up_when_it_appears() {
     wait_for("the catch-up", || series(&fx.library, "Ember").missing);
     assert!(!series(&fx.library, "Moonlit").missing);
 }
+
+#[test]
+fn a_notice_that_changes_no_chapter_costs_no_rescan() {
+    let fx = fixture();
+    let root_id = fx.library.roots().unwrap()[0].id;
+    let events = Events::default();
+    let watcher = LibraryWatcher::start(fx.library.clone(), config(), events.sink());
+    wait_until_watching(&watcher, &[root_id]);
+    // Let the launch catch-up go by first, so it does not absorb the notice.
+    std::thread::sleep(config().debounce * 2);
+
+    // A file the scanner does not read, inside a series folder: the watcher
+    // sees a change in Moonlit, but no chapter differs from the database.
+    std::fs::write(fx.root.join("Moonlit").join("notes.txt"), b"to read").unwrap();
+    std::thread::sleep(config().debounce * 3);
+    assert!(events.0.lock().unwrap().is_empty());
+
+    // A real change in the same folder still goes through.
+    cbz(&fx.root.join("Moonlit").join("Ch.002.cbz"), 2, TEAL, None);
+    wait_for("the new chapter", || {
+        chapter_count(&fx.library, "Moonlit") == 2
+    });
+    assert_eq!(events.rescans(), 1);
+}

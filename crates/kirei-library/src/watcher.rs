@@ -6,8 +6,9 @@
 //! changes have been quiet for [`WatchConfig::debounce`], or after
 //! [`WatchConfig::max_wait`] of steady changes, so a bulk copy causes a
 //! handful of rescans, not one per file. The rescan is the normal incremental
-//! scan narrowed to those entries ([`Library::scan_entries`]) and reports the
-//! same progress events.
+//! scan narrowed to those entries whose chapters no longer match the database
+//! ([`Library::scan_changed`]), so a notice that changed nothing the scanner
+//! reads costs no scan. It reports the same progress events.
 //!
 //! Changes made while the app was closed are caught up once at start: every
 //! root present then is compared with the database from folder listings and
@@ -322,14 +323,15 @@ impl Worker {
             let progress = Arc::clone(&self.progress);
             let sink = move |p: ScanProgress| progress(p);
             // A catch-up compares the whole root, so it covers any live
-            // changes collected since.
+            // changes collected since. Live changes are checked against the
+            // database first and only what differs is rescanned.
             let result = if pending.full {
                 self.library.scan(Some(id), &sink).map(|_| ())
             } else if pending.catch_up {
                 self.library.catch_up(id, &sink).map(|_| ())
             } else {
                 self.library
-                    .scan_entries(id, &pending.scope, &sink)
+                    .scan_changed(id, Some(&pending.scope), &sink)
                     .map(|_| ())
             };
             match result {

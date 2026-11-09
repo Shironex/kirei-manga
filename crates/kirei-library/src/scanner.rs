@@ -343,7 +343,8 @@ pub(crate) fn scan_root(
     Ok(())
 }
 
-/// The part of a root whose chapters no longer match the database: series
+/// The part of a root (or of `within`, when given) whose chapters no longer
+/// match the database: series
 /// folders where a chapter was added, removed, changed size or mtime, or came
 /// back after being missing, and the loose archives when any of them did. It
 /// walks the root the way discovery does, reading only folder listings and
@@ -355,18 +356,22 @@ pub(crate) fn changed_entries(
     conn: &Mutex<Connection>,
     root_id: i64,
     root_path: &str,
+    within: Option<&ScanScope>,
 ) -> Result<Option<ScanScope>> {
     let root = Path::new(root_path);
     if !root.is_dir() {
         return Ok(None);
     }
-    let Ok(discovered) = discover(root, None) else {
+    let Ok(discovered) = discover(root, within) else {
         return Ok(None);
     };
-    let (known, _, _) = {
+    let (mut known, _, _) = {
         let conn = lock(conn);
         load_known(&conn, root_id)?
     };
+    if let Some(within) = within {
+        known.retain(|path, known| within.contains(root, path, known.data.kind));
+    }
     let mut scope = ScanScope::default();
     let mut seen: HashSet<&str> = HashSet::new();
     for candidate in discovered.iter().flat_map(|series| &series.chapters) {

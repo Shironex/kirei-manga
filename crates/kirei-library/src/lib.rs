@@ -240,7 +240,8 @@ impl Library {
     /// Rescans only part of a root: the series folders and loose archives
     /// `scope` names. Same incremental rules, single-flight flag and progress
     /// events as [`Library::scan`]; chapters outside the scope are left as
-    /// they are. The file watcher calls this for the series that changed.
+    /// they are, and the entries are rescanned even when nothing in them
+    /// changed ([`Library::scan_changed`] skips those).
     pub fn scan_entries(
         &self,
         root_id: i64,
@@ -263,22 +264,35 @@ impl Library {
     /// with an unplugged drive. An empty scope means nothing changed.
     pub fn changed_entries(&self, root_id: i64) -> Result<Option<ScanScope>> {
         let path = self.root_path(root_id)?;
-        scanner::changed_entries(&self.conn, root_id, &path)
+        scanner::changed_entries(&self.conn, root_id, &path, None)
     }
 
     /// Catches a root up with changes made while nothing watched it (the app
-    /// was closed): rescans only the entries [`Library::changed_entries`]
-    /// reports, with the same progress events as any scan. Returns `None`,
-    /// sending no events, when nothing changed or the root cannot be read; an
-    /// unreadable root marks nothing missing. Single-flight like every scan.
+    /// was closed): [`Library::scan_changed`] over the whole root.
     pub fn catch_up(
         &self,
         root_id: i64,
         progress: &(dyn Fn(ScanProgress) + Sync),
     ) -> Result<Option<ScanSummary>> {
+        self.scan_changed(root_id, None, progress)
+    }
+
+    /// Rescans the entries of a root, or of `within` when given, that
+    /// [`Library::changed_entries`] would report, with the same progress
+    /// events as any scan. Returns `None`, sending no events, when nothing
+    /// changed or the root cannot be read; an unreadable root marks nothing
+    /// missing. Single-flight like every scan. The watcher rescans through
+    /// this, so a change notice that changed nothing the scanner reads (an
+    /// attribute touched, metadata flushed late) costs no scan.
+    pub fn scan_changed(
+        &self,
+        root_id: i64,
+        within: Option<&ScanScope>,
+        progress: &(dyn Fn(ScanProgress) + Sync),
+    ) -> Result<Option<ScanSummary>> {
         let _guard = self.begin_scan()?;
         let path = self.root_path(root_id)?;
-        match scanner::changed_entries(&self.conn, root_id, &path)? {
+        match scanner::changed_entries(&self.conn, root_id, &path, within)? {
             Some(scope) if !scope.is_empty() => self
                 .scan_roots(&[(root_id, path, Some(scope))], progress)
                 .map(Some),
