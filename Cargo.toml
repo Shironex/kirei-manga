@@ -24,6 +24,7 @@ kirei-core = { path = "crates/kirei-core" }
 kirei-archive = { path = "crates/kirei-archive" }
 kirei-reader = { path = "crates/kirei-reader" }
 kirei-library = { path = "crates/kirei-library" }
+kirei-mangadex = { path = "crates/kirei-mangadex" }
 
 # External. Versions live here, never in a leaf crate, so the tree stays unified.
 serde = { version = "1", features = ["derive"] }
@@ -85,7 +86,24 @@ fast_image_resize = "6.1"
 # the library's own watcher thread, so no debouncer crate.
 notify = "8.2"
 
+# MangaDex client (kirei-mangadex). The same reqwest the updater already
+# builds, with the same TLS setup: rustls with the ring provider and the OS
+# certificate store, no aws-lc (which needs cmake and NASM on Windows). No
+# reqwest `json`, `query` or `form`: bodies are built with serde_json and url.
+# reqwest is MIT OR Apache-2.0, rustls Apache-2.0 OR ISC OR MIT.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "system-proxy"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+# Async runtime pieces only: sleeping for the rate limiter and async locks.
+# Tauri runs on tokio already. MIT.
+tokio = { version = "1", default-features = false, features = ["sync", "time"] }
+# Query strings and form bodies. MIT OR Apache-2.0.
+url = "2.5"
+# Response bodies, shared without copying between the cache and callers. MIT.
+bytes = "1"
+
 # Test-only helpers.
+# Local HTTP server that replays recorded MangaDex responses. MIT OR Apache-2.0.
+wiremock = "0.6"
 tempfile = "3"
 crc32fast = "1.5"
 # Writes RAR fixtures inside the tests, since no RAR encoder ships with the
