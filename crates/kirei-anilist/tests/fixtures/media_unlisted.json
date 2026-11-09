@@ -1,0 +1,18 @@
+{
+  "data": {
+    "Media": {
+      "id": 30013,
+      "title": { "romaji": "Tsuki no Michi", "english": "Moonlit Road", "native": "月の道", "userPreferred": "Tsuki no Michi" },
+      "synonyms": [],
+      "format": "MANGA",
+      "status": "RELEASING",
+      "chapters": null,
+      "volumes": null,
+      "startDate": { "year": 2014 },
+      "coverImage": null,
+      "siteUrl": "https://anilist.co/manga/30013",
+      "isAdult": false,
+      "mediaListEntry": null
+    }
+  }
+}
