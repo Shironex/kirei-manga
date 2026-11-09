@@ -25,7 +25,7 @@ Why a rewrite: no Tauri/Rust manga reader has traction, scraper-based readers ke
   - `crates/kirei-reader`: decode-ahead page pipeline, resampling, adjustments
   - `crates/kirei-library`: SQLite schema, scanner, cover cache, palette extraction
   - `crates/kirei-core`: shared types, settings, paths, portable mode, backup
-  - `crates/kirei-mangadex`, `crates/kirei-anilist`, `crates/kirei-download` (release 1.1)
+  - `crates/kirei-mangadex`, `crates/kirei-anilist`, `crates/kirei-download`
   - `apps/desktop`: the Tauri app and React UI
   - `apps/landing`: Astro site
   - `packages/`: shared TypeScript (contracts, UI tokens)
@@ -33,31 +33,35 @@ Why a rewrite: no Tauri/Rust manga reader has traction, scraper-based readers ke
 
 ## Releases
 
-### 1.0 Foundation
+Update 2026-11-09: the release plan changed. MangaDex, downloads and AniList, the reader comfort options, the command palette, reading stats and collections all ship in 1.0, so 1.0 is a full release rather than a foundation. The earlier plan (1.0 Foundation, then 1.1 Online) is kept in the decisions list below. What follows is the plan as it stands.
+
+### 1.0
+
 - Scaffold, CI and tooling; design system from the approved prototype; app shell and routing.
 - Streaming archive access: CBZ, ZIP, CBR, folders, never extracted to disk.
 - Decode-ahead page pipeline with a custom protocol serving pages to the webview, bounded cache, viewport-sized decode.
 - Reader modes: paged LTR and RTL, double page with spread detection, webtoon continuous.
-- Resampling filters (lanczos3, mitchell, nearest) and image adjustments (brightness, contrast, saturation, sharpen, invert, grayscale, sepia) with per-title memory.
-- Library: SQLite, folder scanner with loose naming and ComicInfo.xml, persistent cover cache, series detail, continue reading.
-- Cover-derived theming (palette sampled at scan time).
-- Portable mode, backup and restore, settings.
-- Release pipeline: signing, updater, GitHub releases for Windows and macOS.
-- New Astro landing with an R3F hero and static fallback; coming-soon page until then.
-- Master swap and README rewrite.
-
-### 1.1 Online
-- MangaDex browse and follow, Polish first (language fallback chain pl, en, "only my language" toggle), grouped new-chapter feed, reading sync, scheduled refresh.
+- Reader comfort: resampling filters (lanczos3, mitchell, nearest), image adjustments (brightness, contrast, saturation, sharpen, invert, grayscale, sepia) with per-title memory, webtoon detection, tall strip splitting, chapters that run into the next, remappable keys.
+- Library: SQLite, folder scanner with loose naming and ComicInfo.xml, folder watcher, persistent cover cache, series detail, continue reading.
+- Cover-derived theming (palette sampled at scan time), also on the reader chrome.
+- Collections, tags, Want to Read and smart filters; command palette; reading stats with a year in review card.
+- MangaDex browse and follow, Polish first (language fallback chain pl, en, "only my language" toggle), grouped new-chapter feed, read marker sync, scheduled refresh and notifications.
 - Offline downloads to CBZ with ComicInfo.xml, resumable queue with rate controls, data-saver option.
 - Credits to MangaDex and scanlation groups in the reader and on series pages.
 - AniList tracking with progress sync.
+- Portable mode, backup and restore, settings.
+- Release pipeline: updater, GitHub releases for Windows and macOS. Code signing and notarization are supported by the workflow but off by default (see `docs/release.md`).
+- New Astro landing with an R3F hero and static fallback.
+- README rewrite and the master swap.
 
-### 1.2 Comfort
+### 1.1 Comfort
+
 - Credit and ad page detection (perceptual hashing) with a "skip these pages" option.
 - Spoiler guard and privacy: blur unread covers, incognito, hidden categories.
 - Optional 3D shelf view (a toggle, never the default).
 
-### 1.3 Showcase
+### 1.2 Showcase
+
 - Local AI upscaling (ONNX or ncnn, per-series toggle, cached prefetch; check model licenses first).
 - 3D mascot moments.
 
@@ -69,8 +73,8 @@ Dark cinematic gallery: near-black surfaces, large covers, glass panels, colors 
 
 Models come from Tripo through Maquette, optimized to glTF with KTX2 textures.
 - Landing hero: an R3F island with DPR and GPU gating, correct disposal, and a static image fallback for no-WebGL, reduced motion and low-end devices.
-- Kirei mascot: a 3D model used on the landing and in the app (empty states, about, moments in 1.3).
-- Shelf view: optional in-app 3D bookshelf toggle in 1.2.
+- Kirei mascot: a 3D model used on the landing and in the app (empty states, about, moments in 1.2).
+- Shelf view: optional in-app 3D bookshelf toggle in 1.1.
 
 ## Platforms
 
@@ -86,9 +90,9 @@ Astro with a React Three Fiber island and a static fallback, served from a non-r
 
 ## Process
 
-- One GitHub milestone per release (1.0 Foundation, 1.1 Online, 1.2 Comfort, 1.3 Showcase).
+- One GitHub milestone per release.
 - One issue per slice with goal, scope, acceptance criteria, dependencies and out of scope.
-- One PR per slice, rebase merge only, never squash. PRs target `rewrite/tauri` until the 1.0 master swap.
+- One PR per slice, rebase merge only, never squash. PRs targeted `rewrite/tauri` until the 1.0 master swap; after 1.0, PRs target `master`.
 - Small conventional commits, always scoped. PR titles follow the same shape.
 - Labels: a type label, an `area:*` label, a `release:*` label and a priority.
 
@@ -97,7 +101,7 @@ Astro with a React Three Fiber island and a static fallback, served from a non-r
 1. Rewrite from scratch in Tauri 2 and Rust, same public repo, branch `rewrite/tauri`, master swapped at 1.0, old master tagged `legacy-electron`.
 2. The v0.3 translation engine stays dropped. No scraper sources.
 3. Keep the name, domain and Kirei mascot; new dark cinematic gallery identity.
-4. Four releases: 1.0 Foundation, 1.1 Online, 1.2 Comfort, 1.3 Showcase.
+4. Four releases: 1.0 Foundation, 1.1 Online, 1.2 Comfort, 1.3 Showcase. Superseded on 2026-11-09: Online, downloads, AniList, reader comfort, the command palette, stats and collections moved into 1.0, and the remaining releases are 1.1 Comfort and 1.2 Showcase.
 5. MangaDex is the only online source, Polish first.
 6. 3D via Tripo and Maquette: landing hero, mascot, optional shelf view.
 7. Windows and macOS only; clean start with no v0.2 migration.
