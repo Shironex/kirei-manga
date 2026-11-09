@@ -90,9 +90,9 @@ On Windows the venv tools live in `ft\Scripts\` instead of `ft/bin/`; run the sa
 
 The site is a Coolify application, uuid `q94eolyvc98izz59js4vskzy`, built from `Dockerfile.landing`: a pnpm build stage, then `serve` on port 3000 as a non-root user (uid 10001). It is a static site, so there are no runtime env vars.
 
-Current state: the application is in maintenance mode and serves a coming-soon page. It does not build from this branch yet.
+Current state: the application is in maintenance mode and serves a coming-soon page. The site is ready to build from `Dockerfile.landing` on `master` once the 1.0 master swap has landed.
 
-At the 1.0 master swap (when `rewrite/tauri` becomes `master`):
+To take the site live after the swap:
 
 1. Point the application at `master` with `Dockerfile.landing` as the Dockerfile and the repo root as the build context.
 2. Set its watch paths to `apps/landing/**` so only landing changes redeploy it. Add `Dockerfile.landing` too if the Dockerfile should trigger a deploy on its own.
@@ -100,7 +100,7 @@ At the 1.0 master swap (when `rewrite/tauri` becomes `master`):
 
 `Dockerfile.landing` pins pnpm through corepack and must match `packageManager` in the root `package.json` (10.34.9 at the time of writing). Bump both together.
 
-The download buttons link to `releases/latest` on GitHub. Until 1.0 is published that is still the legacy v0.2.0 release.
+The download buttons link to `releases/latest` on GitHub. Until 1.0 is published that is still the legacy v0.2.0 release (the Electron app).
 
 ## Screenshots
 
