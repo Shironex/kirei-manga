@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { focusedPage, layoutStrips, pageAt, visibleRange } from './webtoon';
+import { focusedPage, layoutStrips, looksLikeWebtoon, pageAt, visibleRange } from './webtoon';
 
 const strip = (width: number, height: number) => ({ width, height });
 
@@ -47,5 +47,25 @@ describe('positions', () => {
   it('focuses the page a third of the way down the screen', () => {
     expect(focusedPage(layout, 9_800, 900)).toBe(10);
     expect(focusedPage(layout, 9_600, 900)).toBe(9);
+  });
+});
+
+describe('looksLikeWebtoon', () => {
+  const page = strip(1200, 1800);
+  const long = strip(800, 6000);
+
+  it('spots a chapter of tall strips, even with a normal cover', () => {
+    expect(looksLikeWebtoon([page, long, long, long])).toBe(true);
+    expect(looksLikeWebtoon([page, long])).toBe(true);
+  });
+
+  it('leaves manga chapters with an odd long page alone', () => {
+    expect(looksLikeWebtoon([page, page, long, page])).toBe(false);
+    expect(looksLikeWebtoon([])).toBe(false);
+    expect(looksLikeWebtoon([{ width: null, height: null }])).toBe(false);
+  });
+
+  it('decides from the pages with a known size', () => {
+    expect(looksLikeWebtoon([{ width: null, height: null }, long])).toBe(true);
   });
 });

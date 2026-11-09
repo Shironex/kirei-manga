@@ -1,5 +1,8 @@
 import type { AppSettings, PageFit, ReaderMode, ReadingDirection } from '@/lib/settings/contract';
 
+import type { PageSize } from './spreads';
+import { looksLikeWebtoon } from './webtoon';
+
 /**
  * How a title is read: mode, direction, fit and the double page options. The
  * app settings (`reader.*`, see docs/settings.md) give the defaults; a choice
@@ -107,4 +110,35 @@ export function directionFromComicInfo(manga: string | null, fallback: Direction
   if (manga === 'YesAndRightToLeft') return 'rtl';
   if (manga === 'No') return 'ltr';
   return fallback;
+}
+
+/**
+ * The mode the reader chose inside the reader for this series, or `null` when
+ * it never chose one. Since webtoon detection, `reader.modeChosen` records
+ * that; an entry saved before it counts as a choice only when its mode
+ * differs from the app default (the same mode was most likely just written
+ * along with another change).
+ */
+export function chosenMode(settings: unknown, appDefault: ReaderMode): ReaderMode | null {
+  const reader = isRecord(settings) ? settings.reader : undefined;
+  if (!isRecord(reader)) return null;
+  const mode = MODES.includes(reader.mode as ReaderMode) ? (reader.mode as ReaderMode) : null;
+  if (reader.modeChosen === true) return mode;
+  if (reader.modeChosen === undefined && mode !== appDefault) return mode;
+  return null;
+}
+
+/**
+ * The mode a chapter opens in: the series' own choice, else webtoon for a
+ * chapter of tall strips (when detection is on), else the app default.
+ */
+export function startMode(options: {
+  chosen: ReaderMode | null;
+  appDefault: ReaderMode;
+  detectWebtoon: boolean;
+  pages: readonly PageSize[];
+}): ReaderMode {
+  if (options.chosen) return options.chosen;
+  if (options.detectWebtoon && looksLikeWebtoon(options.pages)) return 'webtoon';
+  return options.appDefault;
 }
