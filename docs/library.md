@@ -121,7 +121,7 @@ The webview loads thumbnails through the `kirei-cover` scheme (`kirei-cover://lo
 | `library_scan`                | `rootId` (null for all)            | `ScanSummary`           |
 | `library_series`              |                                    | `SeriesSummary[]`       |
 | `library_series_detail`       | `id`                               | `SeriesDetail \| null`  |
-| `library_record_progress`     | `chapterId`, `page` (0 based)      | `ReadingProgress`       |
+| `library_record_progress`     | `chapterId`, `page` (0 based), `utcOffsetMin` (also records a reading session, see `docs/stats.md`) | `ReadingProgress` |
 | `library_series_settings`     | `seriesId`                         | JSON or `null`          |
 | `library_set_series_settings` | `seriesId`, `settings`             |                         |
 
