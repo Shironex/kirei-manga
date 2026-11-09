@@ -46,6 +46,7 @@ const SETTINGS: [section: string, title: string, extra: string][] = [
   ['downloads', 'Download followed series', 'auto follows feed new chapters'],
   ['accounts', 'AniList tracking', 'sync progress chapters list conflict'],
   ['about', 'Check for updates', 'upgrade release version'],
+  ['data', 'Clear reading stats', 'stats sessions history privacy delete reset'],
 ];
 
 const ACTIONS: [
