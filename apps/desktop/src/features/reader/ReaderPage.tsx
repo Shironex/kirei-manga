@@ -129,17 +129,20 @@ function ReaderScreen({ target }: { target: ChapterTarget }) {
  * The reader frame without a chapter: loading, an error or nothing chosen.
  * Esc and the back button leave, like in the reader.
  */
-function ReaderMessage({
+export function ReaderMessage({
   title,
   loading = false,
   alert = false,
   onClose,
+  actions,
   children,
 }: {
   title?: string;
   loading?: boolean;
   alert?: boolean;
   onClose?: () => void;
+  /** Replaces the default actions (open a file, go to the library). */
+  actions?: ReactNode;
   children?: ReactNode;
 }) {
   const navigate = useNavigate();
@@ -183,23 +186,25 @@ function ReaderMessage({
             title={title ?? 'Reader'}
             tone={alert ? 'alert' : 'calm'}
             actions={
-              <>
-                {isTauri() && (
-                  <>
-                    <Button variant="primary" onClick={() => void openFile()}>
-                      <FileArchive /> Open an archive
-                    </Button>
-                    <Button variant="ghost" onClick={() => void openFile(true)}>
-                      <FolderOpen /> Open a folder
-                    </Button>
-                  </>
-                )}
-                <Button variant="ghost" asChild>
-                  <Link to="/library">
-                    <LibraryBig /> Library
-                  </Link>
-                </Button>
-              </>
+              actions ?? (
+                <>
+                  {isTauri() && (
+                    <>
+                      <Button variant="primary" onClick={() => void openFile()}>
+                        <FileArchive /> Open an archive
+                      </Button>
+                      <Button variant="ghost" onClick={() => void openFile(true)}>
+                        <FolderOpen /> Open a folder
+                      </Button>
+                    </>
+                  )}
+                  <Button variant="ghost" asChild>
+                    <Link to="/library">
+                      <LibraryBig /> Library
+                    </Link>
+                  </Button>
+                </>
+              )
             }
           >
             {children ?? <p>Pick a chapter from your library, or open a CBZ, CBR or folder.</p>}

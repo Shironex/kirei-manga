@@ -19,6 +19,7 @@ export function EndCard({
   backLabel,
   onOpenFile,
   autoFocus = false,
+  lastNote,
   hint,
   className,
 }: {
@@ -31,6 +32,8 @@ export function EndCard({
   onOpenFile?: () => void;
   /** Focus the primary action on mount, for the card that covers the stage. */
   autoFocus?: boolean;
+  /** Replaces "the last chapter on your shelf" when there is no next chapter. */
+  lastNote?: string;
   /** How to read on without a click, under the actions. */
   hint?: ReactNode;
   className?: string;
@@ -46,7 +49,7 @@ export function EndCard({
   } else if (onOpenFile) {
     body = <p>Open another archive or folder to keep reading.</p>;
   } else {
-    body = <p>That was the last chapter on your shelf for this series.</p>;
+    body = <p>{lastNote ?? 'That was the last chapter on your shelf for this series.'}</p>;
   }
 
   return (
