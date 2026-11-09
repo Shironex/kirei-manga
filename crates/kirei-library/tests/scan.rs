@@ -755,3 +755,97 @@ fn purge_only_removes_orphans_old_enough() {
     let purge = library.purge_orphans(30).unwrap();
     assert_eq!((purge.progress, purge.settings), (1, 1));
 }
+
+#[test]
+fn count_orphans_matches_what_purge_deletes() {
+    let fixture = fixture();
+    let library = open(&fixture);
+    let root = library.add_root(&fixture.root).unwrap();
+    scan(&library);
+    read(&library, "Ash and Ember", "c003.cbz", 1);
+    let ember = by_title(&library.series().unwrap(), "Ash and Ember").id;
+    library
+        .set_series_settings(ember, &serde_json::json!({ "mode": "paged" }))
+        .unwrap();
+    assert_eq!(library.count_orphans().unwrap(), Default::default());
+
+    library.remove_root(root.id).unwrap();
+    let counted = library.count_orphans().unwrap();
+    assert_eq!((counted.progress, counted.settings), (1, 1));
+    assert_eq!(library.purge_orphans(0).unwrap(), counted);
+    assert_eq!(library.count_orphans().unwrap(), Default::default());
+}
+
+#[test]
+fn prune_covers_deletes_only_thumbnails_no_series_uses() {
+    let fixture = fixture();
+    let library = open(&fixture);
+    library.add_root(&fixture.root).unwrap();
+    scan(&library);
+    let in_use = library.cover_cache_usage().unwrap();
+    assert!(in_use.files > 0);
+
+    // Nothing to prune while every thumbnail is referenced.
+    assert_eq!(library.unused_covers().unwrap(), Default::default());
+    assert_eq!(library.prune_covers().unwrap(), Default::default());
+
+    // A thumbnail of an older cover rule that no series points at.
+    let stale = "b".repeat(64);
+    let stale_file = fixture.data.join("covers/bb").join(format!("{stale}.jpg"));
+    std::fs::create_dir_all(stale_file.parent().unwrap()).unwrap();
+    std::fs::write(&stale_file, [0xff, 0xd8, 0xff, 0xd9]).unwrap();
+    let conn = rusqlite::Connection::open(fixture.data.join("library.sqlite3")).unwrap();
+    conn.execute(
+        "INSERT INTO covers (hash, file, width, height, palette, created_at)
+         VALUES (?1, ?2, 1, 1, '{}', 0)",
+        [&stale, &format!("bb/{stale}.jpg")],
+    )
+    .unwrap();
+    drop(conn);
+
+    let preview = library.unused_covers().unwrap();
+    assert_eq!((preview.files, preview.bytes), (1, 4));
+    assert!(stale_file.exists(), "a preview deletes nothing");
+
+    assert_eq!(library.prune_covers().unwrap(), preview);
+    assert!(!stale_file.exists());
+    assert_eq!(library.cover_cache_usage().unwrap(), in_use);
+    // The covers still show and the next scan has nothing to remake.
+    assert_eq!(scan(&library).covers_made, 0);
+}
+
+#[test]
+fn cleanup_is_refused_while_a_scan_runs() {
+    let fixture = fixture();
+    let library = open(&fixture);
+    library.add_root(&fixture.root).unwrap();
+    std::thread::scope(|scope| {
+        let (started_tx, started_rx) = std::sync::mpsc::channel();
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+        let release_rx = std::sync::Mutex::new(release_rx);
+        let started_tx = std::sync::Mutex::new(started_tx);
+        let library = &library;
+        let scanning = scope.spawn(move || {
+            library
+                .scan(None, &|_| {
+                    // Hold the scan open on its first progress report.
+                    if started_tx.lock().unwrap().send(()).is_ok() {
+                        let _ = release_rx.lock().unwrap().recv();
+                    }
+                })
+                .unwrap()
+        });
+        started_rx.recv().unwrap();
+        assert!(matches!(
+            library.prune_covers(),
+            Err(kirei_library::LibraryError::ScanInProgress)
+        ));
+        assert!(matches!(
+            library.purge_orphans(0),
+            Err(kirei_library::LibraryError::ScanInProgress)
+        ));
+        drop(release_tx);
+        scanning.join().unwrap();
+    });
+    library.prune_covers().unwrap();
+}
