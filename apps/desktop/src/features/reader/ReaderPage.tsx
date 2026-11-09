@@ -1,4 +1,4 @@
-import { useCallback, useEffect, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { ArrowLeft, FileArchive, FolderOpen, LibraryBig } from 'lucide-react';
@@ -11,6 +11,7 @@ import { useChapterCover } from '@/lib/theme/coverTheme';
 import { cn } from '@/lib/utils';
 
 import { Tip } from './chrome/Tip';
+import { resolveBindings } from './model/keys';
 import { prefsFromAppSettings } from './model/prefs';
 import { useOpenChapter, type ChapterTarget } from './openChapter';
 import { Reader } from './Reader';
@@ -66,6 +67,17 @@ function ReaderScreen({ target }: { target: ChapterTarget }) {
   const navigate = useNavigate();
   const openChapter = useOpenChapter();
   const openFile = useOpenFile();
+  const { settings: app } = settings;
+  const storedKeys = app['reader.keys'];
+  const bindings = useMemo(() => resolveBindings(storedKeys), [storedKeys]);
+  const options = useMemo(
+    () => ({
+      detectWebtoon: app['reader.detectWebtoon'],
+      splitTall: app['reader.splitTall'],
+      bindings,
+    }),
+    [app, bindings]
+  );
 
   useEffect(() => {
     document.title =
@@ -96,6 +108,7 @@ function ReaderScreen({ target }: { target: ChapterTarget }) {
       key={chapter.source.id}
       chapter={chapter}
       defaults={prefsFromAppSettings(settings.settings)}
+      options={options}
       defaultFilter={settings.settings['reader.filter']}
       onClose={close}
       onNextChapter={() => {
