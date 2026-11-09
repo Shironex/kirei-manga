@@ -21,7 +21,7 @@ The home page is one sticky full-viewport stage behind scrolling stop sections: 
 
 - **Posters first.** Every visitor gets a WebP poster per stop (`public/3d/posters/stop-<n>-1920.webp` and `-960.webp`, plus `hero-mobile.webp` for phones). The page is complete with JavaScript off: posters, copy and download links are plain HTML.
 - **The 3D island is opt-in.** `src/tour/gate.ts` loads the scene only on a desktop-sized fine pointer (`(min-width: 1024px) and (pointer: fine)`), without reduced motion or Save-Data, with enough memory and cores, and when a WebGL2 context opens without a major performance caveat. Everything else stays on the posters. `?poster` forces the posters.
-- **Lazy.** The island chunk (`src/scene/mount.tsx`) is imported on idle after load, so it never counts toward the first view. Models and decoders load only with it.
+- **Lazy.** The island chunk (`src/scene/mount.tsx`) is imported after load, on the visitor's first move (pointer, wheel, scroll, key or touch) or after 5 s of calm, so it never competes with the first view. The poster shows the same frame until the scene is ready. Models and decoders load only with it.
 - **Runtime limits.** DPR is capped to 1.5 and adapts to frame time; the loop stops when the stage is offscreen or the tab is hidden; spot light shadows render once; a lost context or a failed model falls back to the posters. Loaded models, textures and the environment map are disposed on unmount.
 - **Seed colour.** Each stop sets `--seed-h` and `--seed-c` from one of the fictional covers, which tints the rim light and the page accents.
 

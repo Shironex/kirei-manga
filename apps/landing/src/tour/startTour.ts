@@ -131,12 +131,26 @@ export function startTour(tour: HTMLElement): void {
     if (e.matches) fail('reduced-motion');
   });
 
-  // The GPU probe waits for idle time too: making a context can wake the GPU
-  // process, and the first paint does not need it.
-  const idle = () =>
-    'requestIdleCallback' in window
-      ? window.requestIdleCallback(start, { timeout: 1500 })
-      : setTimeout(start, 200);
+  // The poster already shows the first frame, so the island (three, the
+  // models and shader compiles) waits for the visitor's first move, or for a
+  // calm moment, and never competes with the first seconds of the page. The
+  // GPU probe waits too: making a context can wake the GPU process.
+  const INTENT = ['pointermove', 'wheel', 'scroll', 'keydown', 'touchstart'] as const;
+  const CALM_MS = 5000;
+  const idle = () => {
+    let begun = false;
+    let timer = 0;
+    const begin = () => {
+      if (begun) return;
+      begun = true;
+      clearTimeout(timer);
+      for (const type of INTENT) window.removeEventListener(type, begin);
+      if ('requestIdleCallback' in window) window.requestIdleCallback(start, { timeout: 1500 });
+      else setTimeout(start, 200);
+    };
+    for (const type of INTENT) window.addEventListener(type, begin, { passive: true });
+    timer = window.setTimeout(begin, CALM_MS);
+  };
   if (capture || document.readyState === 'complete') {
     if (capture) start();
     else idle();
