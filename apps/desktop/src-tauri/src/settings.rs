@@ -32,7 +32,11 @@ pub(crate) async fn settings_set<R: Runtime>(
     key: String,
     value: serde_json::Value,
 ) -> Result<AppSettings, String> {
+    let downloads = key.starts_with("downloads.");
     let settings = with_library(&app, move |library| library.set_setting(&key, value)).await?;
+    if downloads {
+        crate::downloads::apply_settings(&app, &settings);
+    }
     // A window that is closing just misses the event.
     let _ = app.emit(SETTINGS_CHANGED_EVENT, &settings);
     Ok(settings)
@@ -172,7 +176,7 @@ fn app_data_dir<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf, String> {
 
 /// Hands a folder or URL to the OS: `open` on macOS, Explorer on Windows,
 /// `xdg-open` elsewhere. No plugin needed for two fixed kinds of target.
-async fn spawn_open(target: std::ffi::OsString) -> Result<(), String> {
+pub(crate) async fn spawn_open(target: std::ffi::OsString) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         let program = if cfg!(target_os = "macos") {
             "open"

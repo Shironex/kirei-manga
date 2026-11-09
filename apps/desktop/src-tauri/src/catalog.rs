@@ -66,7 +66,7 @@ impl Watch {
     }
 
     /// Picks up added and removed roots.
-    fn sync(&self) {
+    pub(crate) fn sync(&self) {
         if let Some(watcher) = &self.0 {
             watcher.sync();
         }
