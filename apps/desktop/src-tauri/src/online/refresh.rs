@@ -1,6 +1,6 @@
 //! Keeping the updates feed fresh: one refresh (follows, the feed, read
-//! markers), the background schedule and the system notification for new
-//! chapters.
+//! markers), the background schedule, the system notification for new
+//! chapters and the hand over of new chapters to automatic downloads.
 //!
 //! A refresh costs a handful of requests (one per 100 follows, one per 100
 //! feed chapters, one for the statuses and one per 100 series for read
@@ -76,6 +76,16 @@ pub(crate) async fn refresh<R: Runtime>(
         .await
         .map_err(tracked)?;
     online.track(Ok(()))?;
+
+    // New chapters of followed series go to the download queue when the
+    // user asked for that (`downloads.autoFollows`, checked by downloads).
+    // The first refresh only fills the feed, so it queues nothing.
+    if !feed.first
+        && !feed.fresh.is_empty()
+        && let Err(error) = crate::downloads::auto_download_new(app, &feed.fresh)
+    {
+        eprintln!("new chapters not queued for download: {error}");
+    }
 
     let unannounced: Vec<String> = library
         .online_feed(500)?
