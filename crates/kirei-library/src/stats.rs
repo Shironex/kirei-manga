@@ -171,6 +171,24 @@ impl Library {
         Ok(progress)
     }
 
+    /// How many reading sessions are stored: what
+    /// [`Library::clear_reading_sessions`] would delete.
+    pub fn count_reading_sessions(&self) -> Result<usize> {
+        let n: i64 = self
+            .conn()
+            .query_row("SELECT count(*) FROM reading_sessions", [], |row| {
+                row.get(0)
+            })?;
+        Ok(usize::try_from(n).unwrap_or_default())
+    }
+
+    /// Deletes every reading session, which resets the stats page and the
+    /// year in review. Reading progress, series settings and the rest of the
+    /// library are left alone. Returns how many sessions were deleted.
+    pub fn clear_reading_sessions(&self) -> Result<usize> {
+        Ok(self.conn().execute("DELETE FROM reading_sessions", [])?)
+    }
+
     /// Stats for `year` (a calendar year in the reader's time zone) plus the
     /// all-time totals and streaks, as of `clock`.
     pub fn reading_stats(&self, year: i64, clock: ReadingClock) -> Result<ReadingStats> {
@@ -902,6 +920,36 @@ mod tests {
         assert_eq!(stats.year_totals.active_ms, MIN);
         let top = &stats.top_series[0];
         assert_eq!((top.series_id, top.title.as_str()), (None, "Ember"));
+    }
+
+    #[test]
+    fn clearing_deletes_every_session_and_nothing_else() {
+        let fx = fixture();
+        fx.read(fx.ember, 0, T0, 0);
+        fx.read(fx.ember, 1, T0 + MIN, 0);
+        fx.read(fx.moonlit[0], 0, T0 + 2 * MIN, 0);
+        fx.read(fx.moonlit[0], 9, T0 + 3 * MIN, 0);
+        fx.library
+            .set_series_settings(1, &serde_json::json!({ "mode": "rtl" }))
+            .unwrap();
+        assert_eq!(fx.library.count_reading_sessions().unwrap(), 2);
+
+        assert_eq!(fx.library.clear_reading_sessions().unwrap(), 2);
+        assert_eq!(fx.library.count_reading_sessions().unwrap(), 0);
+        let stats = fx.stats(2026, T0, 0);
+        assert_eq!(stats.all_time, ReadingTotals::default());
+        assert!(stats.top_series.is_empty());
+        // Progress and settings stay.
+        let detail = fx.library.series_detail(1).unwrap().unwrap();
+        assert_eq!(
+            detail.chapters[0].progress.as_ref().map(|p| p.page),
+            Some(9)
+        );
+        assert!(fx.library.series_settings(1).unwrap().is_some());
+        // Clearing again is a no-op, and reading starts fresh sessions.
+        assert_eq!(fx.library.clear_reading_sessions().unwrap(), 0);
+        fx.read(fx.ember, 0, T0 + 10 * MIN, 0);
+        assert_eq!(fx.library.count_reading_sessions().unwrap(), 1);
     }
 
     #[test]
