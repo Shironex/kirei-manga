@@ -9,7 +9,8 @@ import { useNavigate } from '@tanstack/react-router';
  */
 export type ChapterTarget =
   | { kind: 'library'; seriesId: number; chapterId: number; page?: number }
-  | { kind: 'file'; path: string; page?: number };
+  | { kind: 'file'; path: string; page?: number }
+  | { kind: 'online'; mangaId: string; chapterId: string; page?: number };
 
 /**
  * The one way into the reader. Library views call it with a chapter id, the
@@ -30,6 +31,13 @@ export function useOpenChapter(): (target: ChapterTarget, options?: { replace?: 
         void navigate({
           to: '/read/$seriesId/$chapterId',
           params: { seriesId: String(target.seriesId), chapterId: String(target.chapterId) },
+          search: target.page === undefined ? {} : { page: target.page },
+          replace,
+        });
+      } else if (target.kind === 'online') {
+        void navigate({
+          to: '/read/online/$mangaId/$chapterId',
+          params: { mangaId: target.mangaId, chapterId: target.chapterId },
           search: target.page === undefined ? {} : { page: target.page },
           replace,
         });

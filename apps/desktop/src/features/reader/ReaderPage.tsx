@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
-import { ArrowLeft, FileArchive, FolderOpen, LibraryBig } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FileArchive, FolderOpen, LibraryBig } from 'lucide-react';
 
 import { EmptyState } from '@/components/page/EmptyState';
 import { Button } from '@/components/ui/button';
 import { isTauri } from '@/lib/ipc';
+import { openMangaDex } from '@/lib/online';
 import { useSettings } from '@/lib/settings/store';
 import { useChapterCover } from '@/lib/theme/coverTheme';
 import { cn } from '@/lib/utils';
@@ -16,7 +17,7 @@ import { prefsFromAppSettings } from './model/prefs';
 import { useOpenChapter, type ChapterTarget } from './openChapter';
 import { Reader } from './Reader';
 import { READER_STAGE } from './stage';
-import { useChapter } from './useChapter';
+import { nextTarget, useChapter } from './useChapter';
 
 const libraryRoute = getRouteApi('/read/$seriesId/$chapterId');
 const fileRoute = getRouteApi('/read/file');
@@ -40,6 +41,15 @@ export function FileReaderPage() {
   const { path, page } = fileRoute.useSearch();
   if (!path) return <ReaderMessage title="Open a chapter to read" />;
   return <ReaderScreen target={{ kind: 'file', path, page }} />;
+}
+
+const onlineRoute = getRouteApi('/read/online/$mangaId/$chapterId');
+
+/** `/read/online/$mangaId/$chapterId`: a MangaDex chapter. */
+export function OnlineReaderPage() {
+  const { mangaId, chapterId } = onlineRoute.useParams();
+  const { page } = onlineRoute.useSearch();
+  return <ReaderScreen target={{ kind: 'online', mangaId, chapterId, page }} />;
 }
 
 /** Asks for an archive or a folder and opens it in the reader. */
@@ -89,6 +99,8 @@ function ReaderScreen({ target }: { target: ChapterTarget }) {
   const close = useCallback(() => {
     if (target.kind === 'library') {
       void navigate({ to: '/series/$seriesId', params: { seriesId: String(target.seriesId) } });
+    } else if (target.kind === 'online') {
+      void navigate({ to: '/online/$mangaId', params: { mangaId: target.mangaId } });
     } else {
       void navigate({ to: '/library' });
     }
@@ -97,7 +109,12 @@ function ReaderScreen({ target }: { target: ChapterTarget }) {
   if (state.status === 'loading' || !settingsReady) return <ReaderMessage loading />;
   if (state.status === 'error') {
     return (
-      <ReaderMessage title="This chapter did not open" alert onClose={close}>
+      <ReaderMessage
+        title="This chapter did not open"
+        alert
+        onClose={close}
+        actions={target.kind === 'online' ? <OnlineErrorActions target={target} /> : undefined}
+      >
         <p>{state.message}</p>
       </ReaderMessage>
     );
@@ -114,14 +131,29 @@ function ReaderScreen({ target }: { target: ChapterTarget }) {
       defaultFilter={settings.settings['reader.filter']}
       onClose={close}
       onNextChapter={() => {
-        if (next)
-          openChapter(
-            { kind: 'library', seriesId: next.seriesId, chapterId: next.chapterId, page: 0 },
-            { replace: true }
-          );
+        if (next) openChapter(nextTarget(next), { replace: true });
       }}
       onOpenFile={target.kind === 'file' && isTauri() ? () => void openFile() : undefined}
     />
+  );
+}
+
+/** For a MangaDex chapter that did not open: MangaDex in the browser, or back to the series. */
+function OnlineErrorActions({ target }: { target: { mangaId: string; chapterId: string } }) {
+  return (
+    <>
+      <Button
+        variant="primary"
+        onClick={() => void openMangaDex({ kind: 'chapter', id: target.chapterId })}
+      >
+        <ExternalLink /> Open on MangaDex
+      </Button>
+      <Button variant="ghost" asChild>
+        <Link to="/online/$mangaId" params={{ mangaId: target.mangaId }}>
+          <ArrowLeft /> Back to the series
+        </Link>
+      </Button>
+    </>
   );
 }
 
