@@ -257,20 +257,67 @@ impl Library {
         )
     }
 
+    /// The series folders and loose archives of a root that no longer match
+    /// the database, found from folder listings and file sizes and mtimes
+    /// alone (no archive is opened). `None` when the root cannot be read, as
+    /// with an unplugged drive. An empty scope means nothing changed.
+    pub fn changed_entries(&self, root_id: i64) -> Result<Option<ScanScope>> {
+        let path = self.root_path(root_id)?;
+        scanner::changed_entries(&self.conn, root_id, &path)
+    }
+
+    /// Catches a root up with changes made while nothing watched it (the app
+    /// was closed): rescans only the entries [`Library::changed_entries`]
+    /// reports, with the same progress events as any scan. Returns `None`,
+    /// sending no events, when nothing changed or the root cannot be read; an
+    /// unreadable root marks nothing missing. Single-flight like every scan.
+    pub fn catch_up(
+        &self,
+        root_id: i64,
+        progress: &(dyn Fn(ScanProgress) + Sync),
+    ) -> Result<Option<ScanSummary>> {
+        let _guard = self.begin_scan()?;
+        let path = self.root_path(root_id)?;
+        match scanner::changed_entries(&self.conn, root_id, &path)? {
+            Some(scope) if !scope.is_empty() => self
+                .scan_roots(&[(root_id, path, Some(scope))], progress)
+                .map(Some),
+            _ => Ok(None),
+        }
+    }
+
+    fn root_path(&self, root_id: i64) -> Result<String> {
+        scanner::root_path(&self.conn(), root_id)?
+            .ok_or(LibraryError::NotFound("library root", root_id))
+    }
+
+    /// Takes the single-flight flag, or fails when a scan already holds it.
+    fn begin_scan(&self) -> Result<ScanGuard<'_>> {
+        if self.scanning.swap(true, Ordering::AcqRel) {
+            return Err(LibraryError::ScanInProgress);
+        }
+        Ok(ScanGuard(&self.scanning))
+    }
+
     fn run_scan(
         &self,
         roots: impl FnOnce(&Connection) -> Result<Vec<(i64, String, Option<ScanScope>)>>,
         progress: &(dyn Fn(ScanProgress) + Sync),
     ) -> Result<ScanSummary> {
-        if self.scanning.swap(true, Ordering::AcqRel) {
-            return Err(LibraryError::ScanInProgress);
-        }
-        let _guard = ScanGuard(&self.scanning);
-        let start = Instant::now();
+        let _guard = self.begin_scan()?;
         let roots = roots(&self.conn())?;
+        self.scan_roots(&roots, progress)
+    }
 
+    /// Scans `roots` in order. The caller holds the single-flight flag.
+    fn scan_roots(
+        &self,
+        roots: &[(i64, String, Option<ScanScope>)],
+        progress: &(dyn Fn(ScanProgress) + Sync),
+    ) -> Result<ScanSummary> {
+        let start = Instant::now();
         let mut summary = ScanSummary::default();
-        for (id, path, scope) in &roots {
+        for (id, path, scope) in roots {
             scanner::scan_root(
                 &self.conn,
                 &self.covers,
@@ -451,10 +498,7 @@ impl Library {
     /// scan makes them again. Refused while a scan runs, since the scan may
     /// be writing thumbnails at that moment.
     pub fn clear_cover_cache(&self) -> Result<CoverCacheUsage> {
-        if self.scanning.swap(true, Ordering::AcqRel) {
-            return Err(LibraryError::ScanInProgress);
-        }
-        let _guard = ScanGuard(&self.scanning);
+        let _guard = self.begin_scan()?;
         self.covers.clear()
     }
 
