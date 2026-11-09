@@ -12,8 +12,11 @@ import {
 } from 'lucide-react';
 
 import kireiFace from '@/assets/kirei/face.webp';
+import { useLibrary } from '@/features/library/libraryStore';
+import { useStats } from '@/features/stats/useStats';
 import { cn } from '@/lib/utils';
 
+import { kireiLine } from './kireiLine';
 import { ariaShortcut, type NavPath } from './useShortcuts';
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
@@ -47,6 +50,15 @@ const itemClass = cn(
 );
 
 export function Rail() {
+  const library = useLibrary();
+  const stats = useStats(null);
+  const line = kireiLine({
+    libraryReady: library.status === 'ready',
+    seriesCount: library.series.length,
+    scanning: library.scan !== null,
+    newChapters: library.series.reduce((sum, s) => (s.missing ? sum : sum + s.newCount), 0),
+    streakDays: stats.status === 'ready' ? stats.stats.currentStreak.days : 0,
+  });
   const pathname = useRouterState({ select: s => s.location.pathname });
   return (
     <aside
@@ -108,7 +120,7 @@ export function Rail() {
         <p className="m-0 text-xs leading-[1.4] text-fg-2">
           <b className="font-semibold text-fg-1">Kirei</b>
           <br />
-          Add a folder and I will find your manga.
+          {line}
         </p>
       </div>
     </aside>
