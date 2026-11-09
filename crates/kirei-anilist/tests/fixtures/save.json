@@ -1,5 +1,12 @@
 {
   "data": {
-    "SaveMediaListEntry": { "id": 9001, "status": "CURRENT", "progress": 9, "score": 80, "repeat": 0, "updatedAt": 1762693600 }
+    "SaveMediaListEntry": {
+      "id": 9001,
+      "status": "CURRENT",
+      "progress": 9,
+      "score": 80,
+      "repeat": 0,
+      "updatedAt": 1762693600
+    }
   }
 }

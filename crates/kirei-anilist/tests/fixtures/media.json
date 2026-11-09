@@ -2,17 +2,31 @@
   "data": {
     "Media": {
       "id": 30013,
-      "title": { "romaji": "Tsuki no Michi", "english": "Moonlit Road", "native": "月の道", "userPreferred": "Tsuki no Michi" },
+      "title": {
+        "romaji": "Tsuki no Michi",
+        "english": "Moonlit Road",
+        "native": "月の道",
+        "userPreferred": "Tsuki no Michi"
+      },
       "synonyms": [],
       "format": "MANGA",
       "status": "FINISHED",
       "chapters": 20,
       "volumes": 4,
       "startDate": { "year": 2014 },
-      "coverImage": { "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30013.jpg" },
+      "coverImage": {
+        "large": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/bx30013.jpg"
+      },
       "siteUrl": "https://anilist.co/manga/30013",
       "isAdult": false,
-      "mediaListEntry": { "id": 9001, "status": "CURRENT", "progress": 7, "score": 80, "repeat": 0, "updatedAt": 1762690000 }
+      "mediaListEntry": {
+        "id": 9001,
+        "status": "CURRENT",
+        "progress": 7,
+        "score": 80,
+        "repeat": 0,
+        "updatedAt": 1762690000
+      }
     }
   }
 }
