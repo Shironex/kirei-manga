@@ -10,6 +10,8 @@ pub enum SourceKind {
     Rar,
     /// A plain directory of image files.
     Folder,
+    /// Pages fetched over the network, a MangaDex chapter.
+    Online,
 }
 
 /// Image container formats a page can be stored in.
