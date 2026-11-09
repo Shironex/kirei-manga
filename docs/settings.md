@@ -39,6 +39,9 @@ Appearance keys are applied to `<html>` by `useAppearanceSettings()`, mounted on
 | `reader.fit`            | `'screen' \| 'width' \| 'height' \| 'original'`     | `'screen'`   | Reader (#29): page sizing against the window                                              |
 | `reader.filter`         | `'lanczos3' \| 'mitchell' \| 'nearest'`             | `'lanczos3'` | Reader quality (#30): maps one to one onto `kirei_reader::Resample`                       |
 | `reader.detectSpreads`  | `boolean`                                           | `true`       | Reader (#29): show wide pages alone in double page mode                                   |
+| `reader.detectWebtoon`  | `boolean`                                           | `true`       | Reader (#95): open chapters of tall strips in webtoon when the series chose no mode       |
+| `reader.splitTall`      | `boolean`                                           | `true`       | Reader (#95): show tall strips in screen sized parts in the paged modes at screen fit; sent to the pipeline with `set_render_quality` |
+| `reader.keys`           | `Record<string, string[]>`                          | `{}`         | Reader (#95): key bindings, see below                                                      |
 | `downloads.folder`      | `string \| null`                                   | `null`       | Downloads (#44): absolute folder for archives; null is `downloads/` in the data folder. Kept as a library root, see `docs/downloads.md` |
 | `downloads.dataSaver`   | `boolean`                                           | `false`      | Downloads (#44): queue MangaDex's smaller `data-saver` pages; fixed per job when queued   |
 | `downloads.concurrency` | `number`, 1 to 4                                    | `2`          | Downloads (#44): chapters downloaded at the same time; applied at once                    |
@@ -46,7 +49,15 @@ Appearance keys are applied to `<html>` by `useAppearanceSettings()`, mounted on
 
 `downloads.concurrency` is refused outside 1 to 4 and `downloads.folder` unless it is null or an absolute path; `settings_set` applies a changed download key to the running queue at once (see `downloads::apply_settings`).
 
-The reader keys are defaults. A choice made inside the reader belongs in that series' `series_settings` blob and wins over these.
+The `reader.*` keys are defaults (`reader.keys` aside). A choice made inside the reader belongs in that series' `series_settings` blob and wins over these.
+
+### Reader key bindings
+
+`reader.keys` maps a reader command (`next`, `page-left`, `toggle-ui`, the list is `COMMANDS` in `features/reader/model/keys.ts`) to its keys. Key names are `KeyboardEvent.key` values with `Space` for the space bar and letters in lower case; a named key may carry `Shift+` (`Shift+Space`). A printed character is matched without Shift, since the character already says it (`+`). Keys with Cmd, Ctrl or Alt belong to the app and the OS and cannot be bound, nor can Tab, so a reader key can never clash with the app shortcuts (Cmd or Ctrl with 1 to 4, comma and K).
+
+The empty object means the built-in bindings (`DEFAULT_BINDINGS`). Once the user changes anything, the Settings screen stores every command, and goes back to `{}` when the bindings match the defaults again, so later built-in changes still reach users who never customised. A command the stored map does not name (one added by a later build) keeps its built-in keys, minus any the user already gave to another command (`resolveBindings`).
+
+Rust checks the shape only: command names of lower case letters, digits and dashes, at most 4 keys per command, names up to 32 characters, and no key on two commands. The Settings screen never gets that far: a key another command holds is offered to move ("Move it here" or "Keep it there") instead of being taken silently. The four arrow commands keep their meaning on any key: `page-left` and `page-right` follow the reading direction, `page-down` and `page-up` scroll a little in webtoon.
 
 ## Adding a key
 

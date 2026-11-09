@@ -23,11 +23,25 @@ It navigates to `/read/$seriesId/$chapterId` or `/read/file?path=`. A library ch
 | Double  | Spreads. A page at least as wide as it is tall is a spread scan and shows alone; the rest pair up.         |
 | Webtoon | A continuous column, 720 px at zoom 1. Only pages near the screen are in the DOM.                          |
 
-Double page options: wide pages alone (`reader.detectSpreads`), the cover alone (on by default) and the one page shift (S), which moves the pairing for books whose spreads come out split. Spread detection uses the header sizes from `page_meta`, so it needs no decode. The layout rules are pure functions in `model/` with unit tests (`spreads.ts`, `screens.ts`, `fit.ts`, `webtoon.ts`).
+Double page options: wide pages alone (`reader.detectSpreads`), the cover alone (on by default) and the one page shift (S), which moves the pairing for books whose spreads come out split. The shift is the per series page offset: like every layout choice it is saved in the series settings under `reader`, so every chapter of that series opens with it. Spread detection uses the header sizes from `page_meta`, so it needs no decode. The layout rules are pure functions in `model/` with unit tests (`spreads.ts`, `screens.ts`, `fit.ts`, `webtoon.ts`, `split.ts`).
+
+### Webtoon detection
+
+A page at least twice as tall as wide is a tall strip (`TALL_RATIO` in `model/split.ts`, the same ratio as `kirei_reader::TALL_RATIO`). When at least half of a chapter's pages with a known size are tall strips (`looksLikeWebtoon` in `model/webtoon.ts`), the chapter opens in webtoon mode, unless the series has a mode of its own. The decision uses the header sizes `page_meta` already returned, so it costs nothing at open. Picking a mode inside the reader saves it with `modeChosen: true` in the series' `reader` entry, and from then on that mode wins over detection. An entry saved before detection existed counts as a choice only when its mode differs from `reader.mode`. `reader.detectWebtoon` turns detection off.
+
+### Tall strips in the paged modes
+
+With `reader.splitTall` on (the default), single and double page modes at screen fit show a tall strip one screen at a time instead of shrinking it into the window. The pipeline renders the strip to the box width only (see [reader-pipeline.md](reader-pipeline.md)), the reader shows it at the stage width up to 960 px, and each part fills the stage height, overlapping the one before by 5 percent; the last part ends flush with the strip's bottom (`sliceStrip`). Turning the page walks the parts top to bottom before the next page, and going back onto a split strip starts at its last part (`stepParts` in `model/screens.ts`). In double page mode a tall strip always shows alone. Other fits scroll a tall page already, so they are left alone.
 
 Right to left mirrors the spread, the tap zones, the arrows and the scrubber. A series starts in the direction its ComicInfo `<Manga>` field gives (`YesAndRightToLeft` is right to left, `No` is left to right).
 
 Webtoon reports the page a third of the way down the screen to `focus_page`, so read-ahead follows the scroll. Scrolling on past the end, or Space on the end card, opens the next chapter.
+
+### Moving to the next chapter
+
+Once a webtoon chapter is half read, or a paged one is four pages from its end, the reader opens the next chapter ahead (`useNextChapter`, `prefetchChapter` in `useChapter.ts`): its source and `page_meta`, nothing rendered. Moving on then shows the next chapter in the first frame, with no loading screen. A prefetched chapter stays open while either reader holds it and closes a tick after the last one lets go, so the handover survives the old reader unmounting before the new one mounts.
+
+In webtoon mode, when the next chapter would open in webtoon too, its first six pages are laid under the last strip with no gap, in place of the end card, and the first two are fetched into the webview's cache at 80 percent of the chapter. Reading simply scrolls on. When the last strip leaves the top of the screen, the next chapter takes over (`handOver`) at the same page and share of it, with the same column zoom and the render revision in effect, so its reader lays out the same pixels in the same place and shows them at once. The handover also carries the series settings as last written, since the save of a recent change may still be waiting. Progress is measured through the chapter alone, so it completes when its last strip reaches the bottom of the screen.
 
 ## Rendering hints
 
@@ -47,6 +61,8 @@ Tone and colour are CSS filters because each is an exact linear map on the colou
 A library series saves its adjustments in the series settings under `adjust` while "Remember for this series" is on (the default); turning it off stores `null` and the next chapter opens neutral. The default filter comes from `reader.filter`. A file keeps adjustments for the session. Reset returns the adjustments (not the layout) to the defaults.
 
 ## Input
+
+These are the built-in keys; every one can be changed in Settings, Shortcuts (see [settings.md](settings.md), `reader.keys`). The tooltips in the reader show the keys in effect.
 
 | Key                       | Action                                       |
 | ------------------------- | -------------------------------------------- |
