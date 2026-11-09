@@ -11,13 +11,32 @@ import { Segmented, SegmentedItem } from '@/components/ui/segmented';
 import { cn } from '@/lib/utils';
 
 import type { Direction, ReaderMode } from '../model/prefs';
+import { useKeyLabel } from './readerKeys';
 import { Tip } from './Tip';
 
 const MODES = [
-  { value: 'single', label: 'Single', icon: RectangleVertical, key: '1' },
-  { value: 'double', label: 'Double', icon: BookOpen, key: '2' },
-  { value: 'webtoon', label: 'Webtoon', icon: ScrollText, key: '3' },
+  { value: 'single', label: 'Single', icon: RectangleVertical, command: 'mode-single' },
+  { value: 'double', label: 'Double', icon: BookOpen, command: 'mode-double' },
+  { value: 'webtoon', label: 'Webtoon', icon: ScrollText, command: 'mode-webtoon' },
 ] as const;
+
+type ModeEntry = (typeof MODES)[number];
+
+/** One mode button, with the key the reader bound to it. */
+function ModeItem({ value, label, icon: Icon, command }: ModeEntry) {
+  return (
+    // The tooltip sits on a wrapper: its trigger writes data-state, which
+    // would hide the item's own "on" state.
+    <Tip label={label} keys={useKeyLabel(command)}>
+      <span className="inline-flex">
+        <SegmentedItem value={value} aria-label={label}>
+          <Icon />
+          <span className="max-md:hidden">{label}</span>
+        </SegmentedItem>
+      </span>
+    </Tip>
+  );
+}
 
 /** Top glass bar: close, what is open, mode, direction and the image panel. */
 export function ReaderBar({
@@ -45,6 +64,9 @@ export function ReaderBar({
   onDirection: () => void;
   onPanel: () => void;
 }) {
+  const closeKey = useKeyLabel('close');
+  const directionKey = useKeyLabel('toggle-direction');
+  const panelKey = useKeyLabel('toggle-panel');
   return (
     <header
       data-tauri-drag-region
@@ -58,7 +80,7 @@ export function ReaderBar({
         !visible && 'pointer-events-none -translate-y-3 opacity-0'
       )}
     >
-      <Tip label="Close" keys="Esc">
+      <Tip label="Close" keys={closeKey}>
         <Button variant="ghost" size="icon" aria-label="Close reader" onClick={onClose}>
           <ArrowLeft />
         </Button>
@@ -74,20 +96,11 @@ export function ReaderBar({
         onValueChange={value => onMode(value as ReaderMode)}
         className="flex-none bg-[oklch(0_0_0/0.25)]"
       >
-        {MODES.map(({ value, label, icon: Icon, key }) => (
-          // The tooltip sits on a wrapper: its trigger writes data-state,
-          // which would hide the item's own "on" state.
-          <Tip key={value} label={label} keys={key}>
-            <span className="inline-flex">
-              <SegmentedItem value={value} aria-label={label}>
-                <Icon />
-                <span className="max-md:hidden">{label}</span>
-              </SegmentedItem>
-            </span>
-          </Tip>
+        {MODES.map(entry => (
+          <ModeItem key={entry.value} {...entry} />
         ))}
       </Segmented>
-      <Tip label="Reading direction" keys="D">
+      <Tip label="Reading direction" keys={directionKey}>
         <Button
           variant="ghost"
           size="sm"
@@ -98,7 +111,7 @@ export function ReaderBar({
           {direction === 'rtl' ? 'Right to left' : 'Left to right'}
         </Button>
       </Tip>
-      <Tip label="Image and layout" keys="A">
+      <Tip label="Image and layout" keys={panelKey}>
         <Button
           variant={panelOpen ? 'primary' : 'ghost'}
           size="icon"

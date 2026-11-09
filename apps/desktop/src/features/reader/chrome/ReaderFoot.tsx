@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 
 import { ratioOf } from '../model/fit';
 import type { Direction, ReaderMode } from '../model/prefs';
+import { useKeyLabel } from './readerKeys';
 import { Tip } from './Tip';
 
 /** Inset of the slider's thumb centre from the track ends (half the thumb). */
@@ -61,6 +62,7 @@ export function ReaderFoot({
   onBack: () => void;
   onScrubbing: (active: boolean) => void;
 }) {
+  const leftKey = useKeyLabel('page-left');
   const count = pages.length;
   const last = Math.max(0, count - 1);
   const rtl = direction === 'rtl' && mode !== 'webtoon';
@@ -115,7 +117,7 @@ export function ReaderFoot({
         !visible && 'pointer-events-none translate-y-3 opacity-0'
       )}
     >
-      <Tip label={rtl ? 'Next page' : 'Previous page'} keys="←" side="top">
+      <Tip label={rtl ? 'Next page' : 'Previous page'} keys={leftKey} side="top">
         <Button
           variant="ghost"
           size="icon-sm"
