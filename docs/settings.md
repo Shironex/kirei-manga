@@ -62,6 +62,7 @@ Never rename a shipped key: stored rows would be ignored. Add a new key instead.
 | `library_clear_cover_cache` |                                             | `{ bytes, files }` freed; refused while a scan runs; the next scan makes covers again |
 | `library_unused_covers`     |                                             | `{ bytes, files }` of thumbnails no series uses (deleted series, older cover rules); deletes nothing |
 | `library_prune_covers`      |                                             | `{ bytes, files }` freed; thumbnails in use stay; refused while a scan runs |
+| `stats_count`, `stats_clear` |                                            | the Data section's Reading stats row: count of reading sessions, then delete them all after the confirm step (see `docs/stats.md`, Clearing) |
 | `data_dir`                  |                                             | path (the portable `data` folder in portable mode, see `docs/data.md`) |
 | `open_data_dir`             |                                             | opens it in Finder or Explorer |
 | `open_link`                 | `link`: `website`, `repository`, `issues`, `notices` | opens a fixed URL in the browser |
