@@ -2157,6 +2157,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "kirei-download"
+version = "0.3.0"
+dependencies = [
+ "bytes",
+ "image",
+ "kirei-library",
+ "kirei-mangadex",
+ "quick-xml",
+ "rusqlite",
+ "serde",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "wiremock",
+ "zip",
+]
+
+[[package]]
 name = "kirei-library"
 version = "0.3.0"
 dependencies = [

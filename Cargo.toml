@@ -25,6 +25,7 @@ kirei-archive = { path = "crates/kirei-archive" }
 kirei-reader = { path = "crates/kirei-reader" }
 kirei-library = { path = "crates/kirei-library" }
 kirei-mangadex = { path = "crates/kirei-mangadex" }
+kirei-download = { path = "crates/kirei-download" }
 
 # External. Versions live here, never in a leaf crate, so the tree stays unified.
 serde = { version = "1", features = ["derive"] }
