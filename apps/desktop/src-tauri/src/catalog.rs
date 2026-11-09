@@ -48,8 +48,10 @@ impl Catalog {
 pub(crate) struct Watch(Option<LibraryWatcher>);
 
 impl Watch {
-    /// Starts watching the roots. Rescans it starts report through the same
-    /// `library:scan-progress` event as a manual scan.
+    /// Starts watching the roots, which first catches up on changes made
+    /// while the app was closed (in the background, on the watcher thread).
+    /// Rescans it starts report through the same `library:scan-progress`
+    /// event as a manual scan.
     pub(crate) fn start<R: Runtime>(app: &AppHandle<R>, catalog: &Catalog) -> Self {
         let emitter = app.clone();
         Self(catalog.library().ok().map(|library| {

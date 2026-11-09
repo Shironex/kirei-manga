@@ -9,6 +9,12 @@
 //! scan narrowed to those entries ([`Library::scan_entries`]) and reports the
 //! same progress events.
 //!
+//! Changes made while the app was closed are caught up once at start: every
+//! root present then is compared with the database from folder listings and
+//! file metadata ([`Library::catch_up`]), and only the series that differ are
+//! rescanned. A root that is not there at start is caught up the same way
+//! when it appears.
+//!
 //! While any scan runs, collected changes wait and go in one rescan after it.
 //! A root that disappears (an unplugged drive, a network share going away)
 //! loses its watch and its pending changes, and nothing is marked missing:
@@ -79,6 +85,7 @@ impl LibraryWatcher {
             roots: HashMap::new(),
             pending: HashMap::new(),
             watching: Arc::clone(&watching),
+            synced: false,
         };
         let thread = std::thread::Builder::new()
             .name("kirei-library-watcher".to_owned())
@@ -141,11 +148,16 @@ struct RootWatch {
     /// Set once the root was watched and then lost, so its return triggers a
     /// catch-up rescan.
     lost: bool,
+    /// Set for the roots known at start until their first watch begins, so
+    /// changes made while the app was closed are caught up.
+    launch: bool,
 }
 
 #[derive(Default)]
 struct Pending {
     full: bool,
+    /// Compare the whole root with the database and rescan what differs.
+    catch_up: bool,
     scope: ScanScope,
     first: Option<Instant>,
     last: Option<Instant>,
@@ -159,6 +171,8 @@ struct Worker {
     roots: HashMap<i64, RootWatch>,
     pending: HashMap<i64, Pending>,
     watching: Arc<Mutex<Vec<i64>>>,
+    /// False until the first sync, which reads the roots known at start.
+    synced: bool,
 }
 
 impl Worker {
@@ -173,11 +187,15 @@ impl Worker {
         self.roots
             .retain(|id, _| roots.iter().any(|root| root.id == *id));
         self.pending.retain(|id, _| self.roots.contains_key(id));
+        // Roots added later are scanned by whoever added them.
+        let launch = !self.synced;
+        self.synced = true;
         for root in roots {
             self.roots.entry(root.id).or_insert_with(|| RootWatch {
                 path: PathBuf::from(&root.path),
                 watcher: None,
                 lost: false,
+                launch,
             });
         }
         self.health();
@@ -195,10 +213,15 @@ impl Worker {
                 self.pending.remove(id);
             } else if root.watcher.is_none() && present {
                 root.watcher = watch(&self.tx, *id, &root.path);
-                if root.watcher.is_some() && root.lost {
-                    root.lost = false;
+                if root.watcher.is_some() && (root.lost || root.launch) {
                     let pending = self.pending.entry(*id).or_default();
-                    pending.full = true;
+                    if root.lost {
+                        pending.full = true;
+                    } else {
+                        pending.catch_up = true;
+                    }
+                    root.lost = false;
+                    root.launch = false;
                     pending.first.get_or_insert(now);
                     pending.last = Some(now);
                 }
@@ -298,13 +321,19 @@ impl Worker {
             }
             let progress = Arc::clone(&self.progress);
             let sink = move |p: ScanProgress| progress(p);
+            // A catch-up compares the whole root, so it covers any live
+            // changes collected since.
             let result = if pending.full {
-                self.library.scan(Some(id), &sink)
+                self.library.scan(Some(id), &sink).map(|_| ())
+            } else if pending.catch_up {
+                self.library.catch_up(id, &sink).map(|_| ())
             } else {
-                self.library.scan_entries(id, &pending.scope, &sink)
+                self.library
+                    .scan_entries(id, &pending.scope, &sink)
+                    .map(|_| ())
             };
             match result {
-                Ok(_) => {}
+                Ok(()) => {}
                 Err(LibraryError::ScanInProgress) => {
                     self.pending.insert(id, pending);
                     self.postpone(id, Instant::now());
