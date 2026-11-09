@@ -2,6 +2,8 @@ import { Kbd } from '@/components/ui/tooltip';
 import { modKeyLabel } from '@/app/shell/platform';
 import { NAV_SHORTCUTS, type NavPath } from '@/app/shell/useShortcuts';
 
+import { paletteShortcutKeys } from '@/features/palette/shortcut';
+
 import { SettingsList, SettingsSection } from './SettingRow';
 
 const NAV_LABELS: Record<NavPath, string> = {
@@ -19,6 +21,7 @@ export function ShortcutsSection() {
       action: NAV_LABELS[path],
       keys: [mod, key],
     })),
+    { action: 'Open the command palette', keys: paletteShortcutKeys() },
     { action: 'Leave the reader', keys: ['Esc'] },
   ];
 
