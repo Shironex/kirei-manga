@@ -1,0 +1,29 @@
+[package]
+name = "kirei-mangadex"
+description = "MangaDex API client for KireiManga: rate limits, language fallback, at-home images and personal client sign in"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license-file.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+bytes = { workspace = true }
+reqwest = { workspace = true }
+# reqwest is built with `rustls-no-provider`; the client installs ring as the
+# process default crypto provider, as the updater does.
+rustls = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
+wiremock = { workspace = true }
+
+[lints]
+workspace = true
