@@ -31,14 +31,14 @@ import {
  *
  *   /                          redirects to /library
  *   shell layout (rail + ambient)
- *     /library  /browse  /downloads  /settings
+ *     /library  /browse  /downloads  /stats  /settings
  *     /series/$seriesId
  *     /dev/design  /dev/engine (dev builds only)
  *   /read/$seriesId/$chapterId  full-window reader, outside the shell
  *   /read/file?path=            the reader on an archive or folder from disk
  *
  * The library and the series page are in the main chunk so first paint and
- * the step into a series stay instant. Settings and the reader load their
+ * the step into a series stay instant. Settings, stats and the reader load their
  * own chunk on first visit (preloaded on link hover, `defaultPreload`), and
  * the dev pages are dropped from production builds.
  */
@@ -88,6 +88,12 @@ const downloadsRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/downloads',
   component: DownloadsPage,
+});
+
+const statsRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: '/stats',
+  component: lazyRouteComponent(() => import('@/features/stats/StatsPage'), 'StatsPage'),
 });
 
 const settingsRoute = createRoute({
@@ -144,6 +150,7 @@ const routeTree = rootRoute.addChildren([
     seriesRoute,
     browseRoute,
     downloadsRoute,
+    statsRoute,
     settingsRoute,
     designRoute,
     engineRoute,

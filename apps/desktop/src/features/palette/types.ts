@@ -1,3 +1,5 @@
+import type { NavPath } from '@/app/shell/useShortcuts';
+
 import type { Searchable } from './fuzzy';
 
 /** The groups of results, in the order the palette lists them. */
@@ -26,7 +28,7 @@ export const SECTION_ORDER: readonly PaletteSection[] = [
 
 /** Everything a target may need to run; supplied by the palette host. */
 export interface PaletteContext {
-  goTo: (to: '/library' | '/browse' | '/downloads' | '/settings') => void;
+  goTo: (to: NavPath) => void;
   goToSeries: (seriesId: number) => void;
   openChapter: (seriesId: number, chapterId: number) => void;
   close: () => void;
@@ -36,7 +38,7 @@ export interface PaletteContext {
 export type PaletteTarget =
   | { type: 'series'; seriesId: number }
   | { type: 'chapter'; seriesId: number; chapterId: number }
-  | { type: 'page'; to: '/library' | '/browse' | '/downloads' | '/settings' }
+  | { type: 'page'; to: NavPath }
   | { type: 'section'; section: string }
   | { type: 'action'; action: PaletteActionId }
   | { type: 'custom'; run: (ctx: PaletteContext) => void | Promise<void> };
