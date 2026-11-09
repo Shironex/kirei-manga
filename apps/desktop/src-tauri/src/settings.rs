@@ -37,6 +37,7 @@ pub(crate) async fn settings_set<R: Runtime>(
     if downloads {
         crate::downloads::apply_settings(&app, &settings);
     }
+    crate::online::apply_settings(&app, &settings);
     // A window that is closing just misses the event.
     let _ = app.emit(SETTINGS_CHANGED_EVENT, &settings);
     Ok(settings)

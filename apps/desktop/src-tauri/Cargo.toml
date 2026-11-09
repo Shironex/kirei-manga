@@ -19,18 +19,20 @@ tauri-build = { workspace = true }
 
 [dependencies]
 kirei-anilist = { workspace = true }
+keyring = { workspace = true }
 kirei-archive = { workspace = true }
 kirei-core = { workspace = true }
 kirei-download = { workspace = true }
 kirei-library = { workspace = true }
 kirei-mangadex = { workspace = true }
 kirei-reader = { workspace = true }
-keyring = { workspace = true }
+lru = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tauri = { workspace = true }
 tauri-plugin-dialog = { workspace = true }
+tauri-plugin-notification = { workspace = true }
 tauri-plugin-updater = { workspace = true }
 tauri-plugin-window-state = { workspace = true }
 # The tracking worker: blocking database calls, its wake up select and timer.
