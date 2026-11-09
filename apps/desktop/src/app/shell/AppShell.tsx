@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Outlet, useRouterState } from '@tanstack/react-router';
 
+import { useShelfFollowsLibrary } from '@/features/collections/shelfStore';
 import { useMangaDexPalette } from '@/features/online/useMangaDexPalette';
 import { CommandPalette } from '@/features/palette/CommandPalette';
 
@@ -26,6 +27,7 @@ export function AppShell() {
 export function ShellFrame({ children }: { children: ReactNode }) {
   useShortcuts();
   useMangaDexPalette();
+  useShelfFollowsLibrary();
   const pathname = useRouterState({ select: s => s.location.pathname });
 
   return (
