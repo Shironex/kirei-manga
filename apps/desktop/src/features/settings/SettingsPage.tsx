@@ -6,6 +6,7 @@ import { useSettings } from '@/lib/settings/store';
 import { cn } from '@/lib/utils';
 
 import { AboutSection } from './AboutSection';
+import { AccountsSection } from './AccountsSection';
 import { AppearanceSection } from './AppearanceSection';
 import { DataSection } from './DataSection';
 import { DownloadsSection } from './DownloadsSection';
@@ -20,6 +21,7 @@ const SECTIONS = [
   { id: 'reader', label: 'Reader' },
   { id: 'library', label: 'Library' },
   { id: 'downloads', label: 'Downloads' },
+  { id: 'accounts', label: 'Accounts' },
   { id: 'data', label: 'Data' },
   { id: 'shortcuts', label: 'Shortcuts' },
   { id: 'about', label: 'About' },
@@ -111,6 +113,7 @@ export function SettingsPage() {
           <ReaderSection />
           <LibrarySection />
           <DownloadsSection />
+          <AccountsSection />
           <DataSection />
           <ShortcutsSection />
           <AboutSection info={info} />
