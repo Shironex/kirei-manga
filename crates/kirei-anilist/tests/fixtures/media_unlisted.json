@@ -2,7 +2,12 @@
   "data": {
     "Media": {
       "id": 30013,
-      "title": { "romaji": "Tsuki no Michi", "english": "Moonlit Road", "native": "月の道", "userPreferred": "Tsuki no Michi" },
+      "title": {
+        "romaji": "Tsuki no Michi",
+        "english": "Moonlit Road",
+        "native": "月の道",
+        "userPreferred": "Tsuki no Michi"
+      },
       "synonyms": [],
       "format": "MANGA",
       "status": "RELEASING",

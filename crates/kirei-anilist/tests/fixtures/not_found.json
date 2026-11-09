@@ -1,1 +1,6 @@
-{ "errors": [{ "message": "Not Found.", "status": 404, "locations": [{ "line": 1, "column": 22 }] }], "data": { "Media": null } }
+{
+  "errors": [
+    { "message": "Not Found.", "status": 404, "locations": [{ "line": 1, "column": 22 }] }
+  ],
+  "data": { "Media": null }
+}
