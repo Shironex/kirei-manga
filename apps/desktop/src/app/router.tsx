@@ -51,7 +51,7 @@ import {
  * the dev pages are dropped from production builds.
  */
 
-const readerPage = (name: 'LibraryReaderPage' | 'FileReaderPage') =>
+const readerPage = (name: 'LibraryReaderPage' | 'FileReaderPage' | 'OnlineReaderPage') =>
   lazyRouteComponent(() => import('@/features/reader/ReaderPage'), name);
 
 const rootRoute = createRootRoute({
@@ -176,10 +176,8 @@ const readFileRoute = createRoute({
 const readOnlineRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/read/online/$mangaId/$chapterId',
-  component: lazyRouteComponent(
-    () => import('@/features/online/OnlineReaderPage'),
-    'OnlineReaderPage'
-  ),
+  validateSearch: parsePageSearch,
+  component: readerPage('OnlineReaderPage'),
   pendingComponent: ReaderPending,
 });
 

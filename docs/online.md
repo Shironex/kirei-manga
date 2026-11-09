@@ -15,7 +15,7 @@ Browsing, following and reading MangaDex inside KireiManga (#43). The API client
 | Covers     | `src-tauri/src/online/cover.rs`               | The `kirei-online://cover/<manga>/<file>/<size>` scheme                                    |
 | Storage    | `crates/kirei-library/src/online.rs`          | Tables of migration 0006 (below)                                                          |
 | Renderer   | `apps/desktop/src/lib/online.ts`              | Typed wrappers for the commands; screens never call `invoke` directly                     |
-| Screens    | `apps/desktop/src/features/online/`           | Search, updates, following, series page, chapter list, online reader                      |
+| Screens    | `apps/desktop/src/features/online/`           | Search, updates, following, series page, chapter list, the online chapter loader           |
 
 ## Screens
 
@@ -51,6 +51,8 @@ Every chapter row names its scanlation groups (or the uploader when there is non
 ## Reading
 
 `online_open_chapter` asks MangaDex@Home for the chapter's server, wraps it in an `OnlinePageSource` and registers it with the reader's `Library`, so the page pipeline, read ahead and cache work as for an archive. Pages are fetched in Rust and every fetch is reported back to MangaDex@Home as its rules ask; the webview never sees a MangaDex URL. Data saver picks the compressed images (and falls back to full quality for a chapter that has none).
+
+In the renderer an online chapter is one more `ChapterTarget` (`{ kind: 'online', mangaId, chapterId }`), loaded by `features/online/onlineChapter.ts` through the same `useChapter` as library chapters. The next chapter is a `ChapterLink` of kind `online`, so opening it ahead near the end, the webtoon run into it and the end card all work as in the library.
 
 A chapter hosted by its publisher (`externalUrl`) cannot be read in the app: its row says so and opens MangaDex in the browser.
 

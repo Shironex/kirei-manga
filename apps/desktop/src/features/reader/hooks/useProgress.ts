@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 import { recordProgress } from '@/lib/library';
+import { recordOnlineProgress } from '@/lib/online';
 
 /** Page changes settle before they are written. */
 const RECORD_DELAY_MS = 500;
@@ -49,5 +50,26 @@ export function useProgressReport(
 export function useProgress(chapterId: number | null, page: number | null): void {
   useProgressReport(chapterId === null ? null : String(chapterId), page, furthest =>
     chapterId === null ? Promise.resolve() : recordProgress(chapterId, furthest)
+  );
+}
+
+/**
+ * Records the furthest page of a MangaDex chapter. Reaching the last page
+ * marks it read, locally at once and on MangaDex with the next sync.
+ */
+export function useOnlineProgress(
+  online: { mangaId: string; chapterId: string } | null,
+  page: number | null,
+  pageCount: number
+): void {
+  useProgressReport(online?.chapterId ?? null, page, furthest =>
+    online
+      ? recordOnlineProgress(
+          online.mangaId,
+          online.chapterId,
+          furthest,
+          pageCount > 0 && furthest >= pageCount - 1
+        )
+      : Promise.resolve()
   );
 }

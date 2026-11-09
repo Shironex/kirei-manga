@@ -9,15 +9,14 @@ import {
 } from '@/lib/library';
 import { closeSource, openSource, pageMeta, type OpenedSource, type PageMeta } from '@/lib/reader';
 
+import { loadOnlineChapter } from '@/features/online/onlineChapter';
+
 import type { ChapterTarget } from './openChapter';
 
 /** A neighbouring chapter of the same series, for the end card. */
-export interface ChapterLink {
-  seriesId: number;
-  chapterId: number;
-  label: string;
-  title: string | null;
-}
+export type ChapterLink =
+  | { kind?: 'library'; seriesId: number; chapterId: number; label: string; title: string | null }
+  | { kind: 'online'; mangaId: string; chapterId: string; label: string; title: string | null };
 
 /**
  * What a reader hands the next chapter when it flows into it, so the next one
@@ -53,6 +52,10 @@ export interface LoadedChapter {
   /** The series cover, whose colours tint the reader chrome; `null` for a file. */
   cover: CoverRef | null;
   next: ChapterLink | null;
+  /** The MangaDex ids of an online chapter, whose progress syncs to MangaDex. */
+  online?: { mangaId: string; chapterId: string };
+  /** The end card line when there is no next chapter. */
+  lastNote?: string;
 }
 
 export type ChapterState =
@@ -80,6 +83,7 @@ function clampPage(page: number, count: number): number {
 }
 
 async function load(target: ChapterTarget): Promise<LoadedChapter> {
+  if (target.kind === 'online') return loadOnlineChapter(target);
   if (target.kind === 'file') {
     const source = await openSource(target.path);
     const meta = await pageMeta(source.id);
@@ -143,14 +147,21 @@ async function load(target: ChapterTarget): Promise<LoadedChapter> {
 }
 
 function targetKey(target: ChapterTarget): string {
-  return target.kind === 'file'
-    ? `file:${target.path}:${target.page ?? ''}`
-    : `lib:${target.seriesId}:${target.chapterId}:${target.page ?? ''}`;
+  switch (target.kind) {
+    case 'file':
+      return `file:${target.path}:${target.page ?? ''}`;
+    case 'online':
+      return `online:${target.mangaId}:${target.chapterId}:${target.page ?? ''}`;
+    case 'library':
+      return `lib:${target.seriesId}:${target.chapterId}:${target.page ?? ''}`;
+  }
 }
 
 /** The target that opens `next` from its first page, as the end card does. */
 export function nextTarget(next: ChapterLink): ChapterTarget {
-  return { kind: 'library', seriesId: next.seriesId, chapterId: next.chapterId, page: 0 };
+  return next.kind === 'online'
+    ? { kind: 'online', mangaId: next.mangaId, chapterId: next.chapterId, page: 0 }
+    : { kind: 'library', seriesId: next.seriesId, chapterId: next.chapterId, page: 0 };
 }
 
 /** Where reading left off when one chapter flowed into the next. */

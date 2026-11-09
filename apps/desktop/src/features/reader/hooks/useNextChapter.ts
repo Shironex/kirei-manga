@@ -11,7 +11,9 @@ import { nextTarget, prefetchChapter, type ChapterLink, type LoadedChapter } fro
  */
 export function useNextChapter(next: ChapterLink | null, wanted: boolean): LoadedChapter | null {
   const [asked, setAsked] = useState(false);
-  const [ready, setReady] = useState<{ chapterId: number; chapter: LoadedChapter } | null>(null);
+  const [ready, setReady] = useState<{ chapterId: number | string; chapter: LoadedChapter } | null>(
+    null
+  );
   // Once asked, keep it: scrolling back up should not close and reopen it.
   if (wanted && !asked) setAsked(true);
   const chapterId = asked && next ? next.chapterId : null;

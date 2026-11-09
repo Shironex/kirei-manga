@@ -22,7 +22,7 @@ import { useElementSize } from './hooks/useElementSize';
 import { useFullscreen } from './hooks/useFullscreen';
 import { useNextChapter } from './hooks/useNextChapter';
 import { usePreload } from './hooks/usePreload';
-import { useProgress } from './hooks/useProgress';
+import { useOnlineProgress, useProgress } from './hooks/useProgress';
 import { initialPrefs, useReaderPrefs } from './hooks/useReaderPrefs';
 import { useRenderQuality } from './hooks/useRenderQuality';
 import { latestSeriesSettings, useSeriesSettings } from './hooks/useSeriesSettings';
@@ -374,10 +374,13 @@ export function Reader({
   usePreload(preload);
 
   const finished = atEnd || (webtoon && progress >= 0.995);
-  useProgress(
-    chapter.chapterId,
-    finished ? pages.length - 1 : webtoon ? page : lastVisiblePage(screens, { page, atEnd })
-  );
+  const furthest = finished
+    ? pages.length - 1
+    : webtoon
+      ? page
+      : lastVisiblePage(screens, { page, atEnd });
+  useProgress(chapter.chapterId, furthest);
+  useOnlineProgress(chapter.online ?? null, furthest, pages.length);
 
   const step = useCallback(
     (delta: number) => {
@@ -508,6 +511,7 @@ export function Reader({
       onBack={() => (webtoon ? webtoonRef.current?.scrollScreens(-1) : step(-1))}
       backLabel={webtoon ? 'Scroll back' : 'Back a page'}
       onOpenFile={onOpenFile}
+      lastNote={chapter.lastNote}
       autoFocus={!webtoon}
       hint={
         webtoon ? (
