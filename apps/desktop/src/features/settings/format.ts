@@ -24,16 +24,20 @@ export function plural(count: number, one: string, many = `${one}s`): string {
   return `${count.toLocaleString('en')} ${count === 1 ? one : many}`;
 }
 
+type OrphanCounts = { progress: number; settings: number; shelf?: number };
+
 /** `3 entries`: what a count of rows says about itself, for the cleanup rows. */
-export function describeOrphans({ progress, settings }: { progress: number; settings: number }) {
+export function describeOrphans({ progress, settings, shelf = 0 }: OrphanCounts) {
   const parts: string[] = [];
   if (progress > 0) parts.push(plural(progress, 'progress entry', 'progress entries'));
   if (settings > 0) parts.push(plural(settings, 'series setting'));
-  return parts.join(' and ');
+  if (shelf > 0) parts.push(plural(shelf, 'empty list entry', 'empty list entries'));
+  const last = parts.pop();
+  return parts.length > 0 ? `${parts.join(', ')} and ${last}` : (last ?? '');
 }
 
 /** The notice after a purge: what was deleted, from the counts the purge returned. */
-export function describePurge(purge: { progress: number; settings: number }): string {
+export function describePurge(purge: OrphanCounts): string {
   const what = describeOrphans(purge);
   return what ? `Deleted ${what}.` : 'There was no hidden progress to clean up.';
 }

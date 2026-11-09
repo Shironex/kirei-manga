@@ -38,6 +38,10 @@ describe('cleanup messages', () => {
       'Deleted 12 progress entries and 2 series settings.'
     );
     expect(describeOrphans({ progress: 0, settings: 1 })).toBe('1 series setting');
+    expect(describeOrphans({ progress: 0, settings: 0, shelf: 1 })).toBe('1 empty list entry');
+    expect(describePurge({ progress: 3, settings: 1, shelf: 2 })).toBe(
+      'Deleted 3 progress entries, 1 series setting and 2 empty list entries.'
+    );
   });
 
   it('reports the space a prune freed', () => {

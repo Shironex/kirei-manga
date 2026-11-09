@@ -9,6 +9,8 @@ import { invoke } from '@tauri-apps/api/core';
 export interface OrphanPurge {
   progress: number;
   settings: number;
+  /** Empty series references (no tag, collection or Want to Read) of removed folders. */
+  shelf: number;
 }
 
 /** Mirrors `kirei_library::CoverCacheUsage`. */

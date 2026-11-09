@@ -35,7 +35,7 @@ function isScanning(scanning: ScanTarget | null, root: LibraryRoot): boolean {
 export function LibrarySection() {
   const library = useLibraryMaintenance();
   const { roots, cache, orphans, unused, scanning, progress, busy } = library;
-  const orphanCount = orphans ? orphans.progress + orphans.settings : 0;
+  const orphanCount = orphans ? orphans.progress + orphans.settings + orphans.shelf : 0;
 
   return (
     <SettingsSection
