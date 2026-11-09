@@ -264,7 +264,7 @@ function selfTest() {
     `sections out of order:\n${notes}`
   );
   assert(notes.includes('- [#7](https://github.com/o/r/pull/7) feat(library): watcher'), 'PR line');
-  assert(!/[–—]/.test(notes), 'no long dashes');
+  assert(!/[\u2013\u2014]/.test(notes), 'no long dashes');
   console.log('release-notes self-test: OK');
 }
 
