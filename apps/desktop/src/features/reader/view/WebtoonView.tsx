@@ -11,7 +11,7 @@ import {
 
 import type { PageMeta } from '@/lib/reader';
 
-import { focusedPage, layoutStrips, visibleRange } from '../model/webtoon';
+import { focusedPage, layoutStrips, pageAt, visibleRange } from '../model/webtoon';
 import { PageImage } from './PageImage';
 
 /** Share of the screen one arrow press scrolls, and one page key. */
@@ -36,6 +36,18 @@ export interface WebtoonViewProps {
   measured: ReadonlyMap<number, number>;
   urlFor: (index: number) => string;
   startPage: number;
+  /** Share of the start page already scrolled past, 0 to 1. */
+  startOffset?: number;
+  /**
+   * The next chapter's first pages, laid under the last strip with no gap, so
+   * reading runs on into it. Replaces the footer.
+   */
+  tail?: { pages: readonly PageMeta[]; urlFor: (index: number) => string } | null;
+  /**
+   * The reader scrolled past the last strip into the tail: the next chapter
+   * takes over at this page of it and this share of the page.
+   */
+  onEnterTail?: (page: number, offset: number) => void;
   onMeasure: (index: number, width: number, height: number) => void;
   /** The page a third of the way down the screen changed. */
   onFocus: (index: number) => void;
@@ -44,7 +56,7 @@ export interface WebtoonViewProps {
   onToggleChrome: () => void;
   /** The reader kept scrolling down at the very end of the chapter. */
   onPastEnd: () => void;
-  /** Shown under the last strip: the end of chapter card. */
+  /** Shown under the last strip when there is no tail: the end of chapter card. */
   footer: ReactNode;
 }
 
@@ -62,6 +74,9 @@ export function WebtoonView({
   measured,
   urlFor,
   startPage,
+  startOffset = 0,
+  tail = null,
+  onEnterTail,
   onMeasure,
   onFocus,
   onProgress,
@@ -75,9 +90,15 @@ export function WebtoonView({
     () => layoutStrips(pages, columnWidth, 0, measured),
     [pages, columnWidth, measured]
   );
+  const tailPages = tail?.pages;
+  const tailLayout = useMemo(
+    () => (tailPages ? layoutStrips(tailPages, columnWidth) : null),
+    [tailPages, columnWidth]
+  );
   // Where the reader is, as a page and a share of it, so a layout change
   // (zoom, a measured page) can put them back on the same spot.
-  const anchor = useRef({ page: startPage, offset: 0 });
+  const anchor = useRef({ page: startPage, offset: startOffset });
+  const entered = useRef(false);
   const placed = useRef(false);
   const lastFocus = useRef(-1);
 
@@ -151,13 +172,16 @@ export function WebtoonView({
   // needs no click between chapters.
   const pastEnd = useRef(onPastEnd);
   pastEnd.current = onPastEnd;
+  // With a tail, scrolling itself carries on into the next chapter.
+  const hasTail = useRef(false);
+  hasTail.current = tailLayout !== null;
   useEffect(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
     let travel = 0;
     const onWheel = (event: WheelEvent) => {
       const atBottom = scroller.scrollTop >= scroller.scrollHeight - scroller.clientHeight - 2;
-      if (!atBottom || event.deltaY <= 0) {
+      if (hasTail.current || !atBottom || event.deltaY <= 0) {
         travel = 0;
         return;
       }
@@ -174,6 +198,17 @@ export function WebtoonView({
   // Report focus and progress, and keep the anchor current.
   useEffect(() => {
     if (!placed.current || layout.tops.length === 0) return;
+    // The last strip has scrolled out of sight: hand over to the next chapter
+    // at the same spot of its pages, which look the same in its own reader.
+    if (tailLayout && onEnterTail && view.top >= layout.total && !entered.current) {
+      entered.current = true;
+      const into = view.top - layout.total;
+      const page = pageAt(tailLayout, into);
+      const offset =
+        (into - (tailLayout.tops[page] ?? 0)) / Math.max(1, tailLayout.heights[page] ?? 0);
+      onEnterTail(page, offset);
+      return;
+    }
     const page = focusedPage(layout, view.top, view.height);
     anchor.current = {
       page: page,
@@ -184,13 +219,25 @@ export function WebtoonView({
       onFocus(page);
     }
     const scroller = scrollerRef.current;
-    const range = scroller ? scroller.scrollHeight - scroller.clientHeight : 0;
+    // Progress is through this chapter only, not the tail under it.
+    const range = tailLayout
+      ? layout.total - view.height
+      : scroller
+        ? scroller.scrollHeight - scroller.clientHeight
+        : 0;
     onProgress(range > 0 ? Math.min(1, Math.max(0, view.top / range)) : 0);
-  }, [view, layout, onFocus, onProgress]);
+  }, [view, layout, tailLayout, onEnterTail, onFocus, onProgress]);
 
   const { start, end } = visibleRange(layout, view.top, view.height || 1, OVERSCAN);
   const shown: number[] = [];
   for (let index = start; index <= end; index += 1) shown.push(index);
+  // Tail pages near the screen, the same way.
+  const tailShown: number[] = [];
+  const reach = (view.height || 1) * (1 + OVERSCAN);
+  if (tailLayout && view.top + reach >= layout.total) {
+    const range = visibleRange(tailLayout, view.top - layout.total, view.height || 1, OVERSCAN);
+    for (let index = range.start; index <= range.end; index += 1) tailShown.push(index);
+  }
 
   return (
     <div
@@ -199,7 +246,10 @@ export function WebtoonView({
       className="absolute inset-0 overflow-y-auto overscroll-contain"
       onClick={onToggleChrome}
     >
-      <div className="relative mx-auto" style={{ width: columnWidth, height: layout.total }}>
+      <div
+        className="relative mx-auto"
+        style={{ width: columnWidth, height: layout.total + (tailLayout?.total ?? 0) }}
+      >
         {shown.map(index => (
           <div
             key={index}
@@ -217,14 +267,34 @@ export function WebtoonView({
             />
           </div>
         ))}
+        {tail &&
+          tailLayout &&
+          tailShown.map(index => (
+            <div
+              key={`next-${index}`}
+              className="absolute inset-x-0 grid place-items-center bg-ink-1"
+              style={{
+                top: layout.total + (tailLayout.tops[index] ?? 0),
+                height: tailLayout.heights[index],
+              }}
+            >
+              <PageImage
+                src={tail.urlFor(index)}
+                alt={`Next chapter, page ${index + 1}`}
+                className="absolute inset-0 size-full"
+              />
+            </div>
+          ))}
       </div>
-      <div
-        className="mx-auto grid place-items-center px-4 py-16"
-        style={{ width: columnWidth }}
-        onClick={event => event.stopPropagation()}
-      >
-        {footer}
-      </div>
+      {!tailLayout && (
+        <div
+          className="mx-auto grid place-items-center px-4 py-16"
+          style={{ width: columnWidth }}
+          onClick={event => event.stopPropagation()}
+        >
+          {footer}
+        </div>
+      )}
     </div>
   );
 }

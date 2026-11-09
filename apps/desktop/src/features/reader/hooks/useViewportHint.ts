@@ -26,9 +26,15 @@ function deviceSide(css: number | null, scale: number): number | null {
  * for page URLs. `undefined` waits (the stage is not measured yet). The first
  * hint goes out at once, later ones once resizing settles; the backend keeps
  * the revision when the box did not change, so this is cheap on every resize.
+ * `seed` is the revision a chapter handed over by the one before it, so the
+ * next chapter shows pages at once instead of waiting for the first answer.
  */
-export function useViewportHint(box: PageBox | undefined, zoom: number): number | undefined {
-  const [revision, setRevision] = useState<number | undefined>(undefined);
+export function useViewportHint(
+  box: PageBox | undefined,
+  zoom: number,
+  seed?: number
+): number | undefined {
+  const [revision, setRevision] = useState<number | undefined>(seed);
   const sent = useRef(false);
   const measured = box !== undefined;
   const scale = (typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1) * zoom;
