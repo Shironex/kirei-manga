@@ -3,6 +3,7 @@ import { LoaderCircle, LogIn, RefreshCw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Segmented, SegmentedItem } from '@/components/ui/segmented';
 import { Switch } from '@/components/ui/switch';
+import { MangaDexAccount } from '@/features/online/MangaDexAccount';
 import type { TrackingConflict } from '@/lib/settings/contract';
 import { describeQueue, type AccountStatus } from '@/lib/tracking';
 
@@ -29,7 +30,7 @@ function describeAccount(account: AccountStatus | null, waiting: boolean): strin
   return `${name}${until}.`;
 }
 
-/** Settings > Accounts: the AniList sign in and how tracking behaves. */
+/** Settings > Accounts: the MangaDex sign in, the AniList sign in and how tracking behaves. */
 export function AccountsSection() {
   const { account, queue, waiting, error, connect, cancel, disconnect, retry } = useAccount();
   const [enabled, setEnabled, enabledError] = useSettingControl('tracking.enabled');
@@ -42,8 +43,11 @@ export function AccountsSection() {
     <SettingsSection
       id="accounts"
       title="Accounts"
-      lead="Trackers your reading is synced with. Sign in tokens stay in the system keychain."
+      lead="MangaDex and the trackers your reading is synced with. Secrets and sign in tokens stay in the system keychain."
     >
+      <SettingsList className="mb-4">
+        <MangaDexAccount />
+      </SettingsList>
       <SettingsList>
         <SettingRow
           id="account-anilist"
