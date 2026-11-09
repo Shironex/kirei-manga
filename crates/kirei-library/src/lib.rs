@@ -1,7 +1,7 @@
 //! The local library: a SQLite catalogue of series and chapters, the folder
 //! scanner that fills it, reading progress and reading sessions, per-series
-//! settings, and the on-disk cover cache with the palette each cover seeds
-//! the theme with.
+//! settings, collections, tags and smart filters, and the on-disk cover
+//! cache with the palette each cover seeds the theme with.
 //!
 //! Everything here is blocking. The desktop shell calls it from
 //! `spawn_blocking`; a scan reads archives on the rayon pool and holds the
@@ -12,10 +12,12 @@
 
 mod backup;
 mod civil;
+mod collections;
 mod comic_info;
 mod covers;
 mod db;
 mod error;
+mod filters;
 mod identity;
 mod model;
 mod naming;
@@ -39,10 +41,17 @@ pub use backup::{
     BACKUP_EXTENSION, BACKUP_FORMAT, BackupManifest, BackupOptions, RestoreOutcome,
     apply_pending_restore, inspect_backup, stage_restore,
 };
+pub use collections::{
+    COLLECTION_PREVIEW, Collection, ItemSource, MAX_NAME_CHARS, Membership, SelectionShelf,
+    SeriesRef, ShelfItem, ShelfOverview, SmartFilter, Tag,
+};
 pub use comic_info::{ComicInfo, parse as parse_comic_info};
 pub use covers::{THUMB_HEIGHT, THUMB_WIDTH};
 pub use db::SCHEMA_VERSION;
 pub use error::{LibraryError, Result};
+pub use filters::{
+    FilterQuery, FilterResult, FilterSort, MAX_FILTER_ROWS, ReadStatus, SourceFilter, TagMode,
+};
 pub use model::{
     ChapterEntry, CoverCacheUsage, CoverRef, LibraryRoot, OrphanPurge, ReadingProgress, ScanPhase,
     ScanProgress, ScanSummary, SeriesDetail, SeriesSummary,
