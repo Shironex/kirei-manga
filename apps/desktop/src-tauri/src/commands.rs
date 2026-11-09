@@ -138,7 +138,8 @@ impl From<ResampleFilter> for Resample {
 }
 
 /// Sets how pages are resampled and sharpened in the pipeline (`sharpen` is 0
-/// to 100, 0 is off). Tone and colour adjustments stay in the webview as CSS
+/// to 100, 0 is off), and whether tall strips are fitted to the box width so
+/// the paged modes can show them in screen sized parts (`split_tall`). Tone and colour adjustments stay in the webview as CSS
 /// filters. Returns the render revision, like `set_viewport`; the same values
 /// again keep it.
 #[tauri::command]
@@ -146,14 +147,15 @@ pub(crate) async fn set_render_quality<R: Runtime>(
     app: AppHandle<R>,
     resample: ResampleFilter,
     sharpen: u8,
+    split_tall: bool,
 ) -> Result<ViewportState, String> {
     if sharpen > 100 {
         return Err(format!("sharpen {sharpen} is outside 0..=100"));
     }
     tauri::async_runtime::spawn_blocking(move || {
-        let revision = app
-            .state::<Library>()
-            .set_render_quality(resample.into(), sharpen);
+        let revision =
+            app.state::<Library>()
+                .set_render_quality(resample.into(), sharpen, split_tall);
         ViewportState { revision }
     })
     .await
