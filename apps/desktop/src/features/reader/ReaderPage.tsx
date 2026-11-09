@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/page/EmptyState';
 import { Button } from '@/components/ui/button';
 import { isTauri } from '@/lib/ipc';
 import { useSettings } from '@/lib/settings/store';
+import { useChapterCover } from '@/lib/theme/coverTheme';
 import { cn } from '@/lib/utils';
 
 import { Tip } from './chrome/Tip';
@@ -57,6 +58,7 @@ function useOpenFile(): (directory?: boolean) => Promise<void> {
 
 function ReaderScreen({ target }: { target: ChapterTarget }) {
   const state = useChapter(target);
+  useChapterCover(state.status === 'ready' ? state.chapter.cover : undefined);
   const settings = useSettings();
   // Defaults come from the stored app settings, so wait for them (outside
   // Tauri, or when they cannot be read, the built-in defaults apply).

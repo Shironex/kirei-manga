@@ -4,6 +4,7 @@ import type { CoverRef } from '@/lib/library';
 
 import {
   currentFocus,
+  focusChapterCover,
   focusCover,
   previewCover,
   resetCoverTheme,
@@ -60,6 +61,27 @@ describe('cover focus', () => {
   it('treats a series without a cover as no focus', () => {
     focusCover(cover('a', 40, 0.16));
     focusCover(null);
+    expect(currentFocus()).toBeNull();
+  });
+});
+
+describe('reader cover focus', () => {
+  beforeEach(resetCoverTheme);
+
+  it('takes the colours of the chapter series', () => {
+    focusChapterCover(cover('a', 150, 0.12));
+    expect(currentFocus()).toEqual({ hash: 'a', seed: { h: 150, c: 0.12 } });
+  });
+
+  it('keeps the carried over colours while the chapter loads', () => {
+    focusCover(cover('a', 40, 0.16));
+    focusChapterCover(undefined);
+    expect(currentFocus()?.hash).toBe('a');
+  });
+
+  it('drops to the default seed for a file with no series', () => {
+    focusCover(cover('a', 40, 0.16));
+    focusChapterCover(null);
     expect(currentFocus()).toBeNull();
   });
 });

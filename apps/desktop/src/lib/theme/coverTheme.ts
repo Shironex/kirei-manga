@@ -98,6 +98,29 @@ export function usePageCover(cover: CoverRef | null | undefined): void {
   useEffect(() => () => previewCover(null), []);
 }
 
+/**
+ * Puts the cover of the chapter being read in focus, so the reader chrome
+ * (bars and panels, which take the seed through the glass tokens) wears that
+ * series' colours even when the chapter was opened without passing through its
+ * series page. `undefined` means the chapter is still loading: the focus stays
+ * as it is, so colours carried over from the series page do not blink off. A
+ * chapter without a series (a file) focuses nothing and falls back to the
+ * default seed. The page image is never tinted, and the off switch of
+ * `appearance.coverColours` is honoured by `useCoverTheme`.
+ */
+export function focusChapterCover(cover: CoverRef | null | undefined): void {
+  if (cover !== undefined) focusCover(cover);
+}
+
+export function useChapterCover(cover: CoverRef | null | undefined): void {
+  const hash = cover === undefined ? undefined : (cover?.hash ?? null);
+  useEffect(() => {
+    focusChapterCover(cover);
+    // The palette is fixed per hash, so the hash is the identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hash]);
+}
+
 /** Hover waits this long before previewing, so sweeping across the grid does not strobe. */
 export const PREVIEW_DELAY_MS = 140;
 /** And this long after leaving before going back, so moving between covers stays on colour. */
