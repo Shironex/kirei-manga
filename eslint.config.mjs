@@ -36,9 +36,9 @@ export default defineConfig(
       '@typescript-eslint/no-empty-object-type': 'off',
     },
   },
-  // React + React Hooks, scoped to the desktop renderer.
+  // React + React Hooks, scoped to the desktop renderer and the landing island.
   {
-    files: ['apps/desktop/src/**/*.{ts,tsx}'],
+    files: ['apps/desktop/src/**/*.{ts,tsx}', 'apps/landing/src/**/*.{ts,tsx}'],
     plugins: {
       react,
       'react-hooks': reactHooks,
@@ -57,6 +57,11 @@ export default defineConfig(
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'error',
     },
+  },
+  // R3F JSX props are three.js object properties, not DOM attributes.
+  {
+    files: ['apps/landing/src/scene/**/*.tsx'],
+    rules: { 'react/no-unknown-property': 'off' },
   },
   {
     ignores: [
