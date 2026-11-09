@@ -29,6 +29,7 @@ const SETTINGS: [section: string, title: string, extra: string][] = [
   ['appearance', 'Appearance', 'theme colour strength glass motion ambient'],
   ['reader', 'Reader settings', 'mode direction fit filter spreads page'],
   ['library', 'Library settings', 'folders roots scan covers cache orphans progress'],
+  ['downloads', 'Download settings', 'offline cbz folder data saver concurrency follows'],
   ['data', 'Data and backup', 'backup restore export import data folder portable'],
   ['shortcuts', 'Keyboard shortcuts', 'keys hotkeys keybindings'],
   ['about', 'About', 'version updates licence notices'],
@@ -38,6 +39,9 @@ const SETTINGS: [section: string, title: string, extra: string][] = [
   ['reader', 'Reading direction', 'rtl ltr right to left'],
   ['reader', 'Page fit', 'screen width height original zoom'],
   ['library', 'Cover cache', 'thumbnails clear prune'],
+  ['downloads', 'Downloads folder', 'offline cbz location save'],
+  ['downloads', 'Data saver', 'smaller pages bandwidth quality'],
+  ['downloads', 'Download followed series', 'auto follows feed new chapters'],
   ['about', 'Check for updates', 'upgrade release version'],
 ];
 
