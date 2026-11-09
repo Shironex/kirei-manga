@@ -13,6 +13,7 @@ import {
   RememberLine,
 } from './chrome/AdjustPanel';
 import { ReaderBar } from './chrome/ReaderBar';
+import { ReaderKeys } from './chrome/readerKeys';
 import { ReaderFoot } from './chrome/ReaderFoot';
 import { StatsOverlay } from './chrome/StatsOverlay';
 import { useAdjustments } from './hooks/useAdjustments';
@@ -28,15 +29,16 @@ import { useViewportHint, type PageBox } from './hooks/useViewportHint';
 import { useZoomPan, ZOOM_STEP } from './hooks/useZoomPan';
 import { cssFilter, defaultAdjustments, isNeutral, type Resample } from './model/adjust';
 import { FIT_WIDTH_CAP, fitScreen, ratioOf } from './model/fit';
-import { keyAction, type ReaderAction } from './model/keys';
+import { firstKeyLabel, keyAction, type Bindings, type ReaderAction } from './model/keys';
 import type { Background, Fit, ReaderPrefs } from './model/prefs';
 import {
   buildScreens,
   lastVisiblePage,
   snapToScreen,
-  stepScreen,
+  stepParts,
   type PagedPosition,
 } from './model/screens';
+import { isTall, sliceStrip } from './model/split';
 import type { LoadedChapter } from './useChapter';
 import { EndCard } from './view/EndCard';
 import { PagedView, STAGE_INSET } from './view/PagedView';
@@ -122,10 +124,20 @@ function returnFocus(stage: HTMLElement | null) {
   stage.focus({ preventScroll: true });
 }
 
+/** App settings the reader follows beyond the per series prefs. */
+export interface ReaderOptions {
+  /** Open chapters of tall strips in webtoon when the series chose no mode. */
+  detectWebtoon: boolean;
+  /** Show tall strips in screen sized parts in the paged modes at screen fit. */
+  splitTall: boolean;
+  bindings: Bindings;
+}
+
 export interface ReaderProps {
   chapter: LoadedChapter;
   /** Prefs for a title with nothing saved, from the app settings. */
   defaults: ReaderPrefs;
+  options: ReaderOptions;
   /** Resampling filter for a title with nothing saved, from the app settings. */
   defaultFilter: Resample;
   onClose: () => void;
@@ -144,6 +156,7 @@ export interface ReaderProps {
 export function Reader({
   chapter,
   defaults,
+  options,
   defaultFilter,
   onClose,
   onNextChapter,
@@ -151,7 +164,8 @@ export function Reader({
 }: ReaderProps) {
   const { source, pages } = chapter;
   const write = useSeriesSettings(chapter.seriesId, chapter.settings);
-  const [prefs, setPrefs] = useReaderPrefs(chapter, defaults, write);
+  const [prefs, setPrefs] = useReaderPrefs(chapter, defaults, write, options.detectWebtoon);
+  const { bindings } = options;
   const neutral = useMemo(() => defaultAdjustments(defaultFilter), [defaultFilter]);
   const adjust = useAdjustments(chapter, neutral, write);
   const { adjustments } = adjust;
@@ -177,10 +191,12 @@ export function Reader({
   const fullscreen = useFullscreen();
   const chrome = useAutoHide(panelOpen || scrubbing || chromeHover);
 
+  // Tall strips are cut into screens only where they would shrink to fit.
+  const splitting = options.splitTall && !webtoon && fit === 'screen';
   const { detectSpreads, coverAlone, shift } = prefs;
   const screens = useMemo(
-    () => buildScreens(pages, mode, { detectSpreads, coverAlone, shift }),
-    [pages, mode, detectSpreads, coverAlone, shift]
+    () => buildScreens(pages, mode, { detectSpreads, coverAlone, shift, tallAlone: splitting }),
+    [pages, mode, detectSpreads, coverAlone, shift, splitting]
   );
   // The page always sits on the first page of its screen, whatever the layout.
   const page = webtoon ? position.page : snapToScreen(screens, position.page);
@@ -191,24 +207,41 @@ export function Reader({
   );
   const screenKey = screen.join(',');
 
-  const dpr = window.devicePixelRatio || 1;
-  const size = fitScreen(
-    screen.map(index => {
-      const height = pages[index]?.height;
-      return {
-        ratio: ratioOf(pages[index], measured.get(index)),
-        naturalHeight: height ? height / dpr : null,
-      };
-    }),
-    inner,
-    fit
+  // The parts of the split strip a screen starts with, or null.
+  const slicesOf = useCallback(
+    (first: number) => {
+      if (!splitting) return null;
+      const group = screens.find(entry => entry[0] === first);
+      if (group?.length !== 1 || !isTall(pages[first], measured.get(first))) return null;
+      const ratio = ratioOf(pages[first], measured.get(first));
+      return sliceStrip(ratio, { width: inner.width, height: inner.height }, FIT_WIDTH_CAP);
+    },
+    [splitting, screens, pages, measured, inner.width, inner.height]
   );
+  const partsOf = useCallback((first: number) => slicesOf(first)?.offsets.length ?? 1, [slicesOf]);
+  const slices = webtoon ? null : slicesOf(page);
+  const part = slices ? Math.min(position.part ?? 0, slices.offsets.length - 1) : 0;
+
+  const dpr = window.devicePixelRatio || 1;
+  const size = slices
+    ? { widths: [slices.width], height: slices.view }
+    : fitScreen(
+        screen.map(index => {
+          const height = pages[index]?.height;
+          return {
+            ratio: ratioOf(pages[index], measured.get(index)),
+            naturalHeight: height ? height / dpr : null,
+          };
+        }),
+        inner,
+        fit
+      );
   const zoom = useZoomPan(
     { width: size.widths.reduce((sum, width) => sum + width, 0), height: size.height },
     inner
   );
   const { reset: resetZoom } = zoom;
-  useEffect(() => resetZoom(), [screenKey, mode, fit, resetZoom]);
+  useEffect(() => resetZoom(), [screenKey, part, mode, fit, resetZoom]);
 
   const columnWidth = Math.max(
     240,
@@ -217,7 +250,11 @@ export function Reader({
 
   const box = stage.width > 0 ? renderBox(webtoon ? null : fit, inner, columnWidth) : undefined;
   const viewportRevision = useViewportHint(box, webtoon ? 1 : zoom.zoom);
-  const qualityRevision = useRenderQuality(adjustments.resample, adjustments.sharpen);
+  const qualityRevision = useRenderQuality(
+    adjustments.resample,
+    adjustments.sharpen,
+    options.splitTall
+  );
   // Both calls bump the same counter, so the later answer is the one in effect.
   const revision =
     viewportRevision === undefined || qualityRevision === undefined
@@ -290,9 +327,11 @@ export function Reader({
         onNextChapter();
         return;
       }
-      setPosition(current => stepScreen(screens, { page, atEnd: current.atEnd }, delta));
+      setPosition(current =>
+        stepParts(screens, { page, atEnd: current.atEnd, part: current.part }, delta, partsOf)
+      );
     },
-    [webtoon, progress, atEnd, chapter.next, onNextChapter, screens, page]
+    [webtoon, progress, atEnd, chapter.next, onNextChapter, screens, page, partsOf]
   );
 
   const jump = useCallback(
@@ -388,14 +427,15 @@ export function Reader({
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.defaultPrevented || ownsKey(event.target, event.key)) return;
-      const action = keyAction(event, { mode, direction });
+      const action = keyAction(event, { mode, direction }, bindings);
       if (!action) return;
       event.preventDefault();
       run(action);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [run, mode, direction]);
+  }, [run, mode, direction, bindings]);
+  const nextKey = firstKeyLabel(bindings, 'next');
 
   const endCard = (
     <EndCard
@@ -409,10 +449,12 @@ export function Reader({
       hint={
         webtoon ? (
           'Keep scrolling to read on'
-        ) : (
+        ) : nextKey ? (
           <>
-            <Kbd>Space</Kbd> reads on
+            <Kbd>{nextKey}</Kbd> reads on
           </>
+        ) : (
+          'The next page key reads on'
         )
       }
     />
@@ -477,6 +519,9 @@ export function Reader({
                 onToggleChrome={chrome.toggle}
                 onMeasure={onMeasure}
                 dimmed={atEnd}
+                slice={
+                  slices ? { offset: slices.offsets[part] ?? 0, height: slices.height } : undefined
+                }
               />
             )}
             {atEnd && (
@@ -486,45 +531,47 @@ export function Reader({
         )}
       </main>
 
-      <div data-reader-chrome>
-        <ReaderBar
-          title={chapter.title}
-          subtitle={chapter.subtitle}
-          mode={mode}
-          direction={direction}
-          panelOpen={panelOpen}
-          visible={chrome.visible}
-          fullscreen={fullscreen.fullscreen}
-          onClose={onClose}
-          onMode={next => setPrefs({ mode: next })}
-          onDirection={() => run('toggle-direction')}
-          onPanel={() => setPanelOpen(open => !open)}
-        />
-        {panelOpen && (
-          <AdjustPanel>
-            <AdjustHeader onReset={adjust.reset} canReset={!isNeutral(adjustments, neutral)} />
-            <ImageSettings adjustments={adjustments} onChange={adjust.update}>
-              <LayoutSettings prefs={prefs} mode={mode} onChange={setPrefs} />
-              {chapter.seriesId !== null && (
-                <RememberLine remember={adjust.remember} onChange={adjust.setRemember} />
-              )}
-            </ImageSettings>
-          </AdjustPanel>
-        )}
-        <ReaderFoot
-          pages={pages}
-          mode={mode}
-          direction={direction}
-          page={page}
-          onScreen={webtoon ? [page] : screen}
-          progress={progress}
-          visible={chrome.visible}
-          urlFor={urlFor}
-          onJump={jump}
-          onBack={() => step(direction === 'rtl' ? 1 : -1)}
-          onScrubbing={setScrubbing}
-        />
-      </div>
+      <ReaderKeys.Provider value={bindings}>
+        <div data-reader-chrome>
+          <ReaderBar
+            title={chapter.title}
+            subtitle={chapter.subtitle}
+            mode={mode}
+            direction={direction}
+            panelOpen={panelOpen}
+            visible={chrome.visible}
+            fullscreen={fullscreen.fullscreen}
+            onClose={onClose}
+            onMode={next => setPrefs({ mode: next })}
+            onDirection={() => run('toggle-direction')}
+            onPanel={() => setPanelOpen(open => !open)}
+          />
+          {panelOpen && (
+            <AdjustPanel>
+              <AdjustHeader onReset={adjust.reset} canReset={!isNeutral(adjustments, neutral)} />
+              <ImageSettings adjustments={adjustments} onChange={adjust.update}>
+                <LayoutSettings prefs={prefs} mode={mode} onChange={setPrefs} />
+                {chapter.seriesId !== null && (
+                  <RememberLine remember={adjust.remember} onChange={adjust.setRemember} />
+                )}
+              </ImageSettings>
+            </AdjustPanel>
+          )}
+          <ReaderFoot
+            pages={pages}
+            mode={mode}
+            direction={direction}
+            page={page}
+            onScreen={webtoon ? [page] : screen}
+            progress={progress}
+            visible={chrome.visible}
+            urlFor={urlFor}
+            onJump={jump}
+            onBack={() => step(direction === 'rtl' ? 1 : -1)}
+            onScrubbing={setScrubbing}
+          />
+        </div>
+      </ReaderKeys.Provider>
       {statsOpen && <StatsOverlay page={page} revision={revision} turnMs={turnMs} />}
     </div>
   );
