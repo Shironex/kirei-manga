@@ -14,6 +14,9 @@ import {
   BrowseSearchPage,
   BrowseUpdatesPage,
 } from '@/features/browse/BrowsePage';
+import { CollectionPage } from '@/features/collections/CollectionPage';
+import { CollectionsPage } from '@/features/collections/CollectionsPage';
+import { FilterPage, TagPage } from '@/features/collections/FilterPage';
 import { DownloadsPage } from '@/features/downloads/DownloadsPage';
 import { LibraryPage, validateLibrarySearch } from '@/features/library/LibraryPage';
 import { parseFileSearch, parsePageSearch } from '@/features/reader/openChapter';
@@ -36,10 +39,12 @@ import {
  *
  *   /                          redirects to /library
  *   shell layout (rail + ambient)
- *     /library  /downloads  /stats  /settings?section=
+ *     /library  /collections  /downloads  /stats  /settings?section=
  *     /browse  /browse/updates  /browse/following
  *     /series/$seriesId
  *     /online/$mangaId            a MangaDex series
+ *     /collections/$collectionId  ('want' is Want to Read)
+ *     /filters/$filterId  /tags/$tagId
  *     /dev/design  /dev/engine (dev builds only)
  *   /read/$seriesId/$chapterId  full-window reader, outside the shell
  *   /read/file?path=            the reader on an archive or folder from disk
@@ -84,6 +89,30 @@ const seriesRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/series/$seriesId',
   component: SeriesPage,
+});
+
+const collectionsRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: '/collections',
+  component: CollectionsPage,
+});
+
+const collectionRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: '/collections/$collectionId',
+  component: CollectionPage,
+});
+
+const filterRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: '/filters/$filterId',
+  component: FilterPage,
+});
+
+const tagRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: '/tags/$tagId',
+  component: TagPage,
 });
 
 const browseRoute = createRoute({
@@ -186,6 +215,10 @@ const routeTree = rootRoute.addChildren([
   shellRoute.addChildren([
     libraryRoute,
     seriesRoute,
+    collectionsRoute,
+    collectionRoute,
+    filterRoute,
+    tagRoute,
     browseRoute,
     browseUpdatesRoute,
     browseFollowingRoute,

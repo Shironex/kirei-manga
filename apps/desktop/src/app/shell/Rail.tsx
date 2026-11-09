@@ -5,6 +5,7 @@ import {
   ChartNoAxesColumn,
   Compass,
   Gauge,
+  Layers,
   LibraryBig,
   Settings2,
   SwatchBook,
@@ -17,11 +18,18 @@ import { ariaShortcut, type NavPath } from './useShortcuts';
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
-const NAV: { to: NavPath; label: string; icon: Icon; also?: string }[] = [
+const NAV: { to: NavPath; label: string; icon: Icon; also?: string[] }[] = [
   // A series page is part of the library, so the rail keeps Library lit there.
-  { to: '/library', label: 'Library', icon: LibraryBig, also: '/series/' },
+  { to: '/library', label: 'Library', icon: LibraryBig, also: ['/series/'] },
+  // Collection, filter and tag pages belong to Collections.
+  {
+    to: '/collections',
+    label: 'Collections',
+    icon: Layers,
+    also: ['/collections/', '/filters/', '/tags/'],
+  },
   // A MangaDex series page belongs to Browse the same way.
-  { to: '/browse', label: 'Browse', icon: Compass, also: '/online/' },
+  { to: '/browse', label: 'Browse', icon: Compass, also: ['/online/'] },
   { to: '/downloads', label: 'Downloads', icon: ArrowDownToLine },
   { to: '/stats', label: 'Stats', icon: ChartNoAxesColumn },
   { to: '/settings', label: 'Settings', icon: Settings2 },
@@ -70,7 +78,7 @@ export function Rail() {
             key={to}
             to={to}
             aria-keyshortcuts={ariaShortcut(to)}
-            aria-current={also && pathname.startsWith(also) ? 'page' : undefined}
+            aria-current={also?.some(p => pathname.startsWith(p)) ? 'page' : undefined}
             className={itemClass}
           >
             <Icon aria-hidden />
