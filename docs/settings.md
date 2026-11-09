@@ -46,8 +46,13 @@ Appearance keys are applied to `<html>` by `useAppearanceSettings()`, mounted on
 | `downloads.dataSaver`   | `boolean`                                           | `false`      | Downloads (#44): queue MangaDex's smaller `data-saver` pages; fixed per job when queued   |
 | `downloads.concurrency` | `number`, 1 to 4                                    | `2`          | Downloads (#44): chapters downloaded at the same time; applied at once                    |
 | `downloads.autoFollows` | `boolean`                                           | `false`      | Downloads (#44): `autoDownloadNew` queues new chapters from the follow feed only when on  |
+| `tracking.enabled`      | `boolean`                                           | `false`      | AniList tracking (#45, `docs/tracking.md`): off, nothing is queued or sent                |
+| `tracking.autoUpdate`   | `boolean`                                           | `true`       | AniList tracking: queue progress when the reader finishes a chapter of a linked series    |
+| `tracking.conflict`     | `'higher' \| 'local'`                               | `'higher'`   | AniList tracking: which side wins when progress differs, see the conflict rules           |
 
 `downloads.concurrency` is refused outside 1 to 4 and `downloads.folder` unless it is null or an absolute path; `settings_set` applies a changed download key to the running queue at once (see `downloads::apply_settings`).
+
+The AniList sign in is not a setting: the token lives in the system keychain (Settings > Accounts, `docs/tracking.md`), never in this table.
 
 The `reader.*` keys are defaults (`reader.keys` aside). A choice made inside the reader belongs in that series' `series_settings` blob and wins over these.
 
