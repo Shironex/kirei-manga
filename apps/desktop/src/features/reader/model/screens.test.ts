@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildScreens, lastVisiblePage, snapToScreen, stepScreen } from './screens';
+import {
+  buildScreens,
+  lastVisiblePage,
+  snapToScreen,
+  stepParts,
+  stepScreen,
+  type PagedPosition,
+} from './screens';
 
 const tall = { width: 1200, height: 1800 };
 const wide = { width: 2400, height: 1800 };
@@ -55,5 +62,48 @@ describe('snapToScreen and lastVisiblePage', () => {
   it('reports the furthest page on show', () => {
     expect(lastVisiblePage(screens, { page: 1, atEnd: false })).toBe(2);
     expect(lastVisiblePage(screens, { page: 4, atEnd: true })).toBe(5);
+  });
+});
+
+describe('stepParts', () => {
+  const screens = [[0], [1], [2]];
+  // Page 1 is a strip split in three parts.
+  const partsOf = (page: number) => (page === 1 ? 3 : 1);
+
+  it('walks the parts of a split strip before the next screen', () => {
+    let position: PagedPosition = { page: 0, atEnd: false };
+    const seen: string[] = [];
+    for (let turn = 0; turn < 5; turn += 1) {
+      position = stepParts(screens, position, 1, partsOf);
+      seen.push(`${position.page}.${position.part ?? 0}${position.atEnd ? ' end' : ''}`);
+    }
+    expect(seen).toEqual(['1.0', '1.1', '1.2', '2.0', '2.0 end']);
+  });
+
+  it('enters a split strip from below at its last part', () => {
+    expect(stepParts(screens, { page: 2, atEnd: false }, -1, partsOf)).toEqual({
+      page: 1,
+      atEnd: false,
+      part: 2,
+    });
+    expect(stepParts(screens, { page: 1, atEnd: false, part: 1 }, -1, partsOf)).toMatchObject({
+      page: 1,
+      part: 0,
+    });
+  });
+
+  it('acts like stepScreen when nothing is split', () => {
+    const one = () => 1;
+    for (const position of [
+      { page: 0, atEnd: false },
+      { page: 2, atEnd: false },
+      { page: 2, atEnd: true },
+    ]) {
+      for (const delta of [1, -1]) {
+        expect(stepParts(screens, position, delta, one)).toMatchObject(
+          stepScreen(screens, position, delta)
+        );
+      }
+    }
   });
 });
