@@ -20,12 +20,15 @@ use crate::language::{LanguagePrefs, LocalizedChapters, resolve_chapters};
 use crate::model::{Chapter, ContentRating, Cover, CoverSize, Manga, Page, ReadingStatus, Tag};
 use crate::query::{FeedOrder, FeedQuery, SearchQuery, check_id};
 use crate::wire::{
-    AtHomeBody, Collection, Entity, StatusBody, StatusesBody, WireChapter, WireCover, WireManga,
-    WireTag, parse,
+    AtHomeBody, Collection, Entity, GroupedReadBody, ReadBody, StatusBody, StatusesBody,
+    WireChapter, WireCover, WireManga, WireTag, parse,
 };
 
 /// Refresh the access token when it has less than this left.
 const REFRESH_MARGIN: Duration = Duration::from_secs(60);
+/// Series asked about in one `GET /manga/read` request. The ids go in the
+/// query string, so keep the URL well under common length limits.
+const MAX_READ_IDS: usize = 100;
 /// The most chapters [`MangaDex::chapters`] walks through for one series.
 const MAX_FEED_PAGES: u32 = 40;
 
@@ -702,6 +705,65 @@ impl MangaDex {
         let url = self.api(&format!("manga/{manga_id}/status"))?;
         let body = serde_json::to_vec(&serde_json::json!({
             "status": status.map(ReadingStatus::as_api),
+        }))
+        .map_err(MangaDexError::decode)?;
+        self.authed(Method::POST, url, Some(body), "manga").await?;
+        Ok(())
+    }
+
+    // Read markers ---------------------------------------------------------
+
+    /// The chapters of a series the user marked read on MangaDex.
+    pub async fn read_markers(&self, manga_id: &str) -> Result<Vec<String>> {
+        check_id(manga_id)?;
+        let url = self.api(&format!("manga/{manga_id}/read"))?;
+        let body = self.authed(Method::GET, url, None, "manga").await?;
+        Ok(parse::<ReadBody>(&body)?.data)
+    }
+
+    /// Read chapter ids for several series at once, keyed by manga id. Series
+    /// with nothing read are absent. Sends one request per 100 series.
+    pub async fn read_markers_for(
+        &self,
+        manga_ids: &[String],
+    ) -> Result<BTreeMap<String, Vec<String>>> {
+        let mut all = BTreeMap::new();
+        for batch in manga_ids.chunks(MAX_READ_IDS) {
+            let mut url = self.api("manga/read")?;
+            {
+                let mut pairs = url.query_pairs_mut();
+                for id in batch {
+                    check_id(id)?;
+                    pairs.append_pair("ids[]", id);
+                }
+                pairs.append_pair("grouped", "true");
+            }
+            let body = self.authed(Method::GET, url, None, "read list").await?;
+            all.extend(parse::<GroupedReadBody>(&body)?.data);
+        }
+        Ok(all)
+    }
+
+    /// Marks chapters of one series read and others unread on MangaDex, and
+    /// adds the read ones to the reading history.
+    pub async fn set_read_markers(
+        &self,
+        manga_id: &str,
+        read: &[String],
+        unread: &[String],
+    ) -> Result<()> {
+        check_id(manga_id)?;
+        if read.is_empty() && unread.is_empty() {
+            return Ok(());
+        }
+        for id in read.iter().chain(unread) {
+            check_id(id)?;
+        }
+        let mut url = self.api(&format!("manga/{manga_id}/read"))?;
+        url.query_pairs_mut().append_pair("updateHistory", "true");
+        let body = serde_json::to_vec(&serde_json::json!({
+            "chapterIdsRead": read,
+            "chapterIdsUnread": unread,
         }))
         .map_err(MangaDexError::decode)?;
         self.authed(Method::POST, url, Some(body), "manga").await?;
