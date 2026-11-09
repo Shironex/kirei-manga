@@ -5,19 +5,23 @@ import { coverUrl, type CoverRef } from '@/lib/library';
 import { cn } from '@/lib/utils';
 
 /**
- * A series cover at 2:3, loaded by hash over the kirei-cover scheme. Fades in
+ * A series cover at 2:3, loaded by hash over the kirei-cover scheme (or from
+ * `src`, for MangaDex covers). Fades in
  * once decoded so a scrolled-in tile never flashes a half drawn image. A series
  * with no cover (or a thumbnail that fails) gets a quiet placeholder with its
  * title, tinted by the theme seed rather than an empty box.
  */
 export function Cover({
   cover,
+  src: source,
   title,
   className,
   eager = false,
   children,
 }: {
   cover: CoverRef | null;
+  /** An image URL used instead of a library cover (MangaDex covers on `kirei-online`). */
+  src?: string | null;
   title: string;
   className?: string;
   /** Above-the-fold covers (hero, series page) load at once. */
@@ -27,7 +31,8 @@ export function Cover({
 }) {
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const src = cover && !failed ? coverUrl(cover) : null;
+  const url = source !== undefined ? source : cover && coverUrl(cover);
+  const src = url && !failed ? url : null;
 
   return (
     <span

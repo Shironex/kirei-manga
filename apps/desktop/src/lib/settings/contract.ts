@@ -60,7 +60,7 @@ export interface AppSettings {
 export type SettingKey = keyof AppSettings;
 
 /** Same values as `AppSettings::default()` in Rust; a test keeps them honest. */
-export const DEFAULT_SETTINGS: Readonly<AppSettings> = Object.freeze({
+export const DEFAULT_SETTINGS: Readonly<AppSettings> = Object.freeze<AppSettings>({
   'appearance.strength': 'balanced',
   'appearance.coverColours': true,
   'appearance.ambient': true,
