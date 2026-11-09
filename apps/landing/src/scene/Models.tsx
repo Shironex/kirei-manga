@@ -77,18 +77,24 @@ export function SceneFile({
   return <primitive object={gltf.scene} />;
 }
 
+/** The mascot model's front looks down +X, a quarter turn from glTF's +Z. */
+const MASCOT_FRONT = Math.PI / 2;
+
 export function Mascot({
   promise,
   at,
+  faceTo,
   still,
 }: {
   promise: Promise<GLTF>;
   at: Vector3;
+  /** The camera of the stop that shows her, so she looks into the lens. */
+  faceTo: readonly [number, number, number];
   still: boolean;
 }) {
   const gltf = use(promise);
   useIdleClip(gltf, still);
   useEffect(() => shadows(gltf.scene), [gltf]);
-  // Turned a little towards the camera's path, which passes on the desk's left.
-  return <primitive object={gltf.scene} position={at} rotation={[0, -0.45, 0]} />;
+  const yaw = Math.atan2(faceTo[0] - at.x, faceTo[2] - at.z) - MASCOT_FRONT;
+  return <primitive object={gltf.scene} position={at} rotation={[0, yaw, 0]} />;
 }
