@@ -15,6 +15,7 @@ import { describeAppInfo, isTauri, type AppInfo } from '@/lib/ipc';
 import { getThirdPartyNotices, openLink, type ExternalLink as Link } from '@/lib/settings/commands';
 
 import { SettingsSection } from './SettingRow';
+import { UpdatesRow } from './UpdatesRow';
 
 const LINKS: { link: Link; label: string }[] = [
   { link: 'website', label: 'kireimanga.app' },
@@ -114,6 +115,7 @@ export function AboutSection({ info }: { info: AppInfo | null }) {
           </div>
         </div>
       </div>
+      <UpdatesRow />
     </SettingsSection>
   );
 }
