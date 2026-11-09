@@ -87,7 +87,7 @@ const poster = (i: number, w: 960 | 1920) => `/3d/posters/stop-${i}-${w}.webp`;
         <a class="btn btn-primary" href="#download"><Icon name="download" />Download</a>
         <a class="btn btn-ghost" href={GITHUB_REPO_URL} rel="noopener"><Icon name="github" />Source on GitHub</a>
       </div>
-      <a class="scroll-cue" href="#stop-archives">
+      <a class="scroll-cue" href={`#stop-${TOUR[0]?.id}`}>
         <span>Take the tour</span><Icon name="down" size={16} />
       </a>
     </TourStop>
