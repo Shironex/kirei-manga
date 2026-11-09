@@ -2,15 +2,20 @@
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import { defineConfig } from 'astro/config';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 
-// The scene files are optional: until they are dropped into public/3d the
-// island builds its placeholder desk and the flat Kirei stand-in. Checked
-// here, where import.meta.url is this file, because a component's
-// import.meta.url points into the build output once it is bundled.
-/** @param {string} file */
-const optional3d = file =>
-  existsSync(new URL(`./public/3d/${file}`, import.meta.url)) ? `/3d/${file}` : '';
+// The 3D files are optional: a missing prop keeps its procedural blockout and
+// a missing mascot keeps the flat Kirei stand-in. Checked here, where
+// import.meta.url is this file, because a component's import.meta.url points
+// into the build output once it is bundled.
+const public3d = new URL('./public/3d/', import.meta.url);
+const mascotGlb = existsSync(new URL('mascot.glb', public3d)) ? '/3d/mascot.glb' : '';
+const propsDir = new URL('props/', public3d);
+const propFiles = existsSync(propsDir)
+  ? readdirSync(propsDir)
+      .filter(f => f.endsWith('.glb'))
+      .map(f => f.slice(0, -4))
+  : [];
 
 export default defineConfig({
   site: process.env.KIREIMANGA_SITE_URL || 'https://kireimanga.app',
@@ -24,8 +29,8 @@ export default defineConfig({
   },
   vite: {
     define: {
-      'import.meta.env.SCENE_GLB': JSON.stringify(optional3d('scene.glb')),
-      'import.meta.env.MASCOT_GLB': JSON.stringify(optional3d('mascot.glb')),
+      'import.meta.env.MASCOT_GLB': JSON.stringify(mascotGlb),
+      'import.meta.env.PROP_FILES': JSON.stringify(propFiles.join(',')),
     },
     resolve: {
       alias: {

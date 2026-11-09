@@ -112,7 +112,6 @@ export function startTour(tour: HTMLElement): void {
         if (stopped) return;
         unmount = mountScene(canvas, {
           scroll: tracker,
-          heroUrl: tour.dataset.sceneGlb || null,
           mascotUrl: tour.dataset.mascotGlb || null,
           capture: capture === 'mobile' ? 'mobile' : capture ? 'stops' : null,
           onReady: () => {

@@ -1,6 +1,6 @@
 /**
  * The fictional covers used across the page: the theming demo draws them as
- * SVG, the 3D placeholder paints them onto its volumes. Hue and chroma are the
+ * SVG, the 3D desk paints them onto its volumes. Hue and chroma are the
  * seed each one gives the page, as the app would sample them.
  */
 export interface CoverInfo {

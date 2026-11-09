@@ -20,7 +20,7 @@ const POINTER_EASE = 2.4;
 /** How far the target leaves the stops' framing for the ribbon mid flight, 0 to 1. */
 const FOLLOW_RIBBON = 0.75;
 /** How much the camera rises mid flight, in metres, to look down on the ribbon. */
-const FLIGHT_LIFT = 0.06;
+const FLIGHT_LIFT = 0.04;
 
 function fitFov(fov: number, aspect: number): number {
   if (aspect >= DESIGN_ASPECT) return fov;

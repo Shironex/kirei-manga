@@ -1,16 +1,18 @@
 /**
- * The procedural stand-in for /3d/scene.glb: a crude blockout of the minimal
- * black desk and its props (open volume, desk lamp, small shelf of volumes,
- * tablet on a stand, tea cup and saucer, bookend, volume stack), built from
- * primitives and painted canvases, with a flat cut-out of Kirei on the stack
- * until /3d/mascot.glb exists. Each prop is a node named `prop_<name>` and
- * the anchors match the real file's, so swapping in the GLB is a file drop.
+ * The desk and its props. Every prop is a node named `prop_<name>` placed at
+ * its anchor from props.ts. It starts as a crude procedural blockout (primitives
+ * and painted canvases) and is swapped for its file from /3d/props when that
+ * loads; a prop whose file is missing or fails keeps its blockout. The tablet
+ * shows a painted manga page, the volume stack wears the painted covers, and
+ * Kirei stands on the stack (a flat cut-out until /3d/mascot.glb exists).
  */
 import { use, useEffect, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import {
+  Box3,
   BoxGeometry,
   CanvasTexture,
+  CircleGeometry,
   Color,
   CylinderGeometry,
   DoubleSide,
@@ -40,7 +42,9 @@ import { COVERS } from '../lib/covers';
 import { DESK_TOP } from '../tour/stops';
 import { ANCHORS } from './anchors';
 import { disposeObject } from './gltf';
-import { loadCoverFonts, paintMangaPage, paintPages, paintSpine } from './paint';
+import { shadows, type Loaders } from './Models';
+import { loadCoverFonts, paintCover, paintMangaPage, paintPages, paintSpine } from './paint';
+import { LAMP_BULB, PROP_FILES, PROPS, propFile, type PropName } from './props';
 
 /** A tankobon volume, in metres. */
 const W = 0.128;
@@ -60,11 +64,17 @@ const SHELF_SPINES = [
   { jp: '紙飛行機', hue: 300, chroma: 0.1 },
 ];
 
+/** The covers the real volume stack wears, bottom to top (`cover_1` to `cover_3`). */
+const STACK_COVERS = ['stardust', 'akane', 'moonlit'];
+
 interface Kit {
   textures: Texture[];
   spines: Texture[];
   pages: Texture;
   manga: Texture[];
+  /** Covers for the real stack, and a page for the real tablet (glTF UVs: no flip). */
+  covers: Texture[];
+  screen: Texture;
   /** The flat Kirei cut-out, only while /3d/mascot.glb is missing. */
   kirei: Texture | null;
 }
@@ -73,14 +83,15 @@ async function buildKit(anisotropy: number, standIn: boolean): Promise<Kit> {
   const kirei = standIn ? new TextureLoader().loadAsync('/3d/kirei-standin.webp') : null;
   await loadCoverFonts();
   const textures: Texture[] = [];
-  const tex = (source: HTMLCanvasElement, spine = false) => {
+  const tex = (source: HTMLCanvasElement, options: { spine?: boolean; gltf?: boolean } = {}) => {
     const t = new CanvasTexture(source);
     t.colorSpace = SRGBColorSpace;
     t.anisotropy = Math.min(8, anisotropy);
-    if (spine) {
+    if (options.spine) {
       t.center.set(0.5, 0.5);
       t.rotation = Math.PI / 2;
     }
+    if (options.gltf) t.flipY = false;
     textures.push(t);
     return t;
   };
@@ -91,9 +102,13 @@ async function buildKit(anisotropy: number, standIn: boolean): Promise<Kit> {
   }
   return {
     textures,
-    spines: SHELF_SPINES.map((s, i) => tex(paintSpine(s.jp, (i % 7) + 1, s.hue, s.chroma), true)),
+    spines: SHELF_SPINES.map((s, i) =>
+      tex(paintSpine(s.jp, (i % 7) + 1, s.hue, s.chroma), { spine: true })
+    ),
     pages: tex(paintPages()),
     manga: [tex(paintMangaPage(3)), tex(paintMangaPage(8)), tex(paintMangaPage(5))],
+    covers: STACK_COVERS.map(id => tex(paintCover(id), { gltf: true })),
+    screen: tex(paintMangaPage(5), { gltf: true }),
     kirei: kireiTexture,
   };
 }
@@ -107,17 +122,40 @@ function cast<T extends Mesh>(mesh: T, castShadow = true): T {
   return mesh;
 }
 
-/** A node for one prop, placed on the desk. */
-function prop(root: Group, name: string, x: number, z: number, yaw = 0): Group {
-  const g = new Group();
-  g.name = name;
-  g.position.set(x, DESK_TOP, z);
-  g.rotation.y = yaw;
-  root.add(g);
-  return g;
+interface Slot {
+  /** The prop's node, at its anchor on the desk top. */
+  node: Group;
+  /** The blockout inside it, swapped out when the file loads. */
+  block: Group;
 }
 
-function buildDesk(kit: Kit): { root: Group; kirei: Mesh | null } {
+function slot(root: Group, name: PropName | 'desk'): Slot {
+  const spec = PROPS.find(p => p.name === name);
+  const node = new Group();
+  node.name = name === 'desk' ? 'desk' : `prop_${name}`;
+  if (spec) {
+    node.position.set(spec.x, DESK_TOP, spec.z);
+    node.rotation.y = spec.yaw;
+  }
+  const block = new Group();
+  block.name = `${node.name}_blockout`;
+  if (spec) block.scale.setScalar(spec.blockout);
+  node.add(block);
+  root.add(node);
+  return { node, block };
+}
+
+interface Built {
+  root: Group;
+  slots: Record<PropName | 'desk', Slot>;
+  kirei: Mesh | null;
+  /** Where Kirei stands on the blockout stack, in the stack's own space. */
+  blockStandY: number;
+  /** The blockout lamp's bulb, in the lamp's own space. */
+  blockBulb: Vector3;
+}
+
+function buildDesk(kit: Kit): Built {
   const root = new Group();
   root.name = 'desk_scene';
   const book = new BoxGeometry(W, H, D);
@@ -139,10 +177,11 @@ function buildDesk(kit: Kit): { root: Group; kirei: Mesh | null } {
     return cast(new Mesh(book, mats));
   };
 
-  // The desk: a thick black slab with a soft gloss.
+  // The desk: a black slab with a soft gloss, the real desk's size.
+  const desk = slot(root, 'desk');
   const top = cast(
     new Mesh(
-      new BoxGeometry(1.9, 0.05, 1.05),
+      new BoxGeometry(1.1, 0.04, 0.56),
       new MeshPhysicalMaterial({
         color: new Color('#050408'),
         roughness: 0.5,
@@ -152,12 +191,11 @@ function buildDesk(kit: Kit): { root: Group; kirei: Mesh | null } {
     ),
     false
   );
-  top.name = 'desk';
-  top.position.set(0, DESK_TOP - 0.025, -0.02);
-  root.add(top);
+  top.position.set(0, DESK_TOP - 0.02, 0);
+  desk.block.add(top);
 
   // Open volume, the ribbon's source.
-  const open = prop(root, 'prop_volume_open', -0.04, 0.24, 0.18);
+  const open = slot(root, 'volume_open');
   [-1, 1].forEach((side, i) => {
     const half = new Group();
     const block = cast(
@@ -173,11 +211,11 @@ function buildDesk(kit: Kit): { root: Group; kirei: Mesh | null } {
     block.position.set((side * W) / 2, 0.006, 0);
     half.add(block);
     half.rotation.z = side * -0.09;
-    open.add(half);
+    open.block.add(half);
   });
 
   // Tea cup and saucer.
-  const tea = prop(root, 'prop_tea', -0.64, 0.14);
+  const tea = slot(root, 'tea').block;
   const china = std(ok(0.94, 0.01, 80), 0.25);
   const saucer = cast(new Mesh(new CylinderGeometry(0.075, 0.06, 0.012, 40), china));
   saucer.position.y = 0.006;
@@ -207,7 +245,7 @@ function buildDesk(kit: Kit): { root: Group; kirei: Mesh | null } {
   tea.add(rim);
 
   // Desk lamp: brass base, a curved arm and a dark dome shade.
-  const lamp = prop(root, 'prop_lamp', -0.64, -0.24, 0.5);
+  const lamp = slot(root, 'lamp').block;
   const base = cast(new Mesh(new CylinderGeometry(0.075, 0.085, 0.022, 40), brass));
   base.position.y = 0.011;
   lamp.add(base);
@@ -232,9 +270,10 @@ function buildDesk(kit: Kit): { root: Group; kirei: Mesh | null } {
   );
   bulb.position.set(0.19, 0.365, 0);
   lamp.add(bulb);
+  const blockBulb = bulb.position.clone().multiplyScalar(lamp.scale.x);
 
   // Small shelf of volumes, spines out.
-  const shelf = prop(root, 'prop_shelf', -0.22, -0.34);
+  const shelf = slot(root, 'shelf').block;
   const wood = std(ok(0.24, 0.03, 40), 0.55);
   const frame = (w: number, h: number, d: number, x: number, y: number, z = 0) => {
     const m = cast(new Mesh(new BoxGeometry(w, h, d), wood));
@@ -261,7 +300,7 @@ function buildDesk(kit: Kit): { root: Group; kirei: Mesh | null } {
   });
 
   // Tablet on an acrylic stand, showing a page.
-  const tablet = prop(root, 'prop_tablet', 0.17, -0.16, -0.25);
+  const tablet = slot(root, 'tablet').block;
   const acrylic = new MeshPhysicalMaterial({
     color: new Color('#d8d2ff'),
     roughness: 0.1,
@@ -287,7 +326,7 @@ function buildDesk(kit: Kit): { root: Group; kirei: Mesh | null } {
   tablet.add(body);
 
   // Brass bookend with an arched upright.
-  const bookend = prop(root, 'prop_bookend', 0.4, 0.14, -0.4);
+  const bookend = slot(root, 'bookend').block;
   const plate = cast(new Mesh(new BoxGeometry(0.08, 0.006, 0.07), brass));
   plate.position.y = 0.003;
   bookend.add(plate);
@@ -305,7 +344,8 @@ function buildDesk(kit: Kit): { root: Group; kirei: Mesh | null } {
   bookend.add(arch);
 
   // Volume stack, with Kirei standing on top.
-  const stack = prop(root, 'prop_volume_stack', 0.64, -0.12, -0.35);
+  const stackSlot = slot(root, 'volume_stack');
+  const stack = stackSlot.block;
   const BIG = 1.15;
   for (let i = 0; i < 3; i++) {
     const s = COVERS[(i + 4) % COVERS.length];
@@ -321,13 +361,10 @@ function buildDesk(kit: Kit): { root: Group; kirei: Mesh | null } {
     stack.add(v);
   }
   const standY = 3 * D * BIG;
-  const mascotNode = new Object3D();
-  mascotNode.name = ANCHORS.mascot;
-  mascotNode.position.set(0, standY, 0);
-  stack.add(mascotNode);
+  const blockStandY = standY * stack.scale.y;
   let kirei: Mesh | null = null;
   if (kit.kirei) {
-    const kireiHeight = 0.2;
+    const kireiHeight = 0.18;
     const image = kit.kirei.image as { width?: number; height?: number } | undefined;
     const aspect = image?.width && image.height ? image.width / image.height : 0.64;
     kirei = new Mesh(
@@ -341,39 +378,187 @@ function buildDesk(kit: Kit): { root: Group; kirei: Mesh | null } {
       })
     );
     kirei.name = 'kirei_standin';
-    kirei.position.set(0, standY + kireiHeight / 2, 0);
-    stack.add(kirei);
+    kirei.position.set(0, blockStandY + kireiHeight / 2, 0);
+    stackSlot.node.add(kirei);
   }
 
-  // Lamp light anchors, read by the scene for its spot light.
-  root.updateMatrixWorld(true);
-  const anchor = (name: string, at: Vector3) => {
+  return {
+    root,
+    slots: {
+      desk,
+      volume_open: open,
+      tea: { node: tea.parent as Group, block: tea },
+      lamp: { node: lamp.parent as Group, block: lamp },
+      shelf: { node: shelf.parent as Group, block: shelf },
+      tablet: { node: tablet.parent as Group, block: tablet },
+      bookend: { node: bookend.parent as Group, block: bookend },
+      volume_stack: stackSlot,
+    },
+    kirei,
+    blockStandY,
+    blockBulb,
+  };
+}
+
+/** Gives the real files' named parts the painted art: the tablet's page and the stack's covers. */
+function dress(name: PropName | 'desk', model: Object3D, kit: Kit) {
+  model.traverse(node => {
+    const mesh = node as Mesh;
+    if (!mesh.isMesh) return;
+    const material = mesh.material as Material;
+    if (name === 'tablet' && material.name === 'screen') {
+      mesh.material = new MeshBasicMaterial({ map: kit.screen, color: new Color('#d9d4e6') });
+      mesh.castShadow = false;
+    }
+    if (name === 'volume_stack') {
+      const cover = /^cover_(\d)$/.exec(material.name);
+      const covers = kit.covers;
+      if (cover)
+        mesh.material = new MeshStandardMaterial({
+          map: covers[Number(cover[1]) - 1] ?? covers[0],
+          roughness: 0.5,
+        });
+      if (material.name === 'pages')
+        mesh.material = new MeshStandardMaterial({
+          color: new Color(ok(0.9, 0.02, 85)),
+          roughness: 0.9,
+        });
+    }
+    if (name === 'desk') {
+      // The minimal black desk: the file's grey pushed towards black, with an
+      // even soft gloss. Its compressed normal and roughness maps show their
+      // blocks in a glossy highlight, so they go.
+      const surface = mesh.material as MeshStandardMaterial;
+      surface.color?.multiplyScalar(0.32);
+      surface.normalMap = null;
+      surface.roughnessMap = null;
+      surface.metalnessMap = null;
+      surface.metalness = 0;
+      surface.roughness = 0.68;
+      surface.needsUpdate = true;
+      mesh.castShadow = false;
+    }
+  });
+}
+
+/** A warm glow under the real lamp's shade, where the spot light starts. */
+function lampGlow(at: Vector3): Group {
+  const glow = new Group();
+  glow.name = 'lamp_glow';
+  const bulb = new Mesh(
+    new SphereGeometry(0.014, 16, 12),
+    new MeshBasicMaterial({ color: '#fff3d6' })
+  );
+  const disc = new Mesh(
+    new CircleGeometry(0.05, 32),
+    new MeshBasicMaterial({
+      color: '#ffc77a',
+      transparent: true,
+      opacity: 0.55,
+      side: DoubleSide,
+      depthWrite: false,
+    })
+  );
+  disc.rotation.x = Math.PI / 2;
+  disc.position.y = 0.012;
+  glow.add(bulb, disc);
+  glow.position.copy(at);
+  return glow;
+}
+
+/**
+ * Swaps in every prop file that is present, leaving the blockout for any that
+ * fail, then places the anchors: the lamp's bulb and target, and Kirei's spot
+ * on top of the stack.
+ */
+async function swapInProps(built: Built, kit: Kit, loaders: Loaders): Promise<Object3D[]> {
+  const removed: Object3D[] = [];
+  const names = Object.keys(built.slots) as (PropName | 'desk')[];
+  /** Each loaded model's height, measured in its own space before it is placed. */
+  const loaded = new Map<string, number>();
+  await Promise.all(
+    names
+      .filter(name => PROP_FILES.has(name))
+      .map(async name => {
+        let model: Object3D;
+        try {
+          model = (await loaders.gltf.loadAsync(propFile(name))).scene;
+        } catch {
+          return;
+        }
+        const { node, block } = built.slots[name];
+        shadows(model);
+        dress(name, model, kit);
+        const height = new Box3().setFromObject(model).max.y;
+        // The desk is lifted so its top is the desk top the props stand on.
+        if (name === 'desk') model.position.y = DESK_TOP - height;
+        node.remove(block);
+        removed.push(block);
+        node.add(model);
+        loaded.set(name, height);
+      })
+  );
+
+  const { lamp, volume_stack: stack, volume_open: open } = built.slots;
+  const bulb = loaded.has('lamp') ? new Vector3(...LAMP_BULB) : built.blockBulb;
+  if (loaded.has('lamp')) lamp.node.add(lampGlow(bulb));
+  const anchor = (parent: Object3D, name: string, at: Vector3) => {
     const node = new Object3D();
     node.name = name;
     node.position.copy(at);
-    root.add(node);
+    parent.add(node);
   };
-  anchor(ANCHORS.lamp, bulb.getWorldPosition(new Vector3()));
-  anchor(ANCHORS.lampTarget, new Vector3(-0.3, DESK_TOP, 0.06));
-  return { root, kirei };
+  anchor(lamp.node, ANCHORS.lamp, bulb);
+  anchor(open.node, ANCHORS.lampTarget, new Vector3(0, 0.02, 0));
+  const standY = loaded.get('volume_stack') ?? built.blockStandY;
+  anchor(stack.node, ANCHORS.mascot, new Vector3(0, standY, 0));
+  if (built.kirei) built.kirei.position.y = standY + 0.09;
+  return removed;
 }
 
-/** Paints the textures once, then builds the desk from them. */
-export function Desk({ onModel, mascot }: { onModel: (root: Object3D) => void; mascot: boolean }) {
+export interface Dressed {
+  kit: Kit;
+  built: Built;
+  /** Blockouts taken out for their files, freed with the rest on unmount. */
+  removed: Object3D[];
+}
+
+/**
+ * Paints the textures, builds the blockout and swaps the prop files in, as one
+ * promise. Call it outside the Suspense boundary: a boundary that suspends
+ * before it first mounts drops its children's state and would start again.
+ */
+export function useDeskPromise(loaders: Loaders, standIn: boolean): Promise<Dressed> {
   const gl = useThree(s => s.gl);
-  const [kit] = useState(() => buildKit(gl.capabilities.getMaxAnisotropy(), !mascot));
-  useEffect(() => () => void kit.then(k => k.textures.forEach(t => t.dispose())), [kit]);
-  return <DeskFromKit kit={kit} onModel={onModel} />;
+  const [dressed] = useState(() =>
+    buildKit(gl.capabilities.getMaxAnisotropy(), standIn).then(async kit => {
+      const built = buildDesk(kit);
+      const removed = await swapInProps(built, kit, loaders);
+      return { kit, built, removed };
+    })
+  );
+  useEffect(
+    () => () =>
+      void dressed.then(d => {
+        d.kit.textures.forEach(t => t.dispose());
+        disposeObject(d.built.root);
+        d.removed.forEach(disposeObject);
+      }),
+    [dressed]
+  );
+  return dressed;
 }
 
-function DeskFromKit({ kit, onModel }: { kit: Promise<Kit>; onModel: (root: Object3D) => void }) {
-  const ready = use(kit);
-  const [built] = useState(() => buildDesk(ready));
+export function Desk({
+  dressed,
+  onModel,
+}: {
+  dressed: Promise<Dressed>;
+  onModel: (root: Object3D) => void;
+}) {
+  const { built } = use(dressed);
   const camera = useThree(s => s.camera);
-  useEffect(() => {
-    onModel(built.root);
-    return () => disposeObject(built.root);
-  }, [built, onModel]);
+  useEffect(() => onModel(built.root), [built, onModel]);
   // The cut-out turns about its vertical axis to face the camera.
   useFrame(() => {
     const k = built.kirei;
