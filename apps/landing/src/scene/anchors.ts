@@ -1,14 +1,14 @@
 /**
- * Named nodes the scene file can carry. The placeholder desk carries the
- * same names, so the camera, the ribbon, the lamp and the mascot find their
- * places the same way whichever model is loaded. Every node is optional: a
- * missing one keeps the default from tour/stops.ts or the lamp defaults here.
+ * Named nodes in the desk scene (Desk.tsx places them on the props, whether
+ * a prop is its file or its blockout), so the camera, the ribbon, the lamp
+ * and the mascot find their places the same way. The stop and ribbon nodes
+ * are optional overrides; without them the defaults in tour/stops.ts hold.
  */
 import { Vector3, type Object3D } from 'three';
 import { DESK_TOP, RIBBON_POINTS, STOPS, type StopFrame, type StopId } from '../tour/stops';
 
 export const ANCHORS = {
-  /** Where /3d/mascot.glb stands: its origin goes here, facing +Z. */
+  /** Where /3d/mascot.glb stands: its origin goes here (top of the volume stack). */
   mascot: 'mascot_anchor',
   /** The lamp's bulb: a warm spot light shines from here... */
   lamp: 'lamp_light',
@@ -62,7 +62,7 @@ export function readAnchors(root: Object3D): Anchors {
     frames,
     ribbon: readRibbon(root),
     mascot: world(root, ANCHORS.mascot),
-    lamp: world(root, ANCHORS.lamp) ?? new Vector3(-0.5, DESK_TOP + 0.36, -0.16),
-    lampTarget: world(root, ANCHORS.lampTarget) ?? new Vector3(-0.3, DESK_TOP, 0.05),
+    lamp: world(root, ANCHORS.lamp) ?? new Vector3(-0.3, DESK_TOP + 0.3, -0.1),
+    lampTarget: world(root, ANCHORS.lampTarget) ?? new Vector3(-0.24, DESK_TOP, 0.1),
   };
 }

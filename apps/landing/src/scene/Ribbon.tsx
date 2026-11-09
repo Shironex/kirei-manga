@@ -23,9 +23,9 @@ import {
 } from 'three';
 import { paintRibbon } from './paint';
 
-const HEIGHT = 0.042;
-const POOL = 0.055;
-const TILE = 0.2;
+const HEIGHT = 0.03;
+const POOL = 0.04;
+const TILE = 0.14;
 const SEGMENTS = 640;
 const UP = new Vector3(0, 1, 0);
 

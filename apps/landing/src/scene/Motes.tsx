@@ -33,9 +33,9 @@ export function Motes({ around, still }: { around: Vector3; still: boolean }) {
     let seed = 11;
     const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     for (let i = 0; i < COUNT; i++) {
-      positions[i * 3] = around.x + (rand() - 0.5) * 0.5;
-      positions[i * 3 + 1] = around.y - rand() * 0.35;
-      positions[i * 3 + 2] = around.z + (rand() - 0.3) * 0.35;
+      positions[i * 3] = around.x + (rand() - 0.5) * 0.32;
+      positions[i * 3 + 1] = around.y - rand() * 0.26;
+      positions[i * 3 + 2] = around.z + (rand() - 0.3) * 0.26;
     }
     const g = new BufferGeometry();
     g.setAttribute('position', new BufferAttribute(positions, 3));
@@ -69,7 +69,7 @@ export function Motes({ around, still }: { around: Vector3; still: boolean }) {
       const drift = 0.00012 * Math.sin(t * 0.4 + i);
       pos.setX(i, pos.getX(i) + drift);
       let y = pos.getY(i) + 0.00006 * (1 + (i % 4));
-      if (y > around.y + 0.03) y = around.y - 0.35;
+      if (y > around.y + 0.03) y = around.y - 0.26;
       pos.setY(i, y);
     }
     pos.needsUpdate = true;

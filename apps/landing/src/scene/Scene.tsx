@@ -28,9 +28,9 @@ import type { TourScroll } from '../tour/scroll';
 import { DESK_TOP, LAST_STOP, PHONE_FRAME, RIBBON_POINTS, STOPS } from '../tour/stops';
 import { readAnchors, type Anchors } from './anchors';
 import { CameraRig } from './CameraRig';
-import { Mascot, SceneFile, useGltfPromise, useLoaders } from './Models';
+import { Mascot, useGltfPromise, useLoaders } from './Models';
 import { Motes } from './Motes';
-import { Desk } from './Desk';
+import { Desk, useDeskPromise } from './Desk';
 import { Ribbon } from './Ribbon';
 import { createRibbonCurve } from './ribbonPath';
 import { useEnvironment } from './environment';
@@ -45,7 +45,6 @@ import {
 
 export interface SceneOptions {
   scroll: TourScroll;
-  heroUrl: string | null;
   mascotUrl: string | null;
   capture: 'stops' | 'mobile' | null;
   onReady: () => void;
@@ -165,7 +164,7 @@ function Lamp({ anchors }: { anchors: Anchors }) {
     // A filament that wavers a touch.
     const t = state.clock.elapsedTime;
     if (light.current)
-      light.current.intensity = 3.2 + Math.sin(t * 7.1) * 0.05 + Math.sin(t * 2.3) * 0.08;
+      light.current.intensity = 1.05 + Math.sin(t * 7.1) * 0.05 + Math.sin(t * 2.3) * 0.08;
   });
   return (
     <>
@@ -174,22 +173,16 @@ function Lamp({ anchors }: { anchors: Anchors }) {
         position={anchors.lamp}
         angle={0.9}
         penumbra={0.75}
-        distance={2}
-        decay={1.6}
-        intensity={3.2}
+        distance={1.4}
+        decay={1.8}
+        intensity={1.05}
         color="#ffcf91"
         castShadow
         shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.0004}
         shadow-radius={4}
       />
-      <pointLight
-        position={anchors.lamp}
-        intensity={0.35}
-        distance={1.6}
-        decay={2}
-        color="#ffd9a8"
-      />
+      <pointLight position={anchors.lamp} intensity={0.12} distance={1} decay={2} color="#ffd9a8" />
     </>
   );
 }
@@ -206,7 +199,7 @@ function Rim() {
     const c = Number.parseFloat(css.getPropertyValue('--seed-c')) || 0.13;
     light.current.color.copy(color.current.set(oklchToHex(0.7, Math.min(0.16, c * 1.2), h)));
   });
-  return <directionalLight ref={light} position={[0.4, 0.9, -2.4]} intensity={1.1} />;
+  return <directionalLight ref={light} position={[0.4, 0.9, -2.4]} intensity={0.7} />;
 }
 
 function World(props: SceneOptions) {
@@ -217,8 +210,8 @@ function World(props: SceneOptions) {
   useAdaptiveDpr(props.scroll, still, props.onFail);
   useEnvironment();
   const loaders = useLoaders();
-  const scenePromise = useGltfPromise(loaders, props.heroUrl);
   const mascotPromise = useGltfPromise(loaders, props.mascotUrl);
+  const desk = useDeskPromise(loaders, !mascotPromise);
   const [anchors, setAnchors] = useState<Anchors | null>(null);
   const onModel = useCallback((root: Object3D) => setAnchors(readAnchors(root)), []);
   const fail = useCallback(() => props.onFail('model-failed'), [props]);
@@ -233,11 +226,7 @@ function World(props: SceneOptions) {
       <Rim />
       <Boundary onError={fail}>
         <Suspense fallback={null}>
-          {scenePromise ? (
-            <SceneFile promise={scenePromise} still={still} onModel={onModel} />
-          ) : (
-            <Desk onModel={onModel} mascot={Boolean(mascotPromise)} />
-          )}
+          <Desk dressed={desk} onModel={onModel} />
           {mascotPromise && anchors?.mascot && (
             <Mascot
               promise={mascotPromise}

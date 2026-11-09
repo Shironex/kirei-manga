@@ -15,7 +15,6 @@ import TourStop from './TourStop.astro';
 
 // Set in astro.config.mjs from what is in public/3d at build time, so a
 // missing file never costs a failed request.
-const sceneGlb = import.meta.env.SCENE_GLB || undefined;
 const mascotGlb = import.meta.env.MASCOT_GLB || undefined;
 
 const poster = (i: number, w: 960 | 1920) => `/3d/posters/stop-${i}-${w}.webp`;
@@ -25,7 +24,6 @@ const poster = (i: number, w: 960 | 1920) => `/3d/posters/stop-${i}-${w}.webp`;
   id="top"
   class="tour"
   data-tour
-  data-scene-glb={sceneGlb}
   data-mascot-glb={mascotGlb}
   aria-labelledby="hero-title"
 >
@@ -33,7 +31,7 @@ const poster = (i: number, w: 960 | 1920) => `/3d/posters/stop-${i}-${w}.webp`;
     <div
       class="scene"
       role="img"
-      aria-label="A reading nook at night: a desk under a warm lamp, a stack of manga volumes, an open book, covers leaning on the wall and a shelf of spines."
+      aria-label="A black desk at night: a warm lamp over an open volume, and a glowing ribbon of manga pages winding past a tea cup, a small shelf, a tablet and a bookend to Kirei, standing on a stack of volumes."
     >
       <picture>
         <source media="(max-width: 899px)" srcset="/3d/posters/hero-mobile.webp" width="780" height="966" />

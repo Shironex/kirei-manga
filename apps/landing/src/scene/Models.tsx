@@ -1,6 +1,6 @@
 /**
- * The scene file and the mascot. Loading suspends, so the stage keeps its
- * poster until both are in; a failed load throws to the error boundary and
+ * The loaders and the mascot. The mascot's load suspends, so the stage keeps
+ * its poster until she is in; a failed load throws to the error boundary and
  * the page goes back to its posters.
  */
 import { useFrame, useThree } from '@react-three/fiber';
@@ -9,7 +9,7 @@ import { AnimationMixer, type Object3D, type Vector3 } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { createLoaders, disposeObject } from './gltf';
 
-type Loaders = ReturnType<typeof createLoaders>;
+export type Loaders = ReturnType<typeof createLoaders>;
 
 /** One loader set per mount, freed with it. Call from a component that does not suspend. */
 export function useLoaders(): Loaders {
@@ -31,7 +31,7 @@ export function useGltfPromise(loaders: Loaders, url: string | null): Promise<GL
   return promise;
 }
 
-function shadows(root: Object3D) {
+export function shadows(root: Object3D) {
   root.traverse(node => {
     if ((node as { isMesh?: boolean }).isMesh) {
       node.castShadow = true;
@@ -57,24 +57,6 @@ function useIdleClip(gltf: GLTF, still: boolean) {
   useFrame((_, delta) => {
     if (mixer && !still) mixer.update(Math.min(delta, 0.05));
   });
-}
-
-export function SceneFile({
-  promise,
-  still,
-  onModel,
-}: {
-  promise: Promise<GLTF>;
-  still: boolean;
-  onModel: (root: Object3D) => void;
-}) {
-  const gltf = use(promise);
-  useIdleClip(gltf, still);
-  useEffect(() => {
-    shadows(gltf.scene);
-    onModel(gltf.scene);
-  }, [gltf, onModel]);
-  return <primitive object={gltf.scene} />;
 }
 
 /** The mascot model's front looks down +X, a quarter turn from glTF's +Z. */
