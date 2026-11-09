@@ -15,5 +15,5 @@ pub use page::{ImageFormat, PageInfo, SourceKind};
 pub use paths::{DataMode, DataPaths};
 pub use settings::{
     AppSettings, DownloadConcurrency, KeyBindings, MotionPreference, PageFit, ReaderMode,
-    ReadingDirection, ResampleFilter, SettingError, ThemeStrength,
+    ReadingDirection, ResampleFilter, SettingError, ThemeStrength, TrackingConflict,
 };

@@ -189,6 +189,19 @@ impl<'de> Deserialize<'de> for KeyBindings {
     }
 }
 
+/// What wins when local reading progress and AniList disagree. Mirrors
+/// `kirei_anilist::ConflictPolicy`; see `docs/tracking.md`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum TrackingConflict {
+    /// The higher progress wins; AniList is never moved backwards.
+    #[default]
+    Higher,
+    /// AniList follows the chapter last finished here, rereads included,
+    /// unless it moved on another device since the last sync.
+    Local,
+}
+
 /// Every app setting with its default. Serializes to a flat object keyed by
 /// the dotted setting keys.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -241,6 +254,14 @@ pub struct AppSettings {
     /// Reader keyboard bindings that differ from the built-in ones.
     #[serde(rename = "reader.keys")]
     pub reader_keys: KeyBindings,
+    /// Sync reading progress with AniList for linked series.
+    #[serde(rename = "tracking.enabled")]
+    pub tracking_enabled: bool,
+    /// Send progress when a chapter is finished, without asking.
+    #[serde(rename = "tracking.autoUpdate")]
+    pub tracking_auto_update: bool,
+    #[serde(rename = "tracking.conflict")]
+    pub tracking_conflict: TrackingConflict,
 }
 
 impl Default for AppSettings {
@@ -263,6 +284,9 @@ impl Default for AppSettings {
             reader_detect_webtoon: true,
             reader_split_tall: true,
             reader_keys: KeyBindings::default(),
+            tracking_enabled: false,
+            tracking_auto_update: true,
+            tracking_conflict: TrackingConflict::default(),
         }
     }
 }
@@ -345,6 +369,9 @@ mod tests {
         assert_eq!(value["reader.detectWebtoon"], true);
         assert_eq!(value["reader.splitTall"], true);
         assert_eq!(value["reader.keys"], json!({}));
+        assert_eq!(value["tracking.enabled"], false);
+        assert_eq!(value["tracking.autoUpdate"], true);
+        assert_eq!(value["tracking.conflict"], "higher");
         assert_eq!(value["downloads.folder"], Value::Null);
         assert_eq!(value["downloads.dataSaver"], false);
         assert_eq!(value["downloads.concurrency"], 2);
@@ -374,7 +401,7 @@ mod tests {
     #[test]
     fn keys_cover_every_field() {
         let keys = AppSettings::keys();
-        assert_eq!(keys.len(), 17);
+        assert_eq!(keys.len(), 20);
         assert!(keys.contains(&"reader.detectSpreads".to_owned()));
     }
 
