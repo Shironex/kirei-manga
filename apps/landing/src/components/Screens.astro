@@ -1,17 +1,23 @@
 ---
 import { Picture } from 'astro:assets';
-import library from '../assets/screens/proto-library.png';
-import series from '../assets/screens/proto-series-ember.png';
-import double from '../assets/screens/proto-reader-double-adjust.png';
-import webtoon from '../assets/screens/proto-reader-webtoon.png';
-import browse from '../assets/screens/proto-browse.png';
+// Real captures from the app's demo mode (`pnpm shots` at the repo root), kept
+// in the repo's assets/screenshots and shared with the README.
+import library from '../../../../assets/screenshots/library.webp';
+import series from '../../../../assets/screenshots/series.webp';
+import single from '../../../../assets/screenshots/reader-single.webp';
+import webtoon from '../../../../assets/screenshots/reader-webtoon.webp';
+import browse from '../../../../assets/screenshots/browse.webp';
+import palette from '../../../../assets/screenshots/command-palette.webp';
+import stats from '../../../../assets/screenshots/stats.webp';
 
 const SHOTS = [
-  { src: library, alt: 'The library: a large cover to continue reading, recent series beside it and the grid of covers below.', caption: 'Library, tinted by the series you would resume.', size: 'wide' },
-  { src: series, alt: 'A series page in warm orange tones taken from its cover, with the chapter list and the sampled palette.', caption: 'Series page, themed from its cover.', size: 'half' },
-  { src: double, alt: 'The reader showing a double page spread with the adjustments panel open.', caption: 'Double page spread with adjustments.', size: 'half' },
-  { src: webtoon, alt: 'The reader in webtoon mode, one continuous vertical strip.', caption: 'Webtoon mode, one continuous strip.', size: 'half' },
-  { src: browse, alt: 'Browsing online series in a grid of covers.', caption: 'Browse, arriving with the online release (1.1).', size: 'half' },
+  { src: library, alt: 'The library: the series to continue reading, big, with the others in progress beside it, Want to Read and a pinned smart filter below.', caption: 'Library, tinted by the series you would resume.', size: 'wide' },
+  { src: series, alt: 'A series page with its cover, synopsis, chapter list, tags, collections and AniList progress.', caption: 'Series page, with your tags, collections and AniList.', size: 'half' },
+  { src: single, alt: 'The reader on a single black and white manga page, read right to left.', caption: 'Single page reader, right to left.', size: 'half' },
+  { src: webtoon, alt: 'The reader in webtoon mode, one continuous vertical strip of colour panels.', caption: 'Webtoon mode, one continuous strip.', size: 'half' },
+  { src: browse, alt: 'Browsing MangaDex in a grid of covers, with the preferred reading languages above.', caption: 'Browse MangaDex in your languages.', size: 'half' },
+  { src: palette, alt: 'The command palette over the library, matching a series and settings as you type.', caption: 'One shortcut to any series, chapter or setting.', size: 'half' },
+  { src: stats, alt: 'Reading stats: hours read this year, a streak, and a heatmap of every day of the year.', caption: 'Reading stats that stay on your computer.', size: 'half' },
 ] as const;
 ---
 
@@ -21,8 +27,8 @@ const SHOTS = [
       <p class="eyebrow">Screens</p>
       <h2 class="section-title" id="screens-title">A quiet frame for loud covers.</h2>
       <p class="section-lede">
-        The interface stays dark and still, so the art carries the colour. These are captures of
-        the approved design; screenshots of the finished app follow with the release.
+        The interface stays dark and still, so the art carries the colour. Every screen here is the
+        app itself, running on a made up demo library.
       </p>
     </div>
     <div class="gallery">
@@ -33,6 +39,7 @@ const SHOTS = [
               src={shot.src}
               alt={shot.alt}
               formats={['avif', 'webp']}
+              fallbackFormat="webp"
               widths={shot.size === 'wide' ? [720, 1200, 1440] : [480, 720, 960]}
               sizes={
                 shot.size === 'wide'
