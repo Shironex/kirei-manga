@@ -30,6 +30,10 @@ const MAX_DIMENSION: u32 = 20_000;
 /// Strongest unsharp mask amount, at sharpen 100: the detail layer is added
 /// one and a half times. Past that, screentone starts to shimmer.
 const MAX_SHARPEN_AMOUNT: f32 = 1.5;
+/// A page at least this many times taller than wide is a tall strip (a
+/// webtoon panel run, a long scroll page). The reader UI uses the same ratio
+/// (`TALL_RATIO` in `features/reader/model/split.ts`).
+pub const TALL_RATIO: u32 = 2;
 
 /// Resampling filter for the downscale.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -65,6 +69,10 @@ pub struct RenderSettings {
     pub resample: Resample,
     /// Unsharp mask strength, 0 (off) to 100. Values above 100 act as 100.
     pub sharpen: u8,
+    /// Fit tall strips (see [`is_tall`]) to the box width only, so the reader
+    /// can show them in screen sized parts instead of shrinking the whole
+    /// strip into one screen. Applies when both sides of the box are set.
+    pub split_tall: bool,
 }
 
 /// A page ready to serve.
@@ -104,15 +112,28 @@ pub(crate) enum Outcome {
     Fallback,
 }
 
+/// True for a page at least [`TALL_RATIO`] times taller than wide.
+pub fn is_tall(width: u32, height: u32) -> bool {
+    width > 0 && u64::from(height) >= u64::from(TALL_RATIO) * u64::from(width)
+}
+
 /// The size a `width` x `height` page is served at under `settings`, or
 /// `None` when it is served at its own size.
 pub fn target_size(width: u32, height: u32, settings: &RenderSettings) -> Option<(u32, u32)> {
     if width == 0 || height == 0 {
         return None;
     }
+    // A split strip is shown one screen at a time at the box width, so its
+    // height is left free.
+    let max_height =
+        if settings.split_tall && settings.max_width.is_some() && is_tall(width, height) {
+            None
+        } else {
+            settings.max_height
+        };
     let scale_for =
         |limit: Option<u32>, size: u32| limit.map_or(1.0, |l| f64::from(l) / f64::from(size));
-    let scale = scale_for(settings.max_width, width).min(scale_for(settings.max_height, height));
+    let scale = scale_for(settings.max_width, width).min(scale_for(max_height, height));
     if scale >= DOWNSCALE_BELOW {
         return None;
     }
@@ -391,6 +412,39 @@ mod tests {
             ..RenderSettings::default()
         };
         assert_eq!(target_size(1800, 20_000, &width_only), Some((900, 10_000)));
+    }
+
+    #[test]
+    fn split_strips_fit_the_box_width() {
+        let split = RenderSettings {
+            split_tall: true,
+            ..boxed(1000, 1000)
+        };
+        // A strip fits to the width and keeps its full height.
+        assert_eq!(target_size(2000, 12_000, &split), Some((1000, 6000)));
+        // A narrow strip already within the width is served as stored.
+        assert_eq!(target_size(800, 12_000, &split), None);
+        // A normal page still fits the whole box.
+        assert_eq!(target_size(1800, 2700, &split), Some((667, 1000)));
+        // Without the switch, the strip shrinks into the box.
+        assert_eq!(
+            target_size(2000, 12_000, &boxed(1000, 1000)),
+            Some((167, 1000))
+        );
+        // With no width to fit, the height still bounds it.
+        let height_only = RenderSettings {
+            max_width: None,
+            ..split
+        };
+        assert_eq!(target_size(2000, 12_000, &height_only), Some((167, 1000)));
+    }
+
+    #[test]
+    fn tall_means_twice_as_high_as_wide() {
+        assert!(is_tall(800, 1600));
+        assert!(is_tall(800, 20_000));
+        assert!(!is_tall(800, 1599));
+        assert!(!is_tall(0, 100));
     }
 
     #[test]

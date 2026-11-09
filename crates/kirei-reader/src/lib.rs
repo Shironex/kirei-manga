@@ -19,4 +19,6 @@ mod render;
 pub use cache::{CachedPage, PageCache, PageKey, SourceId};
 pub use metrics::LatencySummary;
 pub use read_ahead::{Direction, ReadAheadConfig, Reader, ReaderStats};
-pub use render::{RenderSettings, RenderedPage, Resample, served_size, target_size};
+pub use render::{
+    RenderSettings, RenderedPage, Resample, TALL_RATIO, is_tall, served_size, target_size,
+};
