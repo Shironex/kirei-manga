@@ -57,12 +57,12 @@ Editorial ink-and-paper aesthetic. OKLCH sumi / kinari / bengara palette. Fraunc
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="assets/preview_library.png" alt="Library" />
+      <img src="assets/screenshots/library.webp" alt="Library" />
       <br />
       <em>Library — your shelf, quiet and kept</em>
     </td>
     <td align="center" width="50%">
-      <img src="assets/preview_series_detail.png" alt="Series detail" />
+      <img src="assets/screenshots/series.webp" alt="Series detail" />
       <br />
       <em>Series detail — synopsis, chapters, follow status</em>
     </td>
@@ -74,7 +74,7 @@ Editorial ink-and-paper aesthetic. OKLCH sumi / kinari / bengara palette. Fraunc
       <em>Import — point at a folder, scan, review</em>
     </td>
     <td align="center" width="50%">
-      <img src="assets/preview_reader.png" alt="Reader" />
+      <img src="assets/screenshots/reader-single.webp" alt="Reader" />
       <br />
       <em>Reader — full-screen, fit-aware, distraction-free</em>
     </td>
@@ -233,12 +233,12 @@ Redakcyjna estetyka tuszu i papieru. Paleta OKLCH sumi / kinari / bengara. Fraun
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="assets/preview_library.png" alt="Biblioteka" />
+      <img src="assets/screenshots/library.webp" alt="Biblioteka" />
       <br />
       <em>Biblioteka — twoja półka, cicha i uporządkowana</em>
     </td>
     <td align="center" width="50%">
-      <img src="assets/preview_series_detail.png" alt="Strona serii" />
+      <img src="assets/screenshots/series.webp" alt="Strona serii" />
       <br />
       <em>Strona serii — opis, rozdziały, status obserwowania</em>
     </td>
@@ -250,7 +250,7 @@ Redakcyjna estetyka tuszu i papieru. Paleta OKLCH sumi / kinari / bengara. Fraun
       <em>Import — wskaż folder, przeskanuj, sprawdź</em>
     </td>
     <td align="center" width="50%">
-      <img src="assets/preview_reader.png" alt="Czytnik" />
+      <img src="assets/screenshots/reader-single.webp" alt="Czytnik" />
       <br />
       <em>Czytnik — pełny ekran, dopasowanie, bez rozproszeń</em>
     </td>
