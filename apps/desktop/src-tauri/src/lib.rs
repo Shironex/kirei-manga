@@ -109,6 +109,8 @@ pub fn run() {
             settings::open_link,
             settings::third_party_notices,
             stats::stats_get,
+            stats::stats_count,
+            stats::stats_clear,
             stats::stats_cover,
             stats::stats_save_card,
             data::data_info,
