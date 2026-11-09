@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 
 import { RANGES, type Adjustments, type NumericAdjustment, type Resample } from '../model/adjust';
 import type { Background, Fit, ReaderMode, ReaderPrefs } from '../model/prefs';
+import { useKeyLabel } from './readerKeys';
 
 /** A labelled control on one line of the panel. */
 export function PanelLine({
@@ -220,6 +221,7 @@ export function LayoutSettings({
   mode: ReaderMode;
   onChange: (patch: Partial<ReaderPrefs>) => void;
 }) {
+  const shiftKey = useKeyLabel('toggle-shift');
   return (
     <>
       {mode !== 'webtoon' && (
@@ -259,7 +261,10 @@ export function LayoutSettings({
               />
             )}
           </PanelLine>
-          <PanelLine label="Shift spreads by one page" hint="S, when spreads look split">
+          <PanelLine
+            label="Shift spreads by one page"
+            hint={shiftKey ? `${shiftKey}, when spreads look split` : 'When spreads look split'}
+          >
             {id => (
               <Switch
                 id={id}
