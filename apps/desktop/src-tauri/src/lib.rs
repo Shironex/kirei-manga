@@ -13,6 +13,7 @@ mod mangadex_client;
 mod online;
 mod protocol;
 mod settings;
+mod shelf;
 mod stats;
 mod tracking;
 mod updater;
@@ -134,6 +135,29 @@ pub fn run() {
             settings::open_data_dir,
             settings::open_link,
             settings::third_party_notices,
+            shelf::shelf_overview,
+            shelf::shelf_selection,
+            shelf::shelf_want_to_read,
+            shelf::shelf_set_want,
+            shelf::shelf_tag,
+            shelf::shelf_untag,
+            shelf::shelf_rename_tag,
+            shelf::shelf_delete_tag,
+            shelf::shelf_create_collection,
+            shelf::shelf_rename_collection,
+            shelf::shelf_delete_collection,
+            shelf::shelf_reorder_collections,
+            shelf::shelf_set_collection_cover,
+            shelf::shelf_collection_items,
+            shelf::shelf_add_to_collection,
+            shelf::shelf_remove_from_collection,
+            shelf::shelf_reorder_collection,
+            shelf::shelf_run_filter,
+            shelf::shelf_save_filter,
+            shelf::shelf_pin_filter,
+            shelf::shelf_delete_filter,
+            shelf::shelf_reorder_filters,
+            shelf::shelf_languages,
             stats::stats_get,
             stats::stats_count,
             stats::stats_clear,
