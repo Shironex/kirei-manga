@@ -290,8 +290,15 @@ impl Library {
         within: Option<&ScanScope>,
         progress: &(dyn Fn(ScanProgress) + Sync),
     ) -> Result<Option<ScanSummary>> {
-        let _guard = self.begin_scan()?;
         let path = self.root_path(root_id)?;
+        // Look first without the single-flight flag, so a check that finds
+        // nothing (the usual launch catch-up) never makes a manual scan
+        // started at the same moment fail with ScanInProgress.
+        match scanner::changed_entries(&self.conn, root_id, &path, within)? {
+            Some(scope) if !scope.is_empty() => {}
+            _ => return Ok(None),
+        }
+        let _guard = self.begin_scan()?;
         match scanner::changed_entries(&self.conn, root_id, &path, within)? {
             Some(scope) if !scope.is_empty() => self
                 .scan_roots(&[(root_id, path, Some(scope))], progress)
