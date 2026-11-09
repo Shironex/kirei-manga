@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use kirei_core::DataPaths;
 use kirei_library::{
-    Library, LibraryRoot, LibraryWatcher, ReadingProgress, ScanProgress, ScanSummary, SeriesDetail,
-    SeriesSummary, WatchConfig,
+    Library, LibraryRoot, LibraryWatcher, ReadingClock, ReadingProgress, ScanProgress, ScanSummary,
+    SeriesDetail, SeriesSummary, WatchConfig,
 };
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
@@ -151,14 +151,19 @@ pub(crate) async fn library_series_detail<R: Runtime>(
 }
 
 /// Records the page on screen (0 based). The last page completes the chapter.
+/// With the reader's UTC offset (minutes east of UTC) the event also goes
+/// into the reading sessions behind the stats page; without it only the page
+/// is saved.
 #[tauri::command]
 pub(crate) async fn library_record_progress<R: Runtime>(
     app: AppHandle<R>,
     chapter_id: i64,
     page: i64,
+    utc_offset_min: Option<i32>,
 ) -> Result<ReadingProgress, String> {
-    with_library(&app, move |library| {
-        library.record_progress(chapter_id, page)
+    with_library(&app, move |library| match utc_offset_min {
+        Some(offset) => library.record_reading(chapter_id, page, ReadingClock::now(offset)),
+        None => library.record_progress(chapter_id, page),
     })
     .await
 }
