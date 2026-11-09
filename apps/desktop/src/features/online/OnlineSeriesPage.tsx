@@ -3,6 +3,8 @@ import { getRouteApi, Link } from '@tanstack/react-router';
 import {
   ArrowLeft,
   BookOpen,
+  Bookmark,
+  BookmarkCheck,
   ExternalLink,
   Heart,
   HeartOff,
@@ -21,6 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SeriesShelfCard } from '@/features/collections/SeriesShelfCard';
+import {
+  addToWantToRead,
+  isWanted,
+  removeFromWantToRead,
+  useShelf,
+} from '@/features/collections/shelfStore';
 import { Cover } from '@/features/library/Cover';
 import { TrackingCard } from '@/features/tracking/TrackingCard';
 import { requestDownload } from '@/lib/downloads';
@@ -38,6 +47,7 @@ import {
   type ReadingStatus,
 } from '@/lib/online';
 import { useSetting } from '@/lib/settings/store';
+import type { SeriesRef } from '@/lib/shelf';
 import { cn } from '@/lib/utils';
 
 import { useAccount } from './account';
@@ -81,6 +91,7 @@ export function OnlineSeriesPage() {
   const title = series.data ? mangaTitle(series.data.manga, chain) : 'MangaDex series';
   const headingRef = usePageHeading(title);
   const trackingVersion = useAnilistLink(mangaId, series.data?.anilistId ?? null, title);
+  const { want } = useShelf();
 
   if (series.status === 'error' && !series.data) {
     return (
@@ -128,6 +139,24 @@ export function OnlineSeriesPage() {
       : null,
     manga.contentRating !== 'safe' ? manga.contentRating : null,
   ].filter(Boolean);
+
+  // How the shelf names this title; the title and cover file are cached so
+  // Want to Read and collections show it offline.
+  const shelfRef: SeriesRef = {
+    source: 'mangadex',
+    remoteId: mangaId,
+    title,
+    coverFile: manga.cover?.fileName ?? null,
+  };
+  const wanted = isWanted(want, shelfRef);
+  const toggleWant = async () => {
+    setActionError(null);
+    try {
+      await (wanted ? removeFromWantToRead(shelfRef) : addToWantToRead(shelfRef));
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : String(reason));
+    }
+  };
 
   const run = async (action: () => Promise<unknown>) => {
     setActionError(null);
@@ -228,6 +257,10 @@ export function OnlineSeriesPage() {
                 </Link>
               </Button>
             )}
+            <Button variant="ghost" aria-pressed={wanted} onClick={() => void toggleWant()}>
+              {wanted ? <BookmarkCheck className="text-accent" /> : <Bookmark />}
+              {wanted ? 'In Want to Read' : 'Want to Read'}
+            </Button>
             {signedIn ? (
               <>
                 <Button variant="ghost" onClick={() => void follow(!view.following)}>
@@ -279,13 +312,14 @@ export function OnlineSeriesPage() {
         </div>
       </header>
 
-      <div className="mb-8 max-w-[420px]">
+      <div className="mb-8 grid max-w-[860px] items-start gap-4 md:grid-cols-2">
         <TrackingCard
           series={{ kind: 'mangadex', id: mangaId }}
           title={title}
           year={manga.year}
           version={trackingVersion}
         />
+        <SeriesShelfCard series={shelfRef} title={title} wantToggle={false} />
       </div>
 
       <section aria-labelledby="online-chapters" className="max-w-[860px]">
