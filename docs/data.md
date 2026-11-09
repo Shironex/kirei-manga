@@ -53,7 +53,7 @@ One ZIP file with the extension `.kireibackup`:
 | Entry             | What                                                                                   |
 | ----------------- | -------------------------------------------------------------------------------------- |
 | `manifest.json`   | `app`, `format` (layout version, 1), `appVersion`, `schemaVersion`, `createdAt` (Unix ms), `includesCovers`, `coverCount`, `databaseBytes`, `databaseBlake3` |
-| `library.sqlite3` | The whole database: roots, series, chapters, reading progress, reading sessions (`reading_sessions`, the source of the stats page, see `docs/stats.md`), per-series settings, app settings (`app_settings`, see `docs/settings.md`), cover rows |
+| `library.sqlite3` | The whole database: roots, series, chapters, reading progress, reading sessions (`reading_sessions`, the source of the stats page, see `docs/stats.md`), per-series settings, app settings (`app_settings`, see `docs/settings.md`), collections, tags, Want to Read and smart filters (see `docs/collections.md`), cover rows |
 | `covers/<hh>/<hash>.jpg` | Thumbnails, only when asked for                                                 |
 
 The database copy is made with SQLite's `VACUUM INTO` while the app runs: a consistent, compacted snapshot, never a copy of a file SQLite may be writing. Covers are off by default because a scan rebuilds them. Downloaded archives, the download queue and unfinished pages are not part of a backup: the archives are manga files like any other, and the queue can be refilled from MangaDex. The file is written as `<name>.partial` and renamed when complete, so a failed backup leaves nothing behind.
@@ -64,7 +64,7 @@ The database copy is made with SQLite's `VACUUM INTO` while the app runs: a cons
 2. Stage (`backup_restore`): the same checks, unpacking into `restore-staging/`, then the `restore-pending` marker is written last. Nothing live has changed yet.
 3. Restart (`app_restart`). At launch, before the library opens, the live database (and the cover cache, when the backup carries covers) moves to `backups/pre-restore-<UTC time>/` and the staged files move into place. Each step is a rename inside the data folder. A failed step moves everything back and the launch reports the error in `data_info`. If the process dies half way, the marker is still there and the next launch finishes; nothing is deleted.
 
-Reading stats travel inside the database, so a restore brings back every session, streak and year in review exactly as they were; a backup made before the stats existed restores with no sessions and migrates forward. Nothing about reading ever leaves the machine any other way.
+Collections (with their order and cover pick), tags, Want to Read (MangaDex titles included) and saved smart filters travel inside the database too, so a restore brings them back as they were. Reading stats travel inside the database, so a restore brings back every session, streak and year in review exactly as they were; a backup made before the stats existed restores with no sessions and migrates forward. Nothing about reading ever leaves the machine any other way.
 
 The swap waits for a restart because the database is open while the app runs (and Windows cannot rename an open file). A backup without covers keeps the current cover cache; run a scan after restoring to fill in covers whose files are missing. Set aside folders are never removed automatically.
 
