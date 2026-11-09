@@ -30,7 +30,9 @@ use lru::LruCache;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
-use credentials::{CredentialStore, Credentials, KeychainSink};
+use credentials::{Credentials, KeychainSink};
+
+use crate::keychain::{self, SecretStore};
 
 /// Event with the new [`AccountView`] whenever the session or the network
 /// state changes.
@@ -110,7 +112,7 @@ impl Online {
     /// writes to `store`.
     pub(crate) fn new(
         version: &str,
-        store: Arc<dyn CredentialStore>,
+        store: Arc<dyn SecretStore>,
         keychain: bool,
     ) -> Result<Self, MangaDexError> {
         Self::with_config(
@@ -122,7 +124,7 @@ impl Online {
 
     pub(crate) fn with_config(
         mut config: ClientConfig,
-        store: Arc<dyn CredentialStore>,
+        store: Arc<dyn SecretStore>,
         keychain: bool,
     ) -> Result<Self, MangaDexError> {
         let credentials = Credentials::new(store);
@@ -331,8 +333,8 @@ impl Online {
 /// the account event. `library` is `None` when the database did not open.
 pub(crate) fn setup<R: Runtime>(app: &AppHandle<R>, library: Option<&Library>) -> Online {
     let keychain = credentials::keychain_available();
-    let store: Arc<dyn CredentialStore> = if keychain {
-        Arc::new(credentials::Keychain)
+    let store: Arc<dyn SecretStore> = if keychain {
+        Arc::new(keychain::Keychain)
     } else {
         eprintln!("no system keychain: MangaDex sign in lasts until the app closes");
         Arc::new(credentials::MemoryStore::default())

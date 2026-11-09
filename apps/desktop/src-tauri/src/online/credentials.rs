@@ -2,62 +2,22 @@
 //! secret and the latest session tokens. Never in settings, the database or
 //! an IPC payload; the password is never stored at all.
 //!
-//! The store is a trait so tests run against memory instead of the real
-//! keychain.
+//! The entries go through the app's keychain helper (`crate::keychain`),
+//! under the same service as every other secret of the app; tests and a
+//! machine without a keychain use the memory store below.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
 use kirei_mangadex::{ClientCredentials, Secret, TokenSet, TokenSink};
 
-/// The keychain service every entry is filed under (the app identifier).
-pub(crate) const SERVICE: &str = "app.kireimanga.desktop";
+use crate::keychain::{SERVICE, SecretStore};
+
 pub(crate) const CLIENT_ID: &str = "mangadex.client_id";
 pub(crate) const CLIENT_SECRET: &str = "mangadex.client_secret";
 /// The session tokens as `TokenSet` JSON. Named after the refresh token,
 /// the part that keeps a session alive.
 pub(crate) const REFRESH: &str = "mangadex.refresh";
-
-/// Text secrets by account name.
-pub(crate) trait CredentialStore: Send + Sync {
-    fn get(&self, account: &str) -> Result<Option<String>, String>;
-    fn set(&self, account: &str, value: &str) -> Result<(), String>;
-    /// Removes an entry; a missing one is fine.
-    fn delete(&self, account: &str) -> Result<(), String>;
-}
-
-/// The OS keychain through the `keyring` crate.
-pub(crate) struct Keychain;
-
-impl Keychain {
-    fn entry(account: &str) -> Result<keyring::Entry, String> {
-        keyring::Entry::new(SERVICE, account)
-            .map_err(|error| format!("the system keychain is not available: {error}"))
-    }
-}
-
-impl CredentialStore for Keychain {
-    fn get(&self, account: &str) -> Result<Option<String>, String> {
-        match Self::entry(account)?.get_password() {
-            Ok(value) => Ok(Some(value)),
-            Err(keyring::Error::NoEntry) => Ok(None),
-            Err(error) => Err(format!("cannot read the keychain: {error}")),
-        }
-    }
-
-    fn set(&self, account: &str, value: &str) -> Result<(), String> {
-        Self::entry(account)?
-            .set_password(value)
-            .map_err(|error| format!("cannot write to the keychain: {error}"))
-    }
-
-    fn delete(&self, account: &str) -> Result<(), String> {
-        match Self::entry(account)?.delete_credential() {
-            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
-            Err(error) => Err(format!("cannot clear the keychain: {error}")),
-        }
-    }
-}
 
 /// Whether the OS keychain answers: a read of an entry that need not exist
 /// succeeds or says "no entry". Reading a missing entry never prompts.
@@ -72,7 +32,7 @@ pub(crate) fn keychain_available() -> bool {
 #[derive(Default)]
 pub(crate) struct MemoryStore(Mutex<HashMap<String, String>>);
 
-impl CredentialStore for MemoryStore {
+impl SecretStore for MemoryStore {
     fn get(&self, account: &str) -> Result<Option<String>, String> {
         Ok(self
             .0
@@ -102,11 +62,11 @@ impl CredentialStore for MemoryStore {
 /// Typed access to the MangaDex entries of a store.
 #[derive(Clone)]
 pub(crate) struct Credentials {
-    store: Arc<dyn CredentialStore>,
+    store: Arc<dyn SecretStore>,
 }
 
 impl Credentials {
-    pub(crate) fn new(store: Arc<dyn CredentialStore>) -> Self {
+    pub(crate) fn new(store: Arc<dyn SecretStore>) -> Self {
         Self { store }
     }
 
@@ -206,7 +166,7 @@ mod tests {
 
     #[test]
     fn client_and_tokens_round_trip_and_forget_keeps_the_id() {
-        let store = Arc::new(MemoryStore::default());
+        let store = Arc::new(crate::keychain::MemoryStore::default());
         let credentials = Credentials::new(store.clone());
         assert!(credentials.client().unwrap().is_none());
         credentials
@@ -240,7 +200,7 @@ mod tests {
 
     #[test]
     fn the_sink_mirrors_the_session_and_reports_its_end() {
-        let store = Arc::new(MemoryStore::default());
+        let store = Arc::new(crate::keychain::MemoryStore::default());
         let credentials = Credentials::new(store.clone());
         let ended = Arc::new(AtomicUsize::new(0));
         let counter = ended.clone();
@@ -259,7 +219,7 @@ mod tests {
 
     #[test]
     fn garbled_tokens_read_as_signed_out() {
-        let store = Arc::new(MemoryStore::default());
+        let store = Arc::new(crate::keychain::MemoryStore::default());
         store.set(REFRESH, "not json").unwrap();
         assert!(Credentials::new(store).tokens().unwrap().is_none());
     }
