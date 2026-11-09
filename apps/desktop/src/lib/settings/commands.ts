@@ -20,6 +20,11 @@ export interface CoverCacheUsage {
 /** The fixed set of pages the app opens in the browser. */
 export type ExternalLink = 'website' | 'repository' | 'issues' | 'notices';
 
+/** How much hidden progress a purge would delete. Deletes nothing. */
+export function countHiddenProgress(): Promise<OrphanPurge> {
+  return invoke<OrphanPurge>('library_count_orphans');
+}
+
 /** Deletes progress and series settings left hidden by removed folders (all of them by default). */
 export function purgeHiddenProgress(olderThanDays?: number): Promise<OrphanPurge> {
   return invoke<OrphanPurge>('library_purge_orphans', { olderThanDays: olderThanDays ?? null });
@@ -32,6 +37,16 @@ export function getCoverCache(): Promise<CoverCacheUsage> {
 /** Deletes the cover thumbnails; scan afterwards to make them again. */
 export function clearCoverCache(): Promise<CoverCacheUsage> {
   return invoke<CoverCacheUsage>('library_clear_cover_cache');
+}
+
+/** Thumbnails no series uses any more: what a prune would free. Deletes nothing. */
+export function getUnusedCovers(): Promise<CoverCacheUsage> {
+  return invoke<CoverCacheUsage>('library_unused_covers');
+}
+
+/** Deletes the thumbnails no series uses; the ones in use stay. */
+export function pruneCovers(): Promise<CoverCacheUsage> {
+  return invoke<CoverCacheUsage>('library_prune_covers');
 }
 
 export function openDataDir(): Promise<void> {

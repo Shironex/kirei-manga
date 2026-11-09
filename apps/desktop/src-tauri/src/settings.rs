@@ -38,8 +38,18 @@ pub(crate) async fn settings_set<R: Runtime>(
     Ok(settings)
 }
 
+/// How much hidden progress `library_purge_orphans` would delete, for the
+/// confirm step. Deletes nothing.
+#[tauri::command]
+pub(crate) async fn library_count_orphans<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<OrphanPurge, String> {
+    with_library(&app, Library::count_orphans).await
+}
+
 /// Deletes reading progress and series settings left hidden by removed
 /// folders, orphaned for at least `older_than_days` (all of them when null).
+/// Refused while a scan runs.
 #[tauri::command]
 pub(crate) async fn library_purge_orphans<R: Runtime>(
     app: AppHandle<R>,
@@ -64,6 +74,24 @@ pub(crate) async fn library_clear_cover_cache<R: Runtime>(
     app: AppHandle<R>,
 ) -> Result<CoverCacheUsage, String> {
     with_library(&app, Library::clear_cover_cache).await
+}
+
+/// The cover thumbnails no series points at (deleted series, older cover
+/// rules): what `library_prune_covers` would free. Deletes nothing.
+#[tauri::command]
+pub(crate) async fn library_unused_covers<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<CoverCacheUsage, String> {
+    with_library(&app, Library::unused_covers).await
+}
+
+/// Deletes the cover thumbnails no series points at; the ones in use stay.
+/// Refused while a scan runs.
+#[tauri::command]
+pub(crate) async fn library_prune_covers<R: Runtime>(
+    app: AppHandle<R>,
+) -> Result<CoverCacheUsage, String> {
+    with_library(&app, Library::prune_covers).await
 }
 
 /// Folder holding the library database, settings and cover cache: the
