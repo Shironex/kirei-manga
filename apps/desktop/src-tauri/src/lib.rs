@@ -9,6 +9,7 @@ mod data;
 mod library;
 mod protocol;
 mod settings;
+mod stats;
 mod updater;
 
 use tauri::Manager;
@@ -107,6 +108,9 @@ pub fn run() {
             settings::open_data_dir,
             settings::open_link,
             settings::third_party_notices,
+            stats::stats_get,
+            stats::stats_cover,
+            stats::stats_save_card,
             data::data_info,
             data::backup_create,
             data::backup_inspect,
