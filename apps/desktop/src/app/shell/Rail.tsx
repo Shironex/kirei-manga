@@ -20,7 +20,8 @@ type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 const NAV: { to: NavPath; label: string; icon: Icon; also?: string }[] = [
   // A series page is part of the library, so the rail keeps Library lit there.
   { to: '/library', label: 'Library', icon: LibraryBig, also: '/series/' },
-  { to: '/browse', label: 'Browse', icon: Compass },
+  // A MangaDex series page belongs to Browse the same way.
+  { to: '/browse', label: 'Browse', icon: Compass, also: '/online/' },
   { to: '/downloads', label: 'Downloads', icon: ArrowDownToLine },
   { to: '/stats', label: 'Stats', icon: ChartNoAxesColumn },
   { to: '/settings', label: 'Settings', icon: Settings2 },
