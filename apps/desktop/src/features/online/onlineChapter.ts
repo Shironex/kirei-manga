@@ -56,7 +56,11 @@ export async function loadOnlineChapter(target: {
           title: opened.next.title,
         }
       : null,
-    online: { mangaId: target.mangaId, chapterId: target.chapterId },
+    online: {
+      mangaId: target.mangaId,
+      chapterId: target.chapterId,
+      number: opened.chapter.chapter,
+    },
     lastNote: 'That was the latest chapter in your languages on MangaDex.',
   };
 }
