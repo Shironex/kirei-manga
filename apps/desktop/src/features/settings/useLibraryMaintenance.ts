@@ -14,13 +14,16 @@ import {
 } from '@/lib/library';
 import {
   clearCoverCache,
+  countHiddenProgress,
   getCoverCache,
+  getUnusedCovers,
+  pruneCovers,
   purgeHiddenProgress,
   type CoverCacheUsage,
   type OrphanPurge,
 } from '@/lib/settings/commands';
 
-import { plural } from './format';
+import { describePrune, describePurge, plural } from './format';
 
 function reason(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -37,6 +40,8 @@ export type ScanTarget = number | 'all';
 export function useLibraryMaintenance() {
   const [roots, setRoots] = useState<LibraryRoot[] | null>(null);
   const [cache, setCache] = useState<CoverCacheUsage | null>(null);
+  const [orphans, setOrphans] = useState<OrphanPurge | null>(null);
+  const [unused, setUnused] = useState<CoverCacheUsage | null>(null);
   const [scanning, setScanning] = useState<ScanTarget | null>(null);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [busy, setBusy] = useState(false);
@@ -47,10 +52,17 @@ export function useLibraryMaintenance() {
   const refresh = useCallback(async () => {
     if (!isTauri()) return;
     try {
-      const [nextRoots, nextCache] = await Promise.all([listRoots(), getCoverCache()]);
+      const [nextRoots, nextCache, nextOrphans, nextUnused] = await Promise.all([
+        listRoots(),
+        getCoverCache(),
+        countHiddenProgress(),
+        getUnusedCovers(),
+      ]);
       if (!mounted.current) return;
       setRoots(nextRoots);
       setCache(nextCache);
+      setOrphans(nextOrphans);
+      setUnused(nextUnused);
     } catch (e) {
       if (mounted.current) setError(reason(e));
     }
@@ -127,11 +139,27 @@ export function useLibraryMaintenance() {
         try {
           const result: OrphanPurge = await purgeHiddenProgress();
           setNotice(describePurge(result));
+          await refresh();
         } finally {
           if (mounted.current) setBusy(false);
         }
       }),
-    [run]
+    [refresh, run]
+  );
+
+  const prune = useCallback(
+    () =>
+      run(async () => {
+        setBusy(true);
+        try {
+          const freed = await pruneCovers();
+          setNotice(describePrune(freed));
+          await refresh();
+        } finally {
+          if (mounted.current) setBusy(false);
+        }
+      }),
+    [refresh, run]
   );
 
   const clearCovers = useCallback(
@@ -160,6 +188,8 @@ export function useLibraryMaintenance() {
     available: isTauri(),
     roots,
     cache,
+    orphans,
+    unused,
     scanning,
     progress,
     busy: busy || scanning !== null,
@@ -169,15 +199,7 @@ export function useLibraryMaintenance() {
     removeFolder,
     scan,
     purge,
+    prune,
     clearCovers,
   };
-}
-
-export function describePurge({ progress, settings }: OrphanPurge): string {
-  if (progress === 0 && settings === 0) return 'There was no hidden progress to clean up.';
-  const parts: string[] = [];
-  if (progress > 0)
-    parts.push(`${progress} chapter progress ${progress === 1 ? 'entry' : 'entries'}`);
-  if (settings > 0) parts.push(`${settings} series ${settings === 1 ? 'setting' : 'settings'}`);
-  return `Deleted ${parts.join(' and ')}.`;
 }

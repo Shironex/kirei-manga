@@ -48,7 +48,7 @@ Removing a root deletes its series and chapter rows; the foreign keys null `chap
 
 Why this over a content hash: the scanner already knows size per chapter without opening anything, so the fingerprint costs nothing, and a rename of the folder or file (rather than a move) is the only case it cannot follow. Why not the first page hash: it needs opening every archive again. Accepted limits: a replacement file of exactly the same name and byte size inherits the progress, and two roots holding a series of the same folder name each get their own progress (an orphan is claimed once).
 
-`Library::purge_orphans(older_than_days)` deletes orphans whose `orphaned_at` (falling back to `updated_at`) is at least that old and returns the counts. Nothing calls it automatically; the Settings screen's "Clean up hidden progress" button calls it through `library_purge_orphans`. `ident` columns for rows that predate migration 2 are backfilled when the database opens.
+`Library::purge_orphans(older_than_days)` deletes orphans whose `orphaned_at` (falling back to `updated_at`) is at least that old and returns the counts. Nothing calls it automatically; the Settings screen's "Clean up hidden progress" button calls it through `library_purge_orphans`, after `count_orphans` told the confirm dialog how many rows go. Like `clear_cover_cache` it is refused while a scan runs. `prune_covers` deletes the cover thumbnails (and `covers` rows) that no series points at, such as those of deleted series or an older cover rule, and returns the space freed; `unused_covers` previews it. `ident` columns for rows that predate migration 2 are backfilled when the database opens.
 
 ### Palette
 
