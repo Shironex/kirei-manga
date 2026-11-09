@@ -1,5 +1,6 @@
-//! Reading stats commands: the stats for a year, cover bytes for drawing the
-//! year in review card, and saving that card as a PNG. See `docs/stats.md`.
+//! Reading stats commands: the stats for a year, clearing them, cover bytes
+//! for drawing the year in review card, and saving that card as a PNG. See
+//! `docs/stats.md`.
 //!
 //! Everything stays on the machine: the stats come from the library
 //! database, and the card is written only to the path the user picked in the
@@ -7,7 +8,7 @@
 
 use std::path::{Path, PathBuf};
 
-use kirei_library::{ReadingClock, ReadingStats};
+use kirei_library::{Library, ReadingClock, ReadingStats};
 use tauri::ipc::{InvokeBody, Request, Response};
 use tauri::{AppHandle, Manager, Runtime};
 
@@ -31,6 +32,20 @@ pub(crate) async fn stats_get<R: Runtime>(
         library.reading_stats(year, ReadingClock::now(utc_offset_min))
     })
     .await
+}
+
+/// How many reading sessions `stats_clear` would delete, for the confirm
+/// step. Deletes nothing.
+#[tauri::command]
+pub(crate) async fn stats_count<R: Runtime>(app: AppHandle<R>) -> Result<usize, String> {
+    with_library(&app, Library::count_reading_sessions).await
+}
+
+/// Deletes every reading session (the stats start over). Progress, series
+/// settings and the library stay. Returns how many were deleted.
+#[tauri::command]
+pub(crate) async fn stats_clear<R: Runtime>(app: AppHandle<R>) -> Result<usize, String> {
+    with_library(&app, Library::clear_reading_sessions).await
 }
 
 /// The JPEG bytes of a cover thumbnail. The card draws covers from these
