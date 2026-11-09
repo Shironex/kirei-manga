@@ -1,6 +1,7 @@
 //! The local library: a SQLite catalogue of series and chapters, the folder
-//! scanner that fills it, reading progress, per-series settings, and the
-//! on-disk cover cache with the palette each cover seeds the theme with.
+//! scanner that fills it, reading progress and reading sessions, per-series
+//! settings, and the on-disk cover cache with the palette each cover seeds
+//! the theme with.
 //!
 //! Everything here is blocking. The desktop shell calls it from
 //! `spawn_blocking`; a scan reads archives on the rayon pool and holds the
@@ -10,6 +11,7 @@
 //! changes rows in the database, never anything on disk.
 
 mod backup;
+mod civil;
 mod comic_info;
 mod covers;
 mod db;
@@ -20,6 +22,7 @@ mod naming;
 mod palette;
 mod scanner;
 mod settings;
+mod stats;
 mod watcher;
 
 use std::collections::HashMap;
@@ -48,6 +51,10 @@ pub use palette::{
     srgb_to_oklch,
 };
 pub use scanner::{MAX_DEPTH, ScanScope};
+pub use stats::{
+    IDLE_CUTOFF_MS, MAX_UTC_OFFSET_MIN, ReadingClock, ReadingDay, ReadingStats, ReadingTotals,
+    SeriesReading, Streak, TOP_SERIES, local_day,
+};
 pub use watcher::{LibraryWatcher, WatchConfig, WatchProgress};
 
 use covers::CoverCache;
@@ -585,40 +592,7 @@ impl Library {
     /// last page marks the chapter completed, and completion sticks when the
     /// chapter is reread from the start.
     pub fn record_progress(&self, chapter_id: i64, page: i64) -> Result<ReadingProgress> {
-        let conn = self.conn();
-        let page_count: i64 = conn
-            .query_row(
-                "SELECT page_count FROM chapters WHERE id = ?1",
-                [chapter_id],
-                |row| row.get(0),
-            )
-            .optional()?
-            .ok_or(LibraryError::NotFound("chapter", chapter_id))?;
-        let page = page.clamp(0, (page_count - 1).max(0));
-        let completed = page_count > 0 && page + 1 >= page_count;
-        Ok(conn.query_row(
-            "INSERT INTO reading_progress
-                 (chapter_id, ident, file_size, page, page_count, completed, updated_at)
-             SELECT id, ident, file_size, ?2, ?3, ?4, ?5 FROM chapters WHERE id = ?1
-             ON CONFLICT (chapter_id) DO UPDATE SET
-                 ident = excluded.ident,
-                 file_size = excluded.file_size,
-                 page = excluded.page,
-                 page_count = excluded.page_count,
-                 completed = max(reading_progress.completed, excluded.completed),
-                 updated_at = excluded.updated_at
-             RETURNING chapter_id, page, page_count, completed, updated_at",
-            params![chapter_id, page, page_count, completed, now_ms()],
-            |row| {
-                Ok(ReadingProgress {
-                    chapter_id: row.get(0)?,
-                    page: row.get(1)?,
-                    page_count: row.get(2)?,
-                    completed: row.get(3)?,
-                    updated_at: row.get(4)?,
-                })
-            },
-        )?)
+        upsert_progress(&self.conn(), chapter_id, page, now_ms())
     }
 
     /// The settings blob saved for a series, if any.
@@ -654,6 +628,49 @@ impl Library {
         )?;
         Ok(())
     }
+}
+
+/// Writes the progress row of a chapter at `now`; see
+/// [`Library::record_progress`].
+pub(crate) fn upsert_progress(
+    conn: &Connection,
+    chapter_id: i64,
+    page: i64,
+    now: i64,
+) -> Result<ReadingProgress> {
+    let page_count: i64 = conn
+        .query_row(
+            "SELECT page_count FROM chapters WHERE id = ?1",
+            [chapter_id],
+            |row| row.get(0),
+        )
+        .optional()?
+        .ok_or(LibraryError::NotFound("chapter", chapter_id))?;
+    let page = page.clamp(0, (page_count - 1).max(0));
+    let completed = page_count > 0 && page + 1 >= page_count;
+    Ok(conn.query_row(
+        "INSERT INTO reading_progress
+             (chapter_id, ident, file_size, page, page_count, completed, updated_at)
+         SELECT id, ident, file_size, ?2, ?3, ?4, ?5 FROM chapters WHERE id = ?1
+         ON CONFLICT (chapter_id) DO UPDATE SET
+             ident = excluded.ident,
+             file_size = excluded.file_size,
+             page = excluded.page,
+             page_count = excluded.page_count,
+             completed = max(reading_progress.completed, excluded.completed),
+             updated_at = excluded.updated_at
+         RETURNING chapter_id, page, page_count, completed, updated_at",
+        params![chapter_id, page, page_count, completed, now],
+        |row| {
+            Ok(ReadingProgress {
+                chapter_id: row.get(0)?,
+                page: row.get(1)?,
+                page_count: row.get(2)?,
+                completed: row.get(3)?,
+                updated_at: row.get(4)?,
+            })
+        },
+    )?)
 }
 
 /// Columns 0..=13 feed [`Library::summary_from_row`]; 14..=19 are the detail

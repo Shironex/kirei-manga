@@ -18,6 +18,7 @@ pub(crate) const MIGRATIONS: &[(u32, &str)] = &[
     (1, include_str!("../migrations/0001_init.sql")),
     (2, include_str!("../migrations/0002_keep_progress.sql")),
     (3, include_str!("../migrations/0003_app_settings.sql")),
+    (4, include_str!("../migrations/0004_reading_sessions.sql")),
 ];
 
 /// The schema version this build writes.
