@@ -25,6 +25,7 @@ import { continueChapter, languageName, readActionLabel } from '../library/forma
 import { refreshLibrary, useLibrary } from '../library/libraryStore';
 import { useOpenChapter } from '../library/openChapter';
 import { compareTitles } from '../library/shelf';
+import { TrackingCard } from '../tracking/TrackingCard';
 import { ChapterList } from './ChapterList';
 import { PaletteCard } from './PaletteCard';
 import { useSeriesDetail } from './useSeriesDetail';
@@ -80,7 +81,7 @@ function SeriesView({ detail }: { detail: SeriesDetail }) {
   const open = useOpenChapter();
   const heading = usePageHeading(detail.title);
   usePageCover(detail.cover);
-  const { series } = useLibrary();
+  const { series, version } = useLibrary();
   const [newestFirst, setNewestFirst] = useState(true);
 
   const chapter = continueChapter(detail);
@@ -206,6 +207,12 @@ function SeriesView({ detail }: { detail: SeriesDetail }) {
           )}
         </section>
         <aside aria-label="About this series" className="sticky top-6 grid gap-4">
+          <TrackingCard
+            series={{ kind: 'local', id: detail.id }}
+            title={detail.title}
+            year={detail.year}
+            version={version}
+          />
           <PaletteCard palette={detail.cover?.palette ?? null} />
           <SeriesFacts detail={detail} rtl={rtl} />
         </aside>
