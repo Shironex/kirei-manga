@@ -2,8 +2,10 @@
  * Performance budget for the built site: for every page in dist it adds up
  * what a visitor downloads for the first view (HTML, CSS, eager JS, preloaded
  * fonts and images, eager images) and, separately, the 3D island that only
- * desktop class devices fetch after load. Text is counted gzipped, binaries
- * as they are. Fails when a number goes over its budget.
+ * desktop class devices fetch after load. Everything the serve container
+ * compresses (text, wasm and the GLBs; checked against serve 14) is counted
+ * gzipped, other binaries as they are. Fails when a number goes over its
+ * budget.
  *
  *   pnpm --filter @kireimanga/landing build
  *   pnpm --filter @kireimanga/landing check:budget
@@ -21,15 +23,18 @@ const BUDGET = {
   firstViewTotal: 450,
   // three, React Three Fiber and React: one chunk, fetched after load.
   islandJs: 400,
-  // The scene files and the decoders they need, fetched with the island.
-  islandAssets: 1600,
+  // The prop files, the mascot and the Basis transcoder they need, fetched
+  // with the island.
+  islandAssets: 2400,
 };
 
 /** What the island fetches besides its JS: the GLBs present and, with them, the Basis transcoder. */
 function islandAssets() {
-  const files = ['3d/scene.glb', '3d/mascot.glb']
-    .map(f => join(dist, f))
-    .filter(f => existsSync(f));
+  const props = join(dist, '3d/props');
+  const files = [
+    join(dist, '3d/mascot.glb'),
+    ...(existsSync(props) ? readdirSync(props).map(f => join(props, f)) : []),
+  ].filter(f => f.endsWith('.glb') && existsSync(f));
   if (files.length) {
     files.push(join(dist, '3d/decoders/basis/basis_transcoder.js'));
     files.push(join(dist, '3d/decoders/basis/basis_transcoder.wasm'));
@@ -39,7 +44,7 @@ function islandAssets() {
   return files.filter(f => existsSync(f));
 }
 
-const TEXT = /\.(html|css|js|mjs|json|svg|txt|xml)$/;
+const TEXT = /\.(html|css|js|mjs|json|svg|txt|xml|wasm|glb)$/;
 const kb = bytes => Math.round((bytes / 1024) * 10) / 10;
 
 function size(file) {
@@ -162,5 +167,7 @@ for (const page of pages(dist)) {
 }
 
 console.table(rows);
-console.log(`Budgets (kB): ${JSON.stringify(BUDGET)}. Text gzipped, images and fonts as served.`);
+console.log(
+  `Budgets (kB): ${JSON.stringify(BUDGET)}. Text, wasm and GLBs gzipped, images and fonts as served.`
+);
 if (failed) process.exit(1);
