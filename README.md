@@ -5,7 +5,7 @@
 
   <h1>綺麗漫画 &nbsp;·&nbsp; KireiManga</h1>
 
-  <p><strong>Read any manga, in any language.</strong></p>
+  <p><strong>A quiet, fast desktop manga reader for Windows and macOS.</strong></p>
 
   <p>
     <a href="https://github.com/Shironex/kirei-manga/releases/latest">
@@ -23,126 +23,121 @@
   <p>
     <a href="https://github.com/Shironex/kirei-manga/releases/latest"><strong>Download</strong></a>
   </p>
-
-  <p>
-    <a href="#english">English</a> · <a href="#polski">Polski</a>
-  </p>
-
-  <blockquote>
-    <p>Kirei is still shelving her books — the app is in early development. Some edges are rough, but every release brings the library closer to home.</p>
-  </blockquote>
 </div>
 
 ---
 
-<a name="english"></a>
+## What is KireiManga?
 
-<details open>
-<summary><h2>English</h2></summary>
+KireiManga is a local-first manga reader built with Tauri 2, Rust and React. I wrote it because I wanted one app for the CBZ files on my disk and the series I follow on MangaDex, one that opens instantly and stays out of the way.
 
-### What is KireiManga?
+Archives (CBZ, ZIP, CBR) and image folders are read in place and streamed page by page, never extracted to disk. The catalogue lives in a local SQLite database, and MangaDex, downloads and AniList are built on the same reader and library. There is no telemetry, no ads and no scraper sources: only local files and official APIs.
 
-KireiManga is a local-first desktop manga reader. It browses MangaDex through the official API, keeps a personal library in SQLite, and lets you read CBZ and folder-based manga from your own shelf alongside it. A future milestone adds a real-time OCR + translation overlay for raw Japanese pages. It is part of the **Shiro suite** alongside [ShiroAni](https://github.com/Shironex/shiroani) (anime) and Shiranami (music), sharing design language and monorepo patterns.
+The first version of KireiManga was an Electron app. I rewrote it from scratch in Rust and Tauri; the old code is kept under the [`legacy-electron`](https://github.com/Shironex/kirei-manga/tree/legacy-electron) tag.
 
-Editorial ink-and-paper aesthetic. OKLCH sumi / kinari / bengara palette. Fraunces, Shippori Mincho, Geist. No dashboards. No neon. Just a quiet place to read.
-
-### Screenshots
-
-<p align="center">
-  <img src="assets/splashscreen.png" alt="Splash screen" width="512" />
-  <br />
-  <em>Kirei reads quietly while the app wakes up</em>
-</p>
+## Screenshots
 
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="assets/screenshots/library.webp" alt="Library" />
+      <img src="assets/screenshots/library.webp" alt="Library with a continue reading hero and pinned smart filters" />
       <br />
-      <em>Library — your shelf, quiet and kept</em>
+      <em>Library: continue reading, Want to Read and pinned smart filters</em>
     </td>
     <td align="center" width="50%">
-      <img src="assets/screenshots/series.webp" alt="Series detail" />
+      <img src="assets/screenshots/series.webp" alt="Series page with tags, a collection and AniList progress" />
       <br />
-      <em>Series detail — synopsis, chapters, follow status</em>
+      <em>Series page: tags, collections and AniList progress</em>
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
-      <img src="assets/preview_import.png" alt="Local import" />
+      <img src="assets/screenshots/reader-single.webp" alt="Reader in single page mode, right to left" />
       <br />
-      <em>Import — point at a folder, scan, review</em>
+      <em>Reader: single page, right to left</em>
     </td>
     <td align="center" width="50%">
-      <img src="assets/screenshots/reader-single.webp" alt="Reader" />
+      <img src="assets/screenshots/reader-webtoon.webp" alt="Reader in webtoon mode" />
       <br />
-      <em>Reader — full-screen, fit-aware, distraction-free</em>
+      <em>Reader: webtoon strip</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="assets/screenshots/browse.webp" alt="Browsing MangaDex" />
+      <br />
+      <em>Browse MangaDex</em>
+    </td>
+    <td align="center" width="50%">
+      <img src="assets/screenshots/online-series.webp" alt="A MangaDex series page" />
+      <br />
+      <em>A MangaDex series, with chapters and scanlation groups</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="assets/screenshots/command-palette.webp" alt="Command palette over the library" />
+      <br />
+      <em>Command palette (Ctrl+K or Cmd+K)</em>
+    </td>
+    <td align="center" width="50%">
+      <img src="assets/screenshots/stats.webp" alt="Reading stats" />
+      <br />
+      <em>Reading stats and the year in review</em>
     </td>
   </tr>
 </table>
 
-### What's inside
+The screenshots are captures of the real interface made by `pnpm shots`, using invented demo data (see [docs/screenshots.md](docs/screenshots.md)).
 
-|                                |                                                                                               |
-| ------------------------------ | --------------------------------------------------------------------------------------------- |
-| **MangaDex Browse**            | Search by title, author, tag, demographic, or rating through MangaDex's official API          |
-| **Internal Library**           | Follow / unfollow, reading status (reading, completed, plan to read, on hold, dropped)        |
-| **Local Import (v0.2)**        | Scan a folder, import CBZ / ZIP / image-directory series alongside MangaDex                   |
-| **Reader**                     | Full-screen reader with single / double / webtoon modes, fit modes, and keyboard navigation   |
-| **Right-to-Left**              | Per-series reading direction preference                                                       |
-| **Progress Tracking**          | Resume where you left off on every chapter — works for MangaDex and local series              |
-| **Offline Cache**              | Downloaded chapters are served from disk, no network needed                                   |
-| **Bookmarks**                  | Per-page bookmarks with optional notes                                                        |
-| **New-Chapter Badges**         | Background update polling for followed series + on-demand rescan for local folders            |
-| **Translation Overlay (v0.3)** | C++ OpenCV bubble detection + `manga-ocr` sidecar + DeepL / Google / Ollama rendering on page |
-| **AniList Sync (v0.4)**        | OAuth login, list import, two-way progress sync                                               |
-| **i18n**                       | English and Polish out of the box                                                             |
+## Highlights
 
-### Getting started
+|                          |                                                                                                                                                                                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Local library**        | CBZ, ZIP, CBR and image folders, read in place and streamed. Library folders are watched, and changes made while the app was closed are picked up at launch. Your files are only ever read.                                       |
+| **Reader**               | Single page, double page (with spread detection) and webtoon modes, left to right or right to left, fit modes, remappable keys, per-series memory of your choices.                                                                |
+| **Comfort options**      | Resampling filters, brightness, contrast, saturation, sharpen, invert, grayscale and sepia, tall strips split into screen sized parts, webtoon chapters that run into the next one.                                               |
+| **Cover colours**        | The theme and the reader chrome take their tint from the cover of the series in focus, held to AA contrast. It can be switched off.                                                                                               |
+| **MangaDex**             | Browse and search, follow series, a grouped feed of new chapters, notifications, a language chain (Polish then English by default) and an "only my language" toggle. Signing in syncs follows, reading statuses and read markers. |
+| **Offline downloads**    | A resumable download queue that writes each chapter as a CBZ with `ComicInfo.xml` into a folder the library watches, with rate controls and a data saver option.                                                                  |
+| **AniList tracking**     | Sign in through the browser, link a series, and your progress is sent when you finish a chapter. Updates made offline are queued.                                                                                                 |
+| **Organise**             | Collections, tags, a Want to Read list, bulk edit, and smart filters that update themselves and can be pinned to the home screen.                                                                                                 |
+| **Command palette**      | Ctrl+K (Cmd+K on macOS) finds series, collections, filters, tags, screens and MangaDex titles.                                                                                                                                    |
+| **Reading stats**        | Time read, streaks, a heatmap, top series and a year in review card you can save as an image. Everything stays on your computer.                                                                                                  |
+| **Backups and portable** | Back up and restore the library to a single file, or run a portable copy that keeps all its data in a `data` folder next to the app.                                                                                              |
+| **Updates**              | Signed updates installed from Settings, with a separate prerelease channel.                                                                                                                                                       |
 
-Grab the latest version for your system from [Releases](https://github.com/Shironex/kirei-manga/releases/latest).
+Every chapter read from MangaDex shows its scanlation groups. Design notes and the details behind each feature live in [docs/](docs/).
 
-#### Windows
+## Install
 
-1. Download the `.exe` installer.
-2. Run it — Windows might show a SmartScreen warning since the app isn't code-signed. Click **"More info"** then **"Run anyway"**.
-3. That's it.
+Download the installer for your system from the [latest release](https://github.com/Shironex/kirei-manga/releases/latest).
 
-#### macOS
+The release builds are not code signed yet, so both systems ask you to allow the app once. The in-app updater works either way, because updates are verified with their own signature.
 
-1. Download the `.dmg` file.
-2. Open it and drag KireiManga to your Applications folder.
-3. macOS will block it because it's not code-signed. Open Terminal and run:
-   ```bash
-   xattr -cr /Applications/KireiManga.app
-   ```
-4. Auto-updates aren't available on macOS yet, so grab new versions manually from [Releases](https://github.com/Shironex/kirei-manga/releases).
+### Windows
 
-### Built with
+1. Download `KireiManga_<version>_x64-setup.exe` and run it. It installs per user.
+2. Windows SmartScreen may warn that the publisher is unknown. Click **More info**, then **Run anyway**.
 
-|           |                                                        |
-| --------- | ------------------------------------------------------ |
-| Desktop   | Electron 40                                            |
-| Backend   | NestJS 11 (embedded in the Electron main process)      |
-| Frontend  | React 18, Vite 7, Tailwind CSS 4                       |
-| Database  | better-sqlite3                                         |
-| UI        | Radix UI, Lucide Icons, custom editorial design system |
-| Real-time | Socket.IO (over localhost)                             |
-| State     | Zustand                                                |
-| Archives  | node-stream-zip (CBZ / ZIP), JSZip (test fixtures)     |
-| Native    | C++ via node-addon-api (OpenCV bubble detection, v0.3) |
-| OCR       | `manga-ocr` Python sidecar, PyInstaller bundle (v0.3)  |
-| Quality   | ESLint, Prettier                                       |
-| Tests     | Jest (desktop + integration)                           |
-| CI/CD     | GitHub Actions, electron-builder                       |
+### macOS
 
-### Building from source
+macOS 11 or newer, Apple silicon or Intel.
 
-You'll need:
+1. Download the `.dmg` for your chip (`aarch64` for Apple silicon, `x64` for Intel), open it and drag KireiManga to Applications.
+2. The app is not signed with a Developer ID and not notarized, so Gatekeeper blocks the first launch. Right-click KireiManga in Applications, choose **Open**, then **Open** again in the dialog. If macOS only offers to move it to the Bin, open **System Settings > Privacy & Security** and choose **Open Anyway** next to the message about KireiManga.
+3. From a terminal you can clear the quarantine flag instead: `xattr -cr /Applications/KireiManga.app`.
 
-- [Node.js](https://nodejs.org/) >= 22
-- [pnpm](https://pnpm.io/) >= 10
-- A C++ compiler (Xcode CLI tools on macOS, Visual Studio Build Tools on Windows)
+There is no Linux build for now.
+
+## Build from source
+
+You will need:
+
+- [Node.js](https://nodejs.org/) 22 or newer
+- [pnpm](https://pnpm.io/) 10 (the repo pins `pnpm@10.34.9`; with corepack enabled, `corepack enable` picks it up)
+- [Rust](https://rustup.rs/) through rustup. The toolchain is pinned in `rust-toolchain.toml` (1.94.1 with rustfmt and clippy) and installed on first use.
+- The [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/): Xcode command line tools on macOS, the Visual Studio C++ build tools and WebView2 on Windows.
 
 ```bash
 git clone https://github.com/Shironex/kirei-manga.git
@@ -155,184 +150,61 @@ pnpm dev
 <summary>All commands</summary>
 
 ```bash
-pnpm dev                                      # Build shared, start web + electron
-pnpm build:packages                           # Compile @kireimanga/shared
-pnpm --filter @kireimanga/web build           # Build renderer bundle
-pnpm --filter @kireimanga/desktop typecheck   # Typecheck main + backend
-pnpm typecheck                                # Typecheck everything
-pnpm build                                    # Full workspace build
-pnpm test                                     # Run all test suites
-pnpm lint                                     # eslint
-pnpm format                                   # prettier --write
-pnpm package:win                              # Package for Windows
-pnpm package:mac                              # Package for macOS
-pnpm version:patch                            # Bump patch version + tag
+pnpm dev               # Tauri app with hot reload
+pnpm dev:web           # the React UI alone in a browser (no Rust core)
+pnpm build             # build the desktop frontend
+pnpm tauri build       # package the installer for your platform
+pnpm typecheck         # TypeScript
+pnpm test              # Vitest
+pnpm lint              # ESLint
+pnpm format:check      # Prettier
+cargo test --workspace # Rust tests
+cargo clippy --workspace --all-targets -- -D warnings
+pnpm dev:landing       # the Astro landing site
+pnpm shots             # regenerate assets/screenshots
+pnpm notices           # regenerate THIRD_PARTY_NOTICES
 ```
 
 </details>
+
+AniList sign in needs a client id at build time; see [docs/tracking.md](docs/tracking.md). A build without it works, with the AniList sign in button disabled.
 
 ### Project structure
 
 ```
 kirei-manga/
 ├── apps/
-│   ├── desktop/          # Electron main + NestJS backend + protocols
-│   │   ├── src/main/     # Electron bootstrap, window, updater, custom protocols
-│   │   ├── src/modules/  # NestJS modules (mangadex, library, local, settings, database)
-│   │   └── resources/    # Icons, mascot (production assets)
-│   └── web/              # React + Vite renderer
-│       ├── src/pages/    # Library, Browse, SeriesDetail, Reader, Settings
-│       ├── src/components/  # Editorial UI primitives + splash + mascot
-│       └── src/styles/   # globals.css with OKLCH design tokens
-├── packages/
-│   └── shared/           # Shared types, IPC channels, logger, constants
-├── native/
-│   └── bubble-detector/  # C++ NAPI addon (v0.3, scaffolded)
-├── sidecar/
-│   └── manga-ocr/        # Python OCR sidecar scaffold (v0.3)
-├── scripts/              # Build, version bump, native build
-├── docs/                 # PRD, per-milestone roadmaps, mascot prompts
-└── assets/               # Icon, mascot, splashscreen preview
+│   ├── desktop/      # Tauri 2 app: Rust shell in src-tauri, React 19 UI in src
+│   └── landing/      # Astro site for kireimanga.app
+├── crates/
+│   ├── kirei-core/       # shared types, settings, data paths
+│   ├── kirei-archive/    # streaming CBZ, ZIP, CBR and folder access
+│   ├── kirei-reader/     # decode-ahead page pipeline
+│   ├── kirei-library/    # SQLite catalogue, scanner, covers, stats
+│   ├── kirei-mangadex/   # MangaDex API client
+│   ├── kirei-download/   # resumable download queue
+│   └── kirei-anilist/    # AniList client
+├── docs/             # how each part works, release process, design notes
+└── assets/           # icon and screenshots
 ```
 
-### Roadmap
+Built with Tauri 2, Rust, React 19, Vite, Tailwind CSS v4 and SQLite. Start with [docs/spec.md](docs/spec.md) for the decisions behind the design.
 
-Derived from the [PRD](docs/kireimanga-prd.md). All dates are approximate.
+## MangaDex notice
 
-| Milestone                  | Scope                                                                                                      | Status     |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------- |
-| **v0.1 — MangaDex Reader** | MangaDex API, chapter streaming, internal library, reader shell                                            | ✅ shipped |
-| **v0.2 — Local Library**   | CBZ / folder import, unified library, local reader, metadata editor, MangaDex match, folder update polling | ✅ shipped |
-| v0.3 — Translation         | C++ bubble detection, `manga-ocr` sidecar, DeepL / Google / Ollama overlay                                 | planned    |
-| v0.4 — AniList Sync        | OAuth, read-progress sync, manga-list import                                                               | planned    |
-| v0.5+ — Polish             | Kanji hover dictionary, Anki export, translation corrections                                               | backlog    |
-
-</details>
-
----
-
-<a name="polski"></a>
-
-<details>
-<summary><h2>Polski</h2></summary>
-
-### Czym jest KireiManga?
-
-KireiManga to aplikacja desktopowa do czytania mangi, działająca lokalnie. Przegląda MangaDex przez oficjalne API, prowadzi osobistą bibliotekę w SQLite, i pozwala czytać pliki CBZ oraz foldery z obrazkami prosto z dysku obok mangi z MangaDex. W późniejszych etapach dojdzie nakładka OCR + tłumaczeń w czasie rzeczywistym dla surowych japońskich stron. Jest częścią **pakietu Shiro** obok [ShiroAni](https://github.com/Shironex/shiroani) (anime) i Shiranami (muzyka), dzieląc z nimi język projektowy i układ monorepo.
-
-Redakcyjna estetyka tuszu i papieru. Paleta OKLCH sumi / kinari / bengara. Fraunces, Shippori Mincho, Geist. Bez paneli, bez neonu. Ciche miejsce do czytania.
-
-### Zrzuty ekranu
-
-<p align="center">
-  <img src="assets/splashscreen.png" alt="Ekran powitalny" width="512" />
-  <br />
-  <em>Kirei czyta cichutko, gdy aplikacja się budzi</em>
-</p>
-
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <img src="assets/screenshots/library.webp" alt="Biblioteka" />
-      <br />
-      <em>Biblioteka — twoja półka, cicha i uporządkowana</em>
-    </td>
-    <td align="center" width="50%">
-      <img src="assets/screenshots/series.webp" alt="Strona serii" />
-      <br />
-      <em>Strona serii — opis, rozdziały, status obserwowania</em>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="50%">
-      <img src="assets/preview_import.png" alt="Import lokalny" />
-      <br />
-      <em>Import — wskaż folder, przeskanuj, sprawdź</em>
-    </td>
-    <td align="center" width="50%">
-      <img src="assets/screenshots/reader-single.webp" alt="Czytnik" />
-      <br />
-      <em>Czytnik — pełny ekran, dopasowanie, bez rozproszeń</em>
-    </td>
-  </tr>
-</table>
-
-### Co znajdziesz w środku
-
-|                                   |                                                                                                        |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Przeglądanie MangaDex**         | Szukaj po tytule, autorze, tagach, demografii lub ratingu przez oficjalne API MangaDex                 |
-| **Wewnętrzna biblioteka**         | Obserwuj / przestań obserwować, status czytania (czytane, ukończone, planowane, wstrzymane, porzucone) |
-| **Import lokalny (v0.2)**         | Przeskanuj folder, zaimportuj serie CBZ / ZIP / katalog z obrazkami razem z MangaDex                   |
-| **Czytnik**                       | Tryb pełnoekranowy, single / double / webtoon, tryby dopasowania, nawigacja z klawiatury               |
-| **Kierunek czytania**             | Ustawienie kierunku (RTL / LTR) per seria                                                              |
-| **Śledzenie postępu**             | Wznawianie od ostatniej strony w każdym rozdziale — dla MangaDex i serii lokalnych                     |
-| **Cache offline**                 | Pobrane rozdziały serwowane z dysku, bez sieci                                                         |
-| **Zakładki**                      | Zakładki na konkretnej stronie z opcjonalnymi notatkami                                                |
-| **Odznaki nowych rozdziałów**     | Automatyczne sprawdzanie aktualizacji + ręczne rescanowanie folderów lokalnych                         |
-| **Nakładka tłumaczeń (v0.3)**     | Detekcja dymków w C++ (OpenCV) + sidecar `manga-ocr` + DeepL / Google / Ollama bezpośrednio na stronie |
-| **Synchronizacja AniList (v0.4)** | Logowanie OAuth, import listy, dwukierunkowa synchronizacja postępu                                    |
-| **Język**                         | Angielski i polski w standardzie                                                                       |
-
-### Jak zacząć
-
-Najnowszą wersję pobierzesz z [Releases](https://github.com/Shironex/kirei-manga/releases/latest).
-
-#### Windows
-
-1. Pobierz instalator `.exe`.
-2. Uruchom — Windows może pokazać ostrzeżenie SmartScreen, bo aplikacja nie jest podpisana. Kliknij **"Więcej informacji"**, potem **"Uruchom mimo to"**.
-3. Gotowe.
-
-#### macOS
-
-1. Pobierz plik `.dmg`.
-2. Otwórz go i przeciągnij KireiManga do folderu Aplikacje.
-3. macOS zablokuje aplikację, bo nie jest podpisana. Otwórz Terminal i wpisz:
-   ```bash
-   xattr -cr /Applications/KireiManga.app
-   ```
-4. Automatyczne aktualizacje na macOS nie działają jeszcze — nowe wersje pobieraj ręcznie z [Releases](https://github.com/Shironex/kirei-manga/releases).
-
-### Budowanie ze źródeł
-
-Potrzebujesz:
-
-- [Node.js](https://nodejs.org/) >= 22
-- [pnpm](https://pnpm.io/) >= 10
-- Kompilatora C++ (Xcode CLI tools na macOS, Visual Studio Build Tools na Windows)
-
-```bash
-git clone https://github.com/Shironex/kirei-manga.git
-cd kirei-manga
-pnpm install
-pnpm dev
-```
-
-### Plan rozwoju
-
-Na podstawie [PRD](docs/kireimanga-prd.md).
-
-| Kamień milowy                 | Zakres                                                                                                      | Status    |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------------- | --------- |
-| **v0.1 — Czytnik MangaDex**   | API MangaDex, streaming rozdziałów, biblioteka, podstawy czytnika                                           | ✅ wydane |
-| **v0.2 — Biblioteka lokalna** | Import CBZ / folderów, zjednoczona biblioteka, edytor metadanych, dopasowanie do MangaDex, polling folderów | ✅ wydane |
-| v0.3 — Tłumaczenia            | Detekcja dymków (C++), sidecar `manga-ocr`, nakładka DeepL / Google / Ollama                                | planowane |
-| v0.4 — Synchronizacja AniList | OAuth, synchronizacja postępu, import listy                                                                 | planowane |
-| v0.5+ — Dopracowanie          | Słownik kanji pod kursorem, eksport Anki, poprawki tłumaczeń                                                | w zapasie |
-
-</details>
-
----
-
-## License
-
-Source-available — see [LICENSE](LICENSE). Personal use and contributions via pull requests are permitted; redistribution and derivative works are not.
-
-Third party licences, including the UnRAR licence for CBR support, are listed in [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES). Regenerate it with `pnpm notices`.
+KireiManga is an unofficial client. It is not affiliated with, endorsed by or sponsored by MangaDex. It uses the public MangaDex API, credits the scanlation groups of every chapter you read, shows no ads and does not sell or paywall any content from the API. If MangaDex or a rights holder asks for something to be taken down, I will honour it.
 
 ## Credits
 
-KireiManga stands on the shoulders of the Shiro suite — design and architectural patterns are descended from [ShiroAni](https://github.com/Shironex/shiroani) and Shiranami. MangaDex provides the manga catalog through their generous official API.
+- [MangaDex](https://mangadex.org) and the scanlation groups behind the chapters it hosts, for the catalogue and the work of translating and uploading it.
+- [AniList](https://anilist.co) for its public GraphQL API.
+- The fonts are bundled under the SIL Open Font License; their licences are in `apps/desktop/src/assets/fonts`.
+- KireiManga inherits its design language and tooling from my other projects, [ShiroAni](https://github.com/Shironex/shiroani) and Shiranami.
+
+## License
+
+Source-available, see [LICENSE](LICENSE). Personal use and contributions via pull requests are permitted; redistribution and derivative works are not.
+
+Third party licences, including the UnRAR licence for CBR support, are listed in [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES). Regenerate it with `pnpm notices`.
 
 <p align="right"><a href="#top">Back to top ↑</a></p>
