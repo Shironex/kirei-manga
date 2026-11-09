@@ -149,9 +149,10 @@ async fn stress_the_server_never_sees_more_than_five_requests_a_second() {
     }
     let mut arrivals = times.lock().unwrap().clone();
     assert_eq!(arrivals.len(), 16);
-    // Measured at the server, so network jitter can only spread requests
-    // out; a small allowance covers clock reads on the two sides.
-    let busiest = busiest_window(&mut arrivals, Duration::from_millis(990));
+    // Measured at the server, where connection setup can delay an early
+    // request more than a later one on a pooled connection, so allow some
+    // jitter. Without the limiter all 16 arrive within a few milliseconds.
+    let busiest = busiest_window(&mut arrivals, Duration::from_millis(900));
     assert!(busiest <= 5, "{busiest} requests inside one second");
 }
 
