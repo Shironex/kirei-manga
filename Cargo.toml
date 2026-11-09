@@ -103,10 +103,14 @@ url = "2.5"
 # Response bodies, shared without copying between the cache and callers. MIT.
 bytes = "1"
 
-# AniList tracking (kirei-anilist).
+# AniList tracking (kirei-anilist) and the desktop keychain.
 # OS randomness for the sign in nonce. Already in the tree through rustls and
 # tempfile. MIT OR Apache-2.0.
 getrandom = "0.3"
+# The OS credential store: Keychain on macOS, Credential Manager on Windows.
+# Only the two native backends; no Linux secret service, which would pull in
+# D-Bus. MIT OR Apache-2.0.
+keyring = { version = "3.6", default-features = false, features = ["apple-native", "windows-native"] }
 
 # Test-only helpers.
 # Local HTTP server that replays recorded MangaDex responses. MIT OR Apache-2.0.

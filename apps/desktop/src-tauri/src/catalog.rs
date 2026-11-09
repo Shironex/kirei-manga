@@ -150,10 +150,10 @@ pub(crate) async fn library_series_detail<R: Runtime>(
     with_library(&app, move |library| library.series_detail(id)).await
 }
 
-/// Records the page on screen (0 based). The last page completes the chapter.
-/// With the reader's UTC offset (minutes east of UTC) the event also goes
-/// into the reading sessions behind the stats page; without it only the page
-/// is saved.
+/// Records the page on screen (0 based). The last page completes the chapter
+/// and queues its progress for AniList tracking. With the reader's UTC offset
+/// (minutes east of UTC) the event also goes into the reading sessions behind
+/// the stats page; without it only the page is saved.
 #[tauri::command]
 pub(crate) async fn library_record_progress<R: Runtime>(
     app: AppHandle<R>,
@@ -161,11 +161,17 @@ pub(crate) async fn library_record_progress<R: Runtime>(
     page: i64,
     utc_offset_min: Option<i32>,
 ) -> Result<ReadingProgress, String> {
-    with_library(&app, move |library| match utc_offset_min {
+    let progress = with_library(&app, move |library| match utc_offset_min {
         Some(offset) => library.record_reading(chapter_id, page, ReadingClock::now(offset)),
         None => library.record_progress(chapter_id, page),
     })
-    .await
+    .await?;
+    // The last page finishes the chapter: tell AniList (debounced, and only
+    // when tracking is on and the series is linked).
+    if progress.page_count > 0 && progress.page + 1 >= progress.page_count {
+        crate::tracking::chapter_finished(&app, chapter_id);
+    }
+    Ok(progress)
 }
 
 #[tauri::command]

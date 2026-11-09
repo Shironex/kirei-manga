@@ -7,11 +7,13 @@ mod commands;
 mod cover_protocol;
 mod data;
 mod downloads;
+mod keychain;
 mod library;
 mod mangadex_client;
 mod protocol;
 mod settings;
 mod stats;
+mod tracking;
 mod updater;
 
 use tauri::Manager;
@@ -35,6 +37,7 @@ pub fn run() {
     }
     let result = builder
         .manage(library::Library::new())
+        .manage(tracking::Tracking::new())
         .setup(|app| {
             // Resolving the data root also swaps in a staged restore, so it
             // has to happen before the library opens.
@@ -46,6 +49,7 @@ pub fn run() {
             let downloads = downloads::Downloads::start(app.handle(), data.paths());
             app.manage(data);
             app.manage(downloads);
+            tracking::start(app.handle());
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol(protocol::SCHEME, |ctx, request, responder| {
@@ -132,6 +136,19 @@ pub fn run() {
             downloads::open_downloads_folder,
             updater::update_check,
             updater::update_install,
+            tracking::anilist_status,
+            tracking::anilist_sign_in,
+            tracking::anilist_cancel_sign_in,
+            tracking::anilist_sign_out,
+            tracking::tracking_search,
+            tracking::tracking_series,
+            tracking::tracking_link,
+            tracking::tracking_unlink,
+            tracking::tracking_sync,
+            tracking::tracking_update_entry,
+            tracking::tracking_report_progress,
+            tracking::tracking_queue,
+            tracking::tracking_retry,
         ])
         .run(tauri::generate_context!());
 

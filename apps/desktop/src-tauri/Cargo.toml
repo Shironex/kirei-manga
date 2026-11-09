@@ -18,12 +18,14 @@ crate-type = ["lib"]
 tauri-build = { workspace = true }
 
 [dependencies]
+kirei-anilist = { workspace = true }
 kirei-archive = { workspace = true }
 kirei-core = { workspace = true }
 kirei-download = { workspace = true }
 kirei-library = { workspace = true }
 kirei-mangadex = { workspace = true }
 kirei-reader = { workspace = true }
+keyring = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -31,9 +33,14 @@ tauri = { workspace = true }
 tauri-plugin-dialog = { workspace = true }
 tauri-plugin-updater = { workspace = true }
 tauri-plugin-window-state = { workspace = true }
+# The tracking worker: blocking database calls, its wake up select and timer.
+# Tauri runs on tokio already.
+tokio = { workspace = true, features = ["rt", "macros"] }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+wiremock = { workspace = true }
 zip = { workspace = true }
 
 [lints]
