@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Outlet, useRouterState } from '@tanstack/react-router';
 
+import { CommandPalette } from '@/features/palette/CommandPalette';
+
 import { Ambient } from './Ambient';
 import { Rail } from './Rail';
 import { useShortcuts } from './useShortcuts';
@@ -50,6 +52,7 @@ export function ShellFrame({ children }: { children: ReactNode }) {
           {children}
         </div>
       </main>
+      <CommandPalette />
     </div>
   );
 }
