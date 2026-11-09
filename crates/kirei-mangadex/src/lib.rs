@@ -14,7 +14,15 @@
 
 mod cache;
 mod error;
+mod language;
 mod limiter;
+mod model;
+mod wire;
 
 pub use error::{MangaDexError, Result};
+pub use language::{LanguageOutcome, LanguagePrefs, LocalizedChapters, resolve_chapters};
 pub use limiter::{RateLimiter, RateWindow};
+pub use model::{
+    Chapter, ContentRating, Cover, CoverSize, Demographic, LocalizedText, Manga, Page, Person,
+    PublicationStatus, ReadingStatus, ScanlationGroup, Tag, Uploader,
+};
