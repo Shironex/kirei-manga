@@ -107,14 +107,16 @@ export function setViewport(
 
 /**
  * Sets the resampling filter and the sharpening strength (0 to 100, 0 is off)
- * the pipeline renders pages with. Returns the render revision, like
- * `setViewport`; the same values again keep it.
+ * the pipeline renders pages with, and whether tall strips are fitted to the
+ * box width so the paged modes can split them. Returns the render revision,
+ * like `setViewport`; the same values again keep it.
  */
 export function setRenderQuality(
   resample: ResampleFilter,
-  sharpen: number
+  sharpen: number,
+  splitTall: boolean
 ): Promise<ViewportState> {
-  return invoke<ViewportState>('set_render_quality', { resample, sharpen });
+  return invoke<ViewportState>('set_render_quality', { resample, sharpen, splitTall });
 }
 
 /** Every page with its stored and served size, for layout before loading. */

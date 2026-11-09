@@ -80,12 +80,19 @@ impl Library {
         })
     }
 
-    /// Sets the resampling filter and the sharpening strength (0 to 100).
-    /// Returns the render revision now in effect.
-    pub(crate) fn set_render_quality(&self, resample: Resample, sharpen: u8) -> u64 {
+    /// Sets the resampling filter, the sharpening strength (0 to 100) and
+    /// whether tall strips fit the box width for splitting. Returns the
+    /// render revision now in effect.
+    pub(crate) fn set_render_quality(
+        &self,
+        resample: Resample,
+        sharpen: u8,
+        split_tall: bool,
+    ) -> u64 {
         self.reader.update_render_settings(|settings| {
             settings.resample = resample;
             settings.sharpen = sharpen.min(100);
+            settings.split_tall = split_tall;
         })
     }
 
