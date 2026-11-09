@@ -4,6 +4,7 @@ import { NAV_SHORTCUTS, type NavPath } from '@/app/shell/useShortcuts';
 
 import { paletteShortcutKeys } from '@/features/palette/shortcut';
 
+import { ReaderKeysEditor } from './ReaderKeysEditor';
 import { SettingsList, SettingsSection } from './SettingRow';
 
 const NAV_LABELS: Record<NavPath, string> = {
@@ -14,7 +15,10 @@ const NAV_LABELS: Record<NavPath, string> = {
   '/settings': 'Open settings',
 };
 
-/** Keyboard reference, built from the same table the shortcuts run on. */
+/**
+ * App shortcuts (fixed, built from the table they run on) and the reader's
+ * keys, which can be changed.
+ */
 export function ShortcutsSection() {
   const mod = modKeyLabel();
   const rows: { action: string; keys: string[] }[] = [
@@ -23,14 +27,13 @@ export function ShortcutsSection() {
       keys: [mod, key],
     })),
     { action: 'Open the command palette', keys: paletteShortcutKeys() },
-    { action: 'Leave the reader', keys: ['Esc'] },
   ];
 
   return (
     <SettingsSection
       id="shortcuts"
       title="Keyboard shortcuts"
-      lead="Reader keys for turning pages and switching modes arrive with the reader."
+      lead="App shortcuts use the command key and stay fixed. Reader keys are yours to change: add a key by pressing it, and a key another command uses is only moved when you say so."
     >
       <SettingsList>
         <dl className="m-0 grid grid-cols-[minmax(0,1fr)_auto]">
@@ -50,6 +53,12 @@ export function ShortcutsSection() {
             </div>
           ))}
         </dl>
+      </SettingsList>
+      <h3 id="reader-keys-title" className="m-0 mt-6 mb-3 font-medium">
+        In the reader
+      </h3>
+      <SettingsList>
+        <ReaderKeysEditor />
       </SettingsList>
     </SettingsSection>
   );
