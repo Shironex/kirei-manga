@@ -9,6 +9,7 @@ mod data;
 mod library;
 mod protocol;
 mod settings;
+mod updater;
 
 use tauri::Manager;
 
@@ -19,9 +20,17 @@ pub fn run() {
     if let Some(file) = data::portable_window_state() {
         window_state = window_state.with_filename(file);
     }
-    let result = tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(window_state.build())
+        .plugin(window_state.build());
+    // Only a release build updates itself. Without the plugin and its state the
+    // update commands answer "disabled" instead of failing.
+    if updater::is_supported() {
+        builder = builder
+            .plugin(tauri_plugin_updater::Builder::new().build())
+            .manage(updater::Pending::default());
+    }
+    let result = builder
         .manage(library::Library::new())
         .setup(|app| {
             // Resolving the data root also swaps in a staged restore, so it
@@ -100,6 +109,8 @@ pub fn run() {
             data::backup_inspect,
             data::backup_restore,
             data::app_restart,
+            updater::update_check,
+            updater::update_install,
         ])
         .run(tauri::generate_context!());
 
