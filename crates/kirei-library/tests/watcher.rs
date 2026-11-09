@@ -254,3 +254,178 @@ fn removing_a_root_stops_its_watch() {
     drop(watcher);
     assert!(Path::new(&added.path).is_dir());
 }
+
+fn series(library: &Library, title: &str) -> kirei_library::SeriesSummary {
+    library
+        .series()
+        .unwrap()
+        .into_iter()
+        .find(|s| s.title == title)
+        .unwrap()
+}
+
+fn scope(dirs: &[&str], loose: bool) -> ScanScope {
+    ScanScope {
+        series_dirs: dirs.iter().map(|d| (*d).to_owned()).collect(),
+        loose,
+    }
+}
+
+#[test]
+fn catching_up_rescans_only_the_series_that_changed() {
+    let fx = fixture();
+    cbz(&fx.root.join("Quiet").join("Ch.001.cbz"), 2, TEAL, None);
+    let root_id = fx.library.roots().unwrap()[0].id;
+    fx.library.scan(None, &|_| {}).unwrap();
+
+    // Made while nothing watched: one chapter added, one deleted.
+    cbz(&fx.root.join("Moonlit").join("Ch.002.cbz"), 2, TEAL, None);
+    std::fs::remove_file(fx.root.join("Ember").join("Ch.001.cbz")).unwrap();
+    assert_eq!(
+        fx.library.changed_entries(root_id).unwrap(),
+        Some(scope(&["Ember", "Moonlit"], false))
+    );
+
+    let events = Events::default();
+    let sink = events.sink();
+    let summary = fx
+        .library
+        .catch_up(root_id, &|p| sink(p))
+        .unwrap()
+        .expect("a catch-up scan");
+    // Only Moonlit still has chapters to list (Ember's are gone); Quiet was
+    // unchanged and stayed out of the scan.
+    assert_eq!(summary.series, 1);
+    assert_eq!(summary.unchanged, 1);
+    assert_eq!(summary.added, 1);
+    assert_eq!(summary.missing, 1);
+    assert_eq!(chapter_count(&fx.library, "Moonlit"), 2);
+    let ember = series(&fx.library, "Ember");
+    assert!(ember.missing);
+    assert_eq!(ember.missing_count, 1);
+    assert!(!series(&fx.library, "Quiet").missing);
+    assert_eq!(events.rescans(), 1, "the catch-up ends with done");
+
+    // Caught up: nothing left to do, and no events for it.
+    assert_eq!(
+        fx.library.changed_entries(root_id).unwrap(),
+        Some(scope(&[], false))
+    );
+    assert!(
+        fx.library
+            .catch_up(root_id, &|p| sink(p))
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(events.rescans(), 1);
+}
+
+#[test]
+fn catching_up_notices_changed_returned_and_loose_chapters() {
+    let fx = fixture();
+    let root_id = fx.library.roots().unwrap()[0].id;
+    let ember = fx.root.join("Ember").join("Ch.001.cbz");
+
+    // A chapter rewritten with a different size.
+    cbz(&fx.root.join("Moonlit").join("Ch.001.cbz"), 5, TEAL, None);
+    // A new loose archive in the root.
+    cbz(&fx.root.join("Loose Title - 001.cbz"), 2, ORANGE, None);
+    assert_eq!(
+        fx.library.changed_entries(root_id).unwrap(),
+        Some(scope(&["Moonlit"], true))
+    );
+    fx.library.catch_up(root_id, &|_| {}).unwrap().unwrap();
+    assert_eq!(chapter_count(&fx.library, "Loose Title"), 1);
+
+    // A chapter marked missing whose file comes back.
+    let away = fx.root.with_file_name("Ch.001.cbz.away");
+    std::fs::rename(&ember, &away).unwrap();
+    fx.library.catch_up(root_id, &|_| {}).unwrap().unwrap();
+    assert!(series(&fx.library, "Ember").missing);
+    std::fs::rename(&away, &ember).unwrap();
+    assert_eq!(
+        fx.library.changed_entries(root_id).unwrap(),
+        Some(scope(&["Ember"], false))
+    );
+    fx.library.catch_up(root_id, &|_| {}).unwrap().unwrap();
+    assert!(!series(&fx.library, "Ember").missing);
+
+    // A whole series folder deleted.
+    std::fs::remove_dir_all(fx.root.join("Moonlit")).unwrap();
+    assert_eq!(
+        fx.library.changed_entries(root_id).unwrap(),
+        Some(scope(&["Moonlit"], false))
+    );
+    fx.library.catch_up(root_id, &|_| {}).unwrap().unwrap();
+    assert!(series(&fx.library, "Moonlit").missing);
+}
+
+#[test]
+fn catching_up_an_unreachable_root_marks_nothing_missing() {
+    let fx = fixture();
+    let root_id = fx.library.roots().unwrap()[0].id;
+    std::fs::rename(&fx.root, fx.root.with_file_name("Manga-unplugged")).unwrap();
+
+    assert_eq!(fx.library.changed_entries(root_id).unwrap(), None);
+    let events = Events::default();
+    let sink = events.sink();
+    assert!(
+        fx.library
+            .catch_up(root_id, &|p| sink(p))
+            .unwrap()
+            .is_none()
+    );
+    assert!(events.0.lock().unwrap().is_empty());
+    assert!(fx.library.series().unwrap().iter().all(|s| !s.missing));
+}
+
+#[test]
+fn changes_made_while_closed_are_caught_up_at_start() {
+    let fx = fixture();
+    let root_id = fx.library.roots().unwrap()[0].id;
+    // The app is closed: no watcher sees these.
+    cbz(&fx.root.join("Moonlit").join("Ch.002.cbz"), 2, TEAL, None);
+    std::fs::remove_file(fx.root.join("Ember").join("Ch.001.cbz")).unwrap();
+
+    let events = Events::default();
+    let watcher = LibraryWatcher::start(fx.library.clone(), config(), events.sink());
+    wait_for("the launch catch-up", || {
+        chapter_count(&fx.library, "Moonlit") == 2 && series(&fx.library, "Ember").missing
+    });
+    assert_eq!(watcher.watching(), [root_id]);
+    std::thread::sleep(config().debounce * 2);
+    assert_eq!(events.rescans(), 1);
+}
+
+#[test]
+fn an_unchanged_library_is_not_rescanned_at_start() {
+    let fx = fixture();
+    let root_id = fx.library.roots().unwrap()[0].id;
+    let events = Events::default();
+    let watcher = LibraryWatcher::start(fx.library.clone(), config(), events.sink());
+    wait_until_watching(&watcher, &[root_id]);
+    std::thread::sleep(config().debounce * 3);
+    assert!(events.0.lock().unwrap().is_empty());
+}
+
+#[test]
+fn a_root_missing_at_start_is_caught_up_when_it_appears() {
+    let fx = fixture();
+    let root_id = fx.library.roots().unwrap()[0].id;
+    let away = fx.root.with_file_name("Manga-unplugged");
+    std::fs::rename(&fx.root, &away).unwrap();
+
+    let events = Events::default();
+    let watcher = LibraryWatcher::start(fx.library.clone(), config(), events.sink());
+    std::thread::sleep(config().debounce * 3);
+    assert!(watcher.watching().is_empty());
+    assert_eq!(events.rescans(), 0);
+    assert!(fx.library.series().unwrap().iter().all(|s| !s.missing));
+
+    // Changed while away (a chapter deleted), then plugged in.
+    std::fs::remove_file(away.join("Ember").join("Ch.001.cbz")).unwrap();
+    std::fs::rename(&away, &fx.root).unwrap();
+    wait_for("the watch to start", || watcher.watching() == [root_id]);
+    wait_for("the catch-up", || series(&fx.library, "Ember").missing);
+    assert!(!series(&fx.library, "Moonlit").missing);
+}
