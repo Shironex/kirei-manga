@@ -102,6 +102,6 @@ At the 1.0 master swap (when `rewrite/tauri` becomes `master`):
 
 The download buttons link to `releases/latest` on GitHub. Until 1.0 is published that is still the legacy v0.2.0 release.
 
-## Placeholders
+## Screenshots
 
-- The screenshots section uses the approved prototype captures from `docs/design/screenshots`; real captures of the finished app replace them with the release.
+The screenshots section shows real captures of the app from `assets/screenshots/`, made by `pnpm shots` (see `docs/screenshots.md`). `Dockerfile.landing` copies that folder into the build stage.
