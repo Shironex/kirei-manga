@@ -1,0 +1,28 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Tour from '../components/Tour.astro';
+import Features from '../components/Features.astro';
+import Screens from '../components/Screens.astro';
+import Download from '../components/Download.astro';
+import Credits from '../components/Credits.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Base
+  title="KireiManga · A fast, local-first manga reader"
+  preload={[
+    { href: '/3d/posters/stop-0-1920.webp', as: 'image', type: 'image/webp', media: '(min-width: 900px)' },
+    { href: '/3d/posters/hero-mobile.webp', as: 'image', type: 'image/webp', media: '(max-width: 899px)' },
+  ]}
+>
+  <Header />
+  <main id="main">
+    <Tour />
+    <Features />
+    <Screens />
+    <Download />
+    <Credits />
+  </main>
+  <Footer />
+</Base>

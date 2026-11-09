@@ -1,0 +1,107 @@
+---
+/**
+ * One stop of the tour: a screen tall section that scrolls over the pinned
+ * stage, its copy centred on the side the camera's subject leaves clear. The
+ * stop's framing is reached as the section's top meets the window's top.
+ */
+interface Props {
+  index: number;
+  id: string;
+  side: 'left' | 'right';
+  labelledby: string;
+  hero?: boolean;
+}
+const { index, id, side, labelledby, hero = false } = Astro.props;
+---
+
+<section
+  class="stop-section"
+  id={`stop-${id}`}
+  data-stop-section={index}
+  data-side={side}
+  aria-labelledby={labelledby}
+>
+  <div class="wrap stop-wrap">
+    <div class:list={['panel', { hero, card: !hero }]} data-panel>
+      <slot />
+    </div>
+  </div>
+</section>
+
+<style>
+  .stop-section {
+    position: relative;
+    height: 100svh;
+    min-height: 680px;
+    display: flex;
+    align-items: center;
+  }
+  .stop-wrap {
+    width: 100%;
+    display: flex;
+  }
+  [data-side='right'] .stop-wrap {
+    justify-content: flex-end;
+  }
+  .panel {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s-4);
+    max-width: 440px;
+  }
+  .panel.hero {
+    max-width: 620px;
+    gap: var(--s-5);
+  }
+  /* Feature stops float on a glass panel, like the app's reader chrome. */
+  .panel.card {
+    padding: var(--s-6);
+    border-radius: var(--r-panel);
+    background: var(--glass);
+    border: 1px solid var(--glass-edge);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
+    box-shadow: 0 30px 80px -30px oklch(0.05 0.02 var(--seed-h) / 0.8);
+  }
+  /* The hero copy sits high, under the header, with a soft pool of shade
+     behind it so it stays above 4.5:1 over any frame. */
+  [data-stop-section='0'] {
+    align-items: flex-start;
+    padding-top: calc(84px + clamp(48px, 12vh, 128px));
+  }
+  .panel.hero::before {
+    content: '';
+    position: absolute;
+    inset: -180px -260px;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      closest-side,
+      oklch(0.11 0.01 var(--seed-h) / 0.82),
+      oklch(0.11 0.01 var(--seed-h) / 0.55) 45%,
+      oklch(0.11 0.01 var(--seed-h) / 0) 100%
+    );
+  }
+  @media (max-height: 760px) and (min-width: 900px) {
+    [data-stop-section='0'] {
+      padding-top: calc(84px + 40px);
+    }
+  }
+  @media (max-width: 899px) {
+    .stop-section {
+      display: none;
+    }
+    [data-stop-section='0'] {
+      display: block;
+      height: auto;
+      min-height: 0;
+      padding: 104px 0 0;
+    }
+    .panel.hero::before {
+      display: none;
+    }
+  }
+</style>

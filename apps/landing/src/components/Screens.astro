@@ -1,0 +1,88 @@
+---
+import { Picture } from 'astro:assets';
+import library from '../assets/screens/proto-library.png';
+import series from '../assets/screens/proto-series-ember.png';
+import double from '../assets/screens/proto-reader-double-adjust.png';
+import webtoon from '../assets/screens/proto-reader-webtoon.png';
+import browse from '../assets/screens/proto-browse.png';
+
+const SHOTS = [
+  { src: library, alt: 'The library: a large cover to continue reading, recent series beside it and the grid of covers below.', caption: 'Library, tinted by the series you would resume.', size: 'wide' },
+  { src: series, alt: 'A series page in warm orange tones taken from its cover, with the chapter list and the sampled palette.', caption: 'Series page, themed from its cover.', size: 'half' },
+  { src: double, alt: 'The reader showing a double page spread with the adjustments panel open.', caption: 'Double page spread with adjustments.', size: 'half' },
+  { src: webtoon, alt: 'The reader in webtoon mode, one continuous vertical strip.', caption: 'Webtoon mode, one continuous strip.', size: 'half' },
+  { src: browse, alt: 'Browsing online series in a grid of covers.', caption: 'Browse, arriving with the online release (1.1).', size: 'half' },
+] as const;
+---
+
+<section id="screens" class="section screens" aria-labelledby="screens-title">
+  <div class="wrap">
+    <div class="head reveal">
+      <p class="eyebrow">Screens</p>
+      <h2 class="section-title" id="screens-title">A quiet frame for loud covers.</h2>
+      <p class="section-lede">
+        The interface stays dark and still, so the art carries the colour. These are captures of
+        the approved design; screenshots of the finished app follow with the release.
+      </p>
+    </div>
+    <div class="gallery">
+      {
+        SHOTS.map(shot => (
+          <figure class:list={['shot', 'reveal', shot.size]}>
+            <Picture
+              src={shot.src}
+              alt={shot.alt}
+              formats={['avif', 'webp']}
+              widths={shot.size === 'wide' ? [720, 1200, 1440] : [480, 720, 960]}
+              sizes={
+                shot.size === 'wide'
+                  ? '(min-width: 1320px) 1240px, 92vw'
+                  : '(min-width: 1320px) 612px, (min-width: 760px) calc(50vw - 40px), calc(100vw - 32px)'
+              }
+              loading="lazy"
+              decoding="async"
+            />
+            <figcaption>{shot.caption}</figcaption>
+          </figure>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .head {
+    margin-bottom: clamp(40px, 6vw, 72px);
+  }
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(16px, 2.4vw, 28px);
+  }
+  .shot {
+    margin: 0;
+  }
+  .shot.wide {
+    grid-column: 1 / -1;
+  }
+  .shot :global(img) {
+    width: 100%;
+    height: auto;
+    border-radius: var(--r-panel);
+    border: 1px solid var(--line);
+    box-shadow:
+      0 40px 90px -40px oklch(0.04 0.02 var(--seed-h) / 0.9),
+      0 0 0 1px oklch(0 0 0 / 0.4);
+    background: var(--ink-1);
+  }
+  figcaption {
+    margin-top: var(--s-3);
+    font-size: var(--t-sm);
+    color: var(--fg-3);
+  }
+  @media (max-width: 759px) {
+    .gallery {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

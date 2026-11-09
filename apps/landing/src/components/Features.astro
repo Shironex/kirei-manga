@@ -1,0 +1,206 @@
+---
+/**
+ * Everything 1.0 does, in one grid, and what comes after it. On phones this
+ * is where the tour's stops live, so it stands on its own.
+ */
+const FEATURES = [
+  {
+    kicker: 'Archives',
+    title: 'Streamed, never extracted',
+    body: 'CBZ, ZIP, CBR and folders are read in place. A large volume opens without a wait and leaves nothing behind on disk.',
+  },
+  {
+    kicker: 'Pipeline',
+    title: 'Pages ready before you turn',
+    body: 'A Rust decode ahead pipeline prepares the next pages at the size of your screen, with lanczos3, mitchell or nearest resampling.',
+  },
+  {
+    kicker: 'Reader',
+    title: 'Single, double or webtoon',
+    body: 'Paged left to right or right to left, double spreads with spread detection, and a continuous strip for long scrolling.',
+  },
+  {
+    kicker: 'Adjust',
+    title: 'Fix the scan, per title',
+    body: 'Brightness, contrast, saturation, sharpen, invert, grayscale and sepia, remembered for each series.',
+  },
+  {
+    kicker: 'Colour',
+    title: 'Themed by the cover',
+    body: 'The palette is sampled when the library scans, and every surface is derived from it with contrast held at every strength.',
+  },
+  {
+    kicker: 'Library',
+    title: 'Knows your shelf',
+    body: 'Folder scanning with loose naming and ComicInfo.xml, a persistent cover cache in SQLite, and continue reading where you stopped.',
+  },
+  {
+    kicker: 'Portable',
+    title: 'Runs from a folder',
+    body: 'Portable mode keeps the library and settings next to the app. Backup and restore move everything to a new machine.',
+  },
+  {
+    kicker: 'Private',
+    title: 'No account, no scrapers',
+    body: 'Local files first. The app never needs a sign in, and it will never scrape a website for pages.',
+  },
+];
+
+const NEXT = [
+  {
+    version: '1.1',
+    title: 'Online',
+    body: 'MangaDex browsing with Polish first language fallback, offline downloads to CBZ, and AniList tracking.',
+  },
+  {
+    version: '1.2',
+    title: 'Comfort',
+    body: 'Credit page detection, a spoiler guard for unread covers, and an optional 3D shelf view.',
+  },
+];
+---
+
+<section id="features" class="section features" aria-labelledby="features-title">
+  <div class="wrap">
+    <div class="head reveal">
+      <p class="eyebrow">What 1.0 does</p>
+      <h2 class="section-title" id="features-title">Made for reading, not for waiting.</h2>
+      <p class="section-lede">
+        A small, fast reader for the manga already on your drive. Everything below ships in 1.0
+        for Windows and macOS.
+      </p>
+    </div>
+    <ul class="grid">
+      {
+        FEATURES.map((f, i) => (
+          <li class="card reveal">
+            <span class="kicker">
+              <span class="n">{String(i + 1).padStart(2, '0')}</span>
+              {f.kicker}
+            </span>
+            <h3>{f.title}</h3>
+            <p>{f.body}</p>
+          </li>
+        ))
+      }
+    </ul>
+    <div class="next reveal">
+      <p class="next-label">Next</p>
+      <ul>
+        {
+          NEXT.map(n => (
+            <li>
+              <span class="ver">{n.version}</span>
+              <div>
+                <h3>{n.title}</h3>
+                <p>{n.body}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .features {
+    background:
+      radial-gradient(60vmax 40vmax at 10% 0%, oklch(0.3 calc(var(--accent-c) * 0.6) var(--seed-h) / 0.25), transparent 70%),
+      var(--ink-deep);
+  }
+  .head {
+    margin-bottom: clamp(40px, 6vw, 72px);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 264px), 1fr));
+    gap: var(--s-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    padding: var(--s-5);
+    border-radius: var(--r-panel);
+    background: var(--ink-1);
+    border: 1px solid var(--line);
+    transition:
+      border-color var(--d-3) var(--ease-out),
+      transform var(--d-3) var(--ease-out);
+  }
+  .card:hover {
+    border-color: var(--line-strong);
+    transform: translateY(-2px);
+  }
+  .kicker {
+    display: inline-flex;
+    gap: var(--s-2);
+    font: 500 var(--t-xs) / 1.2 var(--f-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .n {
+    color: var(--fg-3);
+  }
+  h3 {
+    font-size: var(--t-2xl);
+    font-stretch: 82%;
+    line-height: 1.05;
+  }
+  .card p,
+  .next p {
+    color: var(--fg-2);
+    font-size: var(--t-md);
+    line-height: 1.6;
+  }
+  .next {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: var(--s-5);
+    margin-top: var(--s-7);
+    padding-top: var(--s-6);
+    border-top: 1px solid var(--line);
+  }
+  .next-label {
+    font: 500 var(--t-sm) / 1.4 var(--f-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+  .next ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: var(--s-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .next li {
+    display: flex;
+    gap: var(--s-4);
+    align-items: baseline;
+  }
+  .next h3 {
+    font-size: var(--t-xl);
+    margin-bottom: var(--s-1);
+  }
+  .ver {
+    flex: none;
+    padding: 3px 8px;
+    border-radius: var(--r-chip);
+    border: 1px solid var(--line-strong);
+    font: 500 var(--t-xs) / 1.2 var(--f-mono);
+    color: var(--fg-2);
+  }
+  @media (max-width: 640px) {
+    .next {
+      grid-template-columns: 1fr;
+      gap: var(--s-4);
+    }
+  }
+</style>

@@ -2,5 +2,5 @@
 dist
 node_modules
 
-# OG generator — fonts auto-fetched on first run
-assets/fonts
+# Copied from three by scripts/copy-decoders.mjs before dev and build.
+public/3d/decoders

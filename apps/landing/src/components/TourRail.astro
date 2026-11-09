@@ -1,0 +1,144 @@
+---
+/**
+ * The stop rail along the bottom of the pinned stage: a mark per stop on a
+ * line that fills as the camera moves on, each one a button that scrolls to
+ * its stop. The page script sets the fill and the current stop.
+ */
+import type { TourCopy } from '../lib/copy';
+
+interface Props {
+  stops: readonly TourCopy[];
+}
+const { stops } = Astro.props;
+---
+
+<nav class="rail" aria-label="Tour stops">
+  <div class="wrap inner">
+    <div class="track" style={`--count: ${stops.length}`}>
+      <div class="line" aria-hidden="true"><span class="fill" data-fill></span></div>
+      <ol>
+        {
+          stops.map((stop, i) => (
+            <li>
+              <button type="button" class="stop" data-goto={i + 1}>
+                <span class="node" aria-hidden="true" />
+                <span class="name">
+                  <span class="num">0{i + 1}</span> {stop.label}
+                </span>
+              </button>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+    <p class="counter" aria-live="polite" data-counter>{stops.length} stops</p>
+  </div>
+</nav>
+
+<style>
+  .rail {
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 3;
+  }
+  .inner {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--s-6);
+    padding-bottom: 24px;
+  }
+  .track {
+    position: relative;
+    flex: 1;
+    max-width: 760px;
+  }
+  .line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 5px;
+    height: 1px;
+    background: var(--line-strong);
+  }
+  .fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: calc(var(--fill, 0) * (100% - 100% / var(--count)) + 6px);
+    background: var(--accent);
+    transition: background-color var(--d-theme) var(--ease-inout);
+  }
+  ol {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+    gap: var(--s-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .stop {
+    all: unset;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .stop:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+  }
+  .node {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--ink-0);
+    border: 1.5px solid oklch(0.97 0.01 var(--seed-h) / 0.45);
+    transition:
+      background-color var(--d-3) var(--ease-out),
+      border-color var(--d-3) var(--ease-out),
+      box-shadow var(--d-3) var(--ease-out);
+  }
+  .name {
+    font-size: var(--t-md);
+    font-weight: 500;
+    color: var(--fg-2);
+    white-space: nowrap;
+  }
+  .num {
+    font: 500 var(--t-xs) / 1 var(--f-mono);
+    color: var(--fg-3);
+  }
+  .stop:hover .name {
+    color: var(--fg-1);
+  }
+  .stop[data-state='passed'] .node {
+    background: var(--fg-2);
+    border-color: var(--fg-2);
+  }
+  .stop[data-state='current'] .node {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-wash);
+  }
+  .stop[data-state='current'] .name {
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .counter {
+    font: 500 var(--t-xs) / 1 var(--f-mono);
+    color: var(--fg-3);
+    white-space: nowrap;
+  }
+  @media (max-width: 899px) {
+    .rail {
+      display: none;
+    }
+  }
+  :global(.capture) .rail {
+    display: none;
+  }
+</style>

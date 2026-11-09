@@ -1,0 +1,37 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Base title="Page not found · KireiManga">
+  <Header />
+  <main id="main" class="missing">
+    <div class="wrap">
+      <p class="eyebrow">404</p>
+      <h1>This page is not on the shelf.</h1>
+      <p class="lede">The link may be old, or the page moved when the site was rebuilt.</p>
+      <a class="btn btn-primary" href="/">Back to the start</a>
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .missing {
+    min-height: 80svh;
+    display: flex;
+    align-items: center;
+    padding-block: 140px 80px;
+    background: radial-gradient(60vmax 50vmax at 80% 30%, var(--ambient), transparent 70%), var(--ink-deep);
+  }
+  h1 {
+    font-size: clamp(2.6rem, 7vw, 5rem);
+    max-width: 14ch;
+  }
+  .lede {
+    margin: var(--s-5) 0 var(--s-6);
+    color: var(--fg-2);
+    max-width: 32rem;
+  }
+</style>

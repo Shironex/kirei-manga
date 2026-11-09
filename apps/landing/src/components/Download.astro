@@ -1,0 +1,180 @@
+---
+import { Image } from 'astro:assets';
+import kirei from '../assets/kirei/kirei-read.png';
+import Icon from './Icon.astro';
+import { GITHUB_RELEASES_LATEST_URL, GITHUB_RELEASES_URL } from '../lib/site';
+
+const BUILDS = [
+  {
+    os: 'Windows',
+    icon: 'windows',
+    detail: 'Windows 10 and 11, x64',
+    file: 'KireiManga_x64-setup.exe',
+    note: 'Per user installer, no admin rights needed.',
+  },
+  {
+    os: 'macOS',
+    icon: 'apple',
+    detail: 'Apple silicon and Intel',
+    file: 'KireiManga_aarch64.dmg / x64.dmg',
+    note: 'Drag to Applications, like any other app.',
+  },
+] as const;
+---
+
+<section id="download" class="section download" aria-labelledby="download-title">
+  <div class="wrap layout">
+    <div class="copy reveal">
+      <p class="eyebrow">Download</p>
+      <h2 class="section-title" id="download-title">Get KireiManga.</h2>
+      <p class="section-lede">
+        Free for personal use. Builds are published on GitHub releases, and the app keeps itself up
+        to date from signed releases after that.
+      </p>
+      <ul class="builds">
+        {
+          BUILDS.map(b => (
+            <li>
+              <a class="build" href={GITHUB_RELEASES_LATEST_URL} rel="noopener">
+                <span class="glyph">
+                  <Icon name={b.icon} size={22} />
+                </span>
+                <span class="meta">
+                  <span class="os">Download for {b.os}</span>
+                  <span class="detail">{b.detail}</span>
+                  <span class="file">{b.file}</span>
+                </span>
+                <span class="go" aria-hidden="true">
+                  <Icon name="arrow" />
+                </span>
+              </a>
+              <p class="note">{b.note}</p>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="fine">
+        If a build is not code signed yet, Windows SmartScreen or macOS Gatekeeper asks you to
+        confirm the first launch. Older and prerelease builds are on the <a href={GITHUB_RELEASES_URL}
+          rel="noopener">releases page</a
+        >.
+      </p>
+    </div>
+    <div class="art reveal" aria-hidden="true">
+      <Image src={kirei} alt="" widths={[320, 520, 760]} sizes="(min-width: 900px) 380px, 70vw" loading="lazy" />
+    </div>
+  </div>
+</section>
+
+<style>
+  .download {
+    overflow: clip;
+    background:
+      radial-gradient(50vmax 40vmax at 80% 60%, var(--ambient), transparent 70%),
+      var(--ink-deep);
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: clamp(24px, 5vw, 80px);
+    align-items: center;
+  }
+  .builds {
+    display: grid;
+    gap: var(--s-4);
+    margin: var(--s-6) 0 0;
+    padding: 0;
+    list-style: none;
+    max-width: 560px;
+  }
+  .build {
+    display: flex;
+    align-items: center;
+    gap: var(--s-4);
+    padding: var(--s-4) var(--s-5);
+    border-radius: var(--r-panel);
+    background: var(--glass);
+    border: 1px solid var(--glass-edge);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+    text-decoration: none;
+    transition:
+      border-color var(--d-3) var(--ease-out),
+      transform var(--d-2) var(--ease-out);
+  }
+  .build:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .glyph {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--accent-wash);
+    color: var(--accent);
+  }
+  .meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .os {
+    font-weight: 600;
+    font-size: var(--t-lg);
+  }
+  .detail {
+    font-size: var(--t-sm);
+    color: var(--fg-2);
+  }
+  .file {
+    font: 400 var(--t-xs) / 1.4 var(--f-mono);
+    color: var(--fg-3);
+    overflow-wrap: anywhere;
+  }
+  .go {
+    color: var(--fg-2);
+    transition: transform var(--d-2) var(--ease-out);
+  }
+  .build:hover .go {
+    transform: translateX(3px);
+    color: var(--accent);
+  }
+  .note {
+    margin: var(--s-2) 0 0 var(--s-5);
+    font-size: var(--t-sm);
+    color: var(--fg-3);
+  }
+  .fine {
+    max-width: 560px;
+    margin-top: var(--s-6);
+    font-size: var(--t-sm);
+    color: var(--fg-3);
+    line-height: 1.6;
+  }
+  .fine a {
+    color: var(--fg-2);
+    text-underline-offset: 3px;
+  }
+  .art {
+    justify-self: center;
+    width: min(100%, 380px);
+  }
+  .art :global(img) {
+    width: 100%;
+    filter: drop-shadow(0 40px 60px oklch(0.04 0.02 var(--seed-h) / 0.8));
+  }
+  @media (max-width: 899px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .art {
+      width: min(70%, 300px);
+      order: -1;
+    }
+  }
+</style>
