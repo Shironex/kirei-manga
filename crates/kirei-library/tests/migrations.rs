@@ -7,10 +7,11 @@
 
 #![allow(clippy::unwrap_used)]
 
-use kirei_library::{Library, SCHEMA_VERSION};
+use kirei_library::{Library, LinkSource, SCHEMA_VERSION, UpdateRequest};
 use rusqlite::{Connection, params};
 
 const V1: &str = include_str!("../migrations/0001_init.sql");
+const TRACKING: &str = include_str!("../migrations/0005_tracking.sql");
 
 fn build_v1_fixture(path: &std::path::Path, root: &str) {
     let conn = Connection::open(path).unwrap();
@@ -141,4 +142,51 @@ fn a_file_database_uses_wal_and_foreign_keys() {
         .query_row("PRAGMA journal_mode", [], |row| row.get(0))
         .unwrap();
     assert_eq!(mode, "wal");
+}
+
+#[test]
+fn a_migrated_database_keeps_tracker_links_across_a_removed_root() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("library.sqlite3");
+    build_v1_fixture(&db, "/m");
+    let library = Library::open(&db, &dir.path().join("covers")).unwrap();
+
+    let key = library.series_key(1).unwrap();
+    assert_eq!(key, "local:dir:Ash");
+    library
+        .link_series(&key, 30013, LinkSource::Manual, Some("Ash and Ember"), None)
+        .unwrap();
+    library
+        .enqueue_update(
+            30013,
+            &UpdateRequest {
+                progress: Some(1),
+                ..Default::default()
+            },
+            0,
+        )
+        .unwrap();
+
+    // The link hangs off the series identity, not its row.
+    assert!(library.remove_root(1).unwrap());
+    assert!(library.tracker_link(&key).unwrap().is_some());
+    assert_eq!(library.queue_summary().unwrap().pending, 1);
+}
+
+#[test]
+fn the_tracking_migration_is_safe_to_run_again() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("library.sqlite3");
+    let library = Library::open(&db, &dir.path().join("covers")).unwrap();
+    library
+        .link_series("local:x", 1, LinkSource::Manual, None, None)
+        .unwrap();
+    drop(library);
+    // Running the file again on a database that has it changes nothing.
+    let conn = Connection::open(&db).unwrap();
+    conn.execute_batch(TRACKING).unwrap();
+    let links: i64 = conn
+        .query_row("SELECT count(*) FROM tracker_links", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(links, 1);
 }

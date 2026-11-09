@@ -23,6 +23,7 @@ mod palette;
 mod scanner;
 mod settings;
 mod stats;
+mod tracking;
 mod watcher;
 
 use std::collections::HashMap;
@@ -54,6 +55,10 @@ pub use scanner::{MAX_DEPTH, ScanScope};
 pub use stats::{
     IDLE_CUTOFF_MS, MAX_UTC_OFFSET_MIN, ReadingClock, ReadingDay, ReadingStats, ReadingTotals,
     SeriesReading, Streak, TOP_SERIES, local_day,
+};
+pub use tracking::{
+    ANILIST, LinkSource, QueueSummary, QueuedUpdate, RemoteState, TrackerLink, UpdateRequest,
+    local_series_key, mangadex_series_key,
 };
 pub use watcher::{LibraryWatcher, WatchConfig, WatchProgress};
 

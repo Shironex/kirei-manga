@@ -35,6 +35,8 @@ pub enum LibraryError {
         found: u32,
         supported: u32,
     },
+    #[error("{0}")]
+    InvalidInput(String),
     #[error("invalid JSON: {0}")]
     Json(#[from] serde_json::Error),
 }
