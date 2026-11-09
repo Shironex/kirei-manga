@@ -18,8 +18,10 @@ import { Button } from '@/components/ui/button';
 import { Tag } from '@/components/ui/chip';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { SeriesDetail } from '@/lib/library';
+import { localRef } from '@/lib/shelf';
 import { usePageCover } from '@/lib/theme/coverTheme';
 
+import { SeriesShelfCard } from '../collections/SeriesShelfCard';
 import { Cover } from '../library/Cover';
 import { continueChapter, languageName, readActionLabel } from '../library/format';
 import { refreshLibrary, useLibrary } from '../library/libraryStore';
@@ -207,6 +209,7 @@ function SeriesView({ detail }: { detail: SeriesDetail }) {
           )}
         </section>
         <aside aria-label="About this series" className="sticky top-6 grid gap-4">
+          <SeriesShelfCard series={localRef(detail.id)} title={detail.title} />
           <TrackingCard
             series={{ kind: 'local', id: detail.id }}
             title={detail.title}
