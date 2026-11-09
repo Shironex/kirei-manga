@@ -10,6 +10,7 @@ import {
 import { closeSource, openSource, pageMeta, type OpenedSource, type PageMeta } from '@/lib/reader';
 
 import { loadOnlineChapter } from '@/features/online/onlineChapter';
+import type { OnlineChapterRef } from '@/features/online/onlineProgress';
 
 import type { ChapterTarget } from './openChapter';
 
@@ -52,8 +53,11 @@ export interface LoadedChapter {
   /** The series cover, whose colours tint the reader chrome; `null` for a file. */
   cover: CoverRef | null;
   next: ChapterLink | null;
-  /** The MangaDex ids of an online chapter, whose progress syncs to MangaDex. */
-  online?: { mangaId: string; chapterId: string };
+  /**
+   * The MangaDex ids of an online chapter and its number, whose progress
+   * syncs to MangaDex (and AniList, when the series is linked).
+   */
+  online?: OnlineChapterRef;
   /** The end card line when there is no next chapter. */
   lastNote?: string;
 }
