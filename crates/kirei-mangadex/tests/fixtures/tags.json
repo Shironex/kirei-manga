@@ -1,0 +1,31 @@
+{
+  "result": "ok",
+  "response": "collection",
+  "data": [
+    {
+      "id": "b9af3a63-f058-46de-a9a0-e0c13906197a",
+      "type": "tag",
+      "attributes": {
+        "name": { "en": "Mystery" },
+        "description": {},
+        "group": "genre",
+        "version": 1
+      },
+      "relationships": []
+    },
+    {
+      "id": "391b0423-d847-456f-aff0-8b0cfc03066b",
+      "type": "tag",
+      "attributes": {
+        "name": { "en": "Oneshot" },
+        "description": [],
+        "group": "format",
+        "version": 1
+      },
+      "relationships": []
+    }
+  ],
+  "limit": 100,
+  "offset": 0,
+  "total": 2
+}

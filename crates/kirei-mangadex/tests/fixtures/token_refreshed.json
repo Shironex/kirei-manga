@@ -1,0 +1,10 @@
+{
+  "access_token": "fixture-access-token-2",
+  "expires_in": 900,
+  "refresh_expires_in": 7776000,
+  "refresh_token": "fixture-refresh-token-2",
+  "token_type": "Bearer",
+  "not-before-policy": 0,
+  "session_state": "7b1c3f00-0000-4000-8000-0000000000ff",
+  "scope": "profile email groups"
+}

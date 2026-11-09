@@ -1,0 +1,35 @@
+{
+  "result": "ok",
+  "response": "collection",
+  "data": [
+    {
+      "id": "5c0a1b2c-0000-4000-8000-000000000020",
+      "type": "chapter",
+      "attributes": {
+        "volume": null,
+        "chapter": "1",
+        "title": "Departure",
+        "translatedLanguage": "en",
+        "externalUrl": null,
+        "isUnavailable": false,
+        "publishAt": "2026-09-02T07:15:00+00:00",
+        "readableAt": "2026-09-02T07:15:00+00:00",
+        "createdAt": "2026-09-02T07:15:00+00:00",
+        "updatedAt": "2026-09-02T07:15:00+00:00",
+        "pages": 12,
+        "version": 1
+      },
+      "relationships": [
+        { "id": "0b1f2c3d-0000-4000-8000-000000000002", "type": "manga" },
+        {
+          "id": "7e7e7e7e-0000-4000-8000-000000000072",
+          "type": "user",
+          "attributes": { "username": "lune", "roles": ["ROLE_MEMBER"], "version": 1 }
+        }
+      ]
+    }
+  ],
+  "limit": 500,
+  "offset": 0,
+  "total": 1
+}
