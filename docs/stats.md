@@ -73,6 +73,12 @@ A 1080 by 1350 PNG (4:5) drawn on a canvas by `card/drawCard.ts`: the year, the 
 | `stats_get`       | `year`, `utcOffsetMin`            | `ReadingStats`                       |
 | `stats_cover`     | `hash`                            | the thumbnail's JPEG bytes           |
 | `stats_save_card` | raw PNG body, `x-kirei-path` header | the path written                   |
+| `stats_count`     |                                   | how many sessions are stored; deletes nothing |
+| `stats_clear`     |                                   | how many sessions were deleted       |
+
+## Clearing
+
+Settings, Data, Reading stats shows how many sessions are stored and has a Clear button (also in the command palette as Clear reading stats). A confirm step names the count first. Clearing runs `DELETE FROM reading_sessions` (`Library::clear_reading_sessions`) and nothing else: reading progress, series settings and the library stay, and backups already made keep their copy. The next chapter read opens a fresh session. There is no undo short of restoring a backup.
 
 ## Backup
 
