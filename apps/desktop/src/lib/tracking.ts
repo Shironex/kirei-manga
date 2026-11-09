@@ -173,6 +173,52 @@ export function linkSeries(series: SeriesRef, media: Media): Promise<SeriesTrack
   });
 }
 
+/**
+ * Links a MangaDex series to the AniList entry MangaDex itself names (the
+ * series' `al` link), so no search is needed. Recorded with origin
+ * `mangadex`, which a manual link later replaces.
+ */
+export function linkFromMangaDex(
+  mangaId: string,
+  anilistId: number,
+  title: string
+): Promise<SeriesTracking> {
+  return invoke<SeriesTracking>('tracking_link', {
+    series: { kind: 'mangadex', id: mangaId },
+    mediaId: anilistId,
+    title,
+    totalChapters: null,
+    origin: 'mangadex',
+  });
+}
+
+/** Whether a series page should link on its own: AniList id known, no link yet. */
+export function needsMangaDexLink(
+  anilistId: number | null,
+  state: Pick<SeriesTracking, 'link'> | null
+): anilistId is number {
+  return anilistId !== null && state !== null && state.link === null;
+}
+
+/**
+ * Queues AniList progress after a chapter is finished. Rust drops it (and
+ * resolves `false`) when tracking is off, auto update is off or the series
+ * is not linked.
+ */
+export function reportProgress(series: SeriesRef, progress: number): Promise<boolean> {
+  return invoke<boolean>('tracking_report_progress', { series, progress });
+}
+
+/**
+ * AniList progress for a finished chapter number such as `12` or `12.5`:
+ * the whole chapters read. `null` for a oneshot or anything below one.
+ */
+export function progressFromChapter(number: string | null): number | null {
+  if (!number) return null;
+  const value = Math.floor(Number(number));
+  return Number.isFinite(value) && value >= 1 ? value : null;
+}
+
 export function unlinkSeries(series: SeriesRef): Promise<SeriesTracking> {
   return invoke<SeriesTracking>('tracking_unlink', { series });
 }
