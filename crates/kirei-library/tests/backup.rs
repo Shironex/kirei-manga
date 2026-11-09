@@ -9,8 +9,8 @@ use std::path::{Path, PathBuf};
 use common::cbz;
 use kirei_core::{DataMode, DataPaths};
 use kirei_library::{
-    BackupManifest, BackupOptions, Library, LibraryError, ReadingClock, SCHEMA_VERSION,
-    apply_pending_restore, inspect_backup, stage_restore,
+    BackupManifest, BackupOptions, FilterQuery, Library, LibraryError, ReadingClock,
+    SCHEMA_VERSION, SeriesRef, apply_pending_restore, inspect_backup, stage_restore,
 };
 use serde_json::json;
 
@@ -222,6 +222,70 @@ fn reading_stats_survive_a_backup_and_restore() {
 
     let library = fx.open();
     assert_eq!(library.reading_stats(2026, clock).unwrap(), before);
+}
+
+#[test]
+fn collections_tags_and_filters_survive_a_backup_and_restore() {
+    let fx = fixture();
+    let library = fx.open();
+    let moonlit = SeriesRef::Local {
+        series_id: series_id(&library, "Moonlit"),
+    };
+    let ember = SeriesRef::Local {
+        series_id: series_id(&library, "Ember"),
+    };
+    let tag = library
+        .tag_series(&[moonlit.clone(), ember.clone()], "Cosy")
+        .unwrap();
+    let shelf = library.create_collection("Shelf").unwrap();
+    library
+        .add_to_collection(shelf.id, &[ember.clone(), moonlit.clone()])
+        .unwrap();
+    library
+        .set_want_to_read(
+            &[
+                moonlit,
+                SeriesRef::MangaDex {
+                    remote_id: "0a1b2c".to_owned(),
+                    title: Some("Online title".to_owned()),
+                    cover_file: None,
+                },
+            ],
+            true,
+        )
+        .unwrap();
+    library
+        .save_filter(
+            None,
+            "Cosy",
+            &FilterQuery {
+                tags: vec![tag.id],
+                ..FilterQuery::default()
+            },
+            true,
+        )
+        .unwrap();
+    let overview = library.shelf_overview().unwrap();
+    let items = library.collection_items(shelf.id).unwrap();
+    let want = library.want_to_read().unwrap();
+    library
+        .create_backup(&fx.backup_path(), &options(false))
+        .unwrap();
+
+    // Forget everything, then restore.
+    let root = library.roots().unwrap()[0].id;
+    library.remove_root(root).unwrap();
+    drop(library);
+    std::fs::remove_file(fx.paths.database()).unwrap();
+    stage_restore(&fx.backup_path(), &fx.paths).unwrap();
+    apply_pending_restore(&fx.paths).unwrap().unwrap();
+
+    let library = fx.open();
+    assert_eq!(library.shelf_overview().unwrap(), overview);
+    assert_eq!(library.collection_items(shelf.id).unwrap(), items);
+    assert_eq!(library.want_to_read().unwrap(), want);
+    let filter = &library.smart_filters().unwrap()[0];
+    assert_eq!(library.run_filter(&filter.query, 10).unwrap().total, 2);
 }
 
 #[test]

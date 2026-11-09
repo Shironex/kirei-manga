@@ -12,6 +12,7 @@ use rusqlite::{Connection, params};
 
 const V1: &str = include_str!("../migrations/0001_init.sql");
 const TRACKING: &str = include_str!("../migrations/0005_tracking.sql");
+const COLLECTIONS: &str = include_str!("../migrations/0007_collections.sql");
 
 fn build_v1_fixture(path: &std::path::Path, root: &str) {
     let conn = Connection::open(path).unwrap();
@@ -189,4 +190,45 @@ fn the_tracking_migration_is_safe_to_run_again() {
         .query_row("SELECT count(*) FROM tracker_links", [], |row| row.get(0))
         .unwrap();
     assert_eq!(links, 1);
+}
+
+#[test]
+fn a_migrated_database_keeps_its_shelf_across_a_removed_root() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("library.sqlite3");
+    build_v1_fixture(&db, "/m");
+    let library = Library::open(&db, &dir.path().join("covers")).unwrap();
+    let ash = kirei_library::SeriesRef::Local { series_id: 1 };
+    library
+        .tag_series(std::slice::from_ref(&ash), "Fire")
+        .unwrap();
+    library.set_want_to_read(&[ash], true).unwrap();
+
+    // The reference carries the backfilled identity, so it outlives the row.
+    assert!(library.remove_root(1).unwrap());
+    let conn = Connection::open(&db).unwrap();
+    let ident: Option<String> = conn
+        .query_row(
+            "SELECT series_ident FROM series_refs WHERE series_id IS NULL",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(ident.as_deref(), Some("dir:Ash"));
+}
+
+#[test]
+fn the_collections_migration_is_safe_to_run_again() {
+    let dir = tempfile::tempdir().unwrap();
+    let db = dir.path().join("library.sqlite3");
+    let library = Library::open(&db, &dir.path().join("covers")).unwrap();
+    library.create_collection("Kept").unwrap();
+    drop(library);
+    // Running the file again on a database that has it changes nothing.
+    let conn = Connection::open(&db).unwrap();
+    conn.execute_batch(COLLECTIONS).unwrap();
+    let kept: i64 = conn
+        .query_row("SELECT count(*) FROM collections", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(kept, 1);
 }
