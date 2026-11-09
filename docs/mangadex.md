@@ -13,6 +13,7 @@ It is async on tokio, the runtime Tauri already runs. The app should hold one `M
 | Pages          | `at_home_server(chapter)`, `page(chapter, index, quality)` with `ImageQuality::Data` or `DataSaver`     |
 | Session        | `sign_in(client, username, password)`, `restore_session(client, tokens)`, `sign_out()`                   |
 | User           | `followed_manga`, `followed_feed`, `is_following`, `follow`, `unfollow`, `reading_statuses`, `reading_status`, `set_reading_status` |
+| Read markers   | `read_markers(manga)`, `read_markers_for(mangas)` (100 series per request), `set_read_markers(manga, read, unread)` (also adds the read ones to the MangaDex reading history) |
 
 Every chapter carries its scanlation groups and uploader, so credits can be shown wherever a chapter is read. `Manga::anilist_id()` reads the AniList id from the series links for tracking.
 

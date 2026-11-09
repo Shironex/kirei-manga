@@ -434,6 +434,21 @@ pub(crate) struct StatusesBody {
     pub(crate) statuses: BTreeMap<String, String>,
 }
 
+/// `GET /manga/{id}/read`: the ids of the chapters marked read.
+#[derive(Debug, Deserialize)]
+pub(crate) struct ReadBody {
+    #[serde(default)]
+    pub(crate) data: Vec<String>,
+}
+
+/// `GET /manga/read?grouped=true`: read chapter ids per series. MangaDex
+/// sends `[]` instead of `{}` when nothing is read.
+#[derive(Debug, Deserialize)]
+pub(crate) struct GroupedReadBody {
+    #[serde(default, deserialize_with = "map_or_empty")]
+    pub(crate) data: BTreeMap<String, Vec<String>>,
+}
+
 #[derive(Debug, Deserialize)]
 pub(crate) struct StatusBody {
     #[serde(default)]
