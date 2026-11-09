@@ -38,6 +38,7 @@ jobs:
             library
             mangadex
             download
+            anilist
             desktop
             ui
             tauri
