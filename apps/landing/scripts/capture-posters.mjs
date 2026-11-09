@@ -10,7 +10,7 @@
  *   pnpm --filter @kireimanga/landing posters
  *
  * Run it again after the stops, the scene or the lighting change, and after
- * /3d/scene.glb or /3d/mascot.glb is replaced.
+ * a file in /3d/props or /3d/mascot.glb is replaced.
  */
 import { mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
