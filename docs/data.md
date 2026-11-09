@@ -14,6 +14,9 @@ Every location comes from `kirei_core::DataPaths` (`crates/kirei-core/src/paths.
 | Window state   | `.window-state.json`                           |
 | Set aside data | `backups/pre-restore-<UTC time>/`              |
 | Restore        | `restore-staging/`, `restore-pending` (transient) |
+| Downloads      | `downloads/` (default folder, a library root; `downloads.folder` moves it) |
+| Download queue | `downloads.sqlite3` (plus `-wal`, `-shm`)      |
+| Unfinished downloads | `download-staging/<chapter id>/`         |
 
 Installed builds use the OS app data directory for the identifier `app.kireimanga.desktop`: `~/Library/Application Support/app.kireimanga.desktop` on macOS, `%APPDATA%\app.kireimanga.desktop` on Windows. The WebView's own storage (cache, cookies) stays where the OS webview puts it; the app keeps no state there.
 
@@ -53,7 +56,7 @@ One ZIP file with the extension `.kireibackup`:
 | `library.sqlite3` | The whole database: roots, series, chapters, reading progress, per-series settings, app settings (`app_settings`, see `docs/settings.md`), cover rows |
 | `covers/<hh>/<hash>.jpg` | Thumbnails, only when asked for                                                 |
 
-The database copy is made with SQLite's `VACUUM INTO` while the app runs: a consistent, compacted snapshot, never a copy of a file SQLite may be writing. Covers are off by default because a scan rebuilds them. The file is written as `<name>.partial` and renamed when complete, so a failed backup leaves nothing behind.
+The database copy is made with SQLite's `VACUUM INTO` while the app runs: a consistent, compacted snapshot, never a copy of a file SQLite may be writing. Covers are off by default because a scan rebuilds them. Downloaded archives, the download queue and unfinished pages are not part of a backup: the archives are manga files like any other, and the queue can be refilled from MangaDex. The file is written as `<name>.partial` and renamed when complete, so a failed backup leaves nothing behind.
 
 ## Restore
 
