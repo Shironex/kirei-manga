@@ -6,7 +6,9 @@ mod catalog;
 mod commands;
 mod cover_protocol;
 mod data;
+mod downloads;
 mod library;
+mod mangadex_client;
 mod protocol;
 mod settings;
 mod updater;
@@ -37,9 +39,12 @@ pub fn run() {
             // has to happen before the library opens.
             let data = data::DataState::init(app.handle());
             let catalog = catalog::Catalog::open(data.paths());
-            app.manage(data);
             app.manage(catalog::Watch::start(app.handle(), &catalog));
             app.manage(catalog);
+            // After the library: the downloads folder is kept as a root.
+            let downloads = downloads::Downloads::start(app.handle(), data.paths());
+            app.manage(data);
+            app.manage(downloads);
             Ok(())
         })
         .register_asynchronous_uri_scheme_protocol(protocol::SCHEME, |ctx, request, responder| {
@@ -112,6 +117,15 @@ pub fn run() {
             data::backup_inspect,
             data::backup_restore,
             data::app_restart,
+            downloads::downloads_list,
+            downloads::downloads_enqueue,
+            downloads::downloads_auto,
+            downloads::downloads_pause,
+            downloads::downloads_resume,
+            downloads::downloads_cancel,
+            downloads::downloads_clear_finished,
+            downloads::downloads_folder,
+            downloads::open_downloads_folder,
             updater::update_check,
             updater::update_install,
         ])

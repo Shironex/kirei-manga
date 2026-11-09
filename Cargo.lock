@@ -2142,7 +2142,9 @@ version = "0.3.0"
 dependencies = [
  "kirei-archive",
  "kirei-core",
+ "kirei-download",
  "kirei-library",
+ "kirei-mangadex",
  "kirei-reader",
  "semver",
  "serde",

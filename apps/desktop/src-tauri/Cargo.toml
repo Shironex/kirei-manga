@@ -20,7 +20,9 @@ tauri-build = { workspace = true }
 [dependencies]
 kirei-archive = { workspace = true }
 kirei-core = { workspace = true }
+kirei-download = { workspace = true }
 kirei-library = { workspace = true }
+kirei-mangadex = { workspace = true }
 kirei-reader = { workspace = true }
 semver = { workspace = true }
 serde = { workspace = true }
