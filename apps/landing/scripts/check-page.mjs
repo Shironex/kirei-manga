@@ -25,6 +25,13 @@ const check = (ok, message) => {
 };
 
 async function axe(page, label) {
+  // Colours and panels ease in; judge contrast once time-based transitions
+  // have finished (scroll-driven animations never finish, so they are skipped).
+  await page.waitForFunction(() =>
+    document
+      .getAnimations()
+      .every(a => !(a.timeline instanceof DocumentTimeline) || a.playState !== 'running')
+  );
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
