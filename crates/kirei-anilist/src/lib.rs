@@ -16,6 +16,7 @@ mod error;
 mod http;
 mod limiter;
 mod model;
+pub mod sync;
 mod token;
 
 pub use auth::{CALLBACK_PATH, SignInListener, authorize_url, redirect_uri};
@@ -23,4 +24,5 @@ pub use client::{AniList, MAX_PAGE_SIZE};
 pub use config::{ClientConfig, Endpoints, Limits, RetryPolicy, default_user_agent};
 pub use error::{AniListError, Result};
 pub use model::{EntryUpdate, ListEntry, ListStatus, Media, MediaTitle, SearchPage, Viewer};
+pub use sync::{ConflictPolicy, Decision, Delivery, PendingUpdate, decide};
 pub use token::{AccessToken, DEFAULT_TOKEN_LIFETIME_SECS, Secret};
