@@ -1,0 +1,37 @@
+---
+import { Image } from 'astro:assets';
+import face from '../assets/kirei/kirei-face.png';
+---
+
+<a class="brand" href="/">
+  <Image class="kirei" src={face} alt="" width={40} height={40} densities={[1, 2]} loading="eager" />
+  <span class="mark" lang="ja" aria-hidden="true">綺麗漫画</span>
+  <span class="name">KireiManga</span>
+</a>
+
+<style>
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    border-radius: var(--r-pill);
+  }
+  .kirei {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--ink-2);
+    box-shadow: inset 0 0 0 1px var(--line-strong);
+  }
+  .mark {
+    font: 600 1.3rem/1 var(--f-jp);
+    letter-spacing: 0.04em;
+    color: var(--fg-1);
+  }
+  .name {
+    font: 600 0.95rem/1 var(--f-display);
+    font-stretch: 88%;
+    color: var(--fg-2);
+  }
+</style>

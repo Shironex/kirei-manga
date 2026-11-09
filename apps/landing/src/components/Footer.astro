@@ -1,0 +1,78 @@
+---
+import Brand from './Brand.astro';
+import { GITHUB_ISSUES_URL, GITHUB_RELEASES_URL, GITHUB_REPO_URL, LICENSE_URL } from '../lib/site';
+const year = new Date().getFullYear();
+---
+
+<footer class="footer">
+  <div class="wrap row">
+    <div class="who">
+      <Brand />
+      <p>A local-first manga reader for Windows and macOS.</p>
+    </div>
+    <nav aria-label="Footer">
+      <ul>
+        <li><a href={GITHUB_REPO_URL} rel="noopener">GitHub</a></li>
+        <li><a href={GITHUB_RELEASES_URL} rel="noopener">Releases</a></li>
+        <li><a href={GITHUB_ISSUES_URL} rel="noopener">Report an issue</a></li>
+        <li><a href={LICENSE_URL} rel="noopener">Licence</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="wrap base">
+    <span>© {year} Shironex</span>
+    <span>kireimanga.app</span>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--line);
+    padding-block: var(--s-7) var(--s-6);
+    background: var(--ink-deep);
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--s-6);
+  }
+  .who p {
+    margin-top: var(--s-3);
+    color: var(--fg-3);
+    font-size: var(--t-sm);
+  }
+  ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1) var(--s-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  ul a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 12px;
+    color: var(--fg-2);
+    font-size: var(--t-md);
+    text-decoration: none;
+    border-radius: var(--r-pill);
+  }
+  ul a:hover {
+    color: var(--fg-1);
+  }
+  .base {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--s-2) var(--s-5);
+    margin-top: var(--s-6);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--line);
+    font: 400 var(--t-xs) / 1.4 var(--f-mono);
+    color: var(--fg-3);
+  }
+</style>

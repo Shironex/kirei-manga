@@ -1,0 +1,312 @@
+---
+/**
+ * The hero and the feature tour. On desktop the stage (the live 3D nook, or
+ * a poster per stop without it) pins to the window while one screen tall
+ * section per stop scrolls over it, and the camera moves from stop to stop.
+ * On phones the stage is the hero poster under the hero copy, and the
+ * features section below carries the stops.
+ */
+import { existsSync } from 'node:fs';
+import { HERO, TOUR } from '../lib/copy';
+import { GITHUB_REPO_URL } from '../lib/site';
+import { STOPS } from '../tour/stops';
+import Icon from './Icon.astro';
+import TourRail from './TourRail.astro';
+import TourStop from './TourStop.astro';
+
+// The scene files are optional: until they are dropped into public/3d the
+// island builds its placeholder nook. Checked at build time, so a missing
+// file never costs a failed request.
+const publicFile = (path: string) => existsSync(new URL(`../../public${path}`, import.meta.url));
+const sceneGlb = publicFile('/3d/scene.glb') ? '/3d/scene.glb' : undefined;
+const mascotGlb = publicFile('/3d/mascot.glb') ? '/3d/mascot.glb' : undefined;
+
+const poster = (i: number, w: 960 | 1920) => `/3d/posters/stop-${i}-${w}.webp`;
+---
+
+<section
+  id="top"
+  class="tour"
+  data-tour
+  data-scene-glb={sceneGlb}
+  data-mascot-glb={mascotGlb}
+  aria-labelledby="hero-title"
+>
+  <div class="stage">
+    <div
+      class="scene"
+      role="img"
+      aria-label="A reading nook at night: a desk under a warm lamp, a stack of manga volumes, an open book, covers leaning on the wall and a shelf of spines."
+    >
+      <picture>
+        <source media="(max-width: 899px)" srcset="/3d/posters/hero-mobile.webp" width="780" height="966" />
+        <source srcset={`${poster(0, 960)} 960w, ${poster(0, 1920)} 1920w`} sizes="100vw" />
+        <img
+          class="poster is-shown"
+          data-poster="0"
+          src={poster(0, 1920)}
+          width="1920"
+          height="1080"
+          alt=""
+          fetchpriority="high"
+          decoding="async"
+        />
+      </picture>
+      {
+        STOPS.slice(1).map((_, i) => (
+          <img
+            class="poster later"
+            data-poster={i + 1}
+            data-src={poster(i + 1, 1920)}
+            width="1920"
+            height="1080"
+            alt=""
+            decoding="async"
+          />
+        ))
+      }
+      <div class="canvas" data-canvas></div>
+    </div>
+    <div class="grade" aria-hidden="true"></div>
+    <TourRail stops={TOUR} />
+  </div>
+
+  <div class="mobile-cta">
+    <a class="btn btn-primary" href="#download"><Icon name="download" />Download</a>
+    <a class="btn btn-ghost" href="#features">See the features</a>
+  </div>
+
+  <div class="stops">
+    <TourStop index={0} id="hero" side="left" labelledby="hero-title" hero>
+      <p class="eyebrow">{HERO.eyebrow}</p>
+      <h1 class="display" id="hero-title">
+        {HERO.titleStart} <em>{HERO.titleAccent}</em>
+      </h1>
+      <p class="lede">{HERO.lede}</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="#download"><Icon name="download" />Download</a>
+        <a class="btn btn-ghost" href={GITHUB_REPO_URL} rel="noopener"><Icon name="github" />Source on GitHub</a>
+      </div>
+      <a class="scroll-cue" href="#stop-archives">
+        <span>Take the tour</span><Icon name="down" size={16} />
+      </a>
+    </TourStop>
+    {
+      TOUR.map((stop, i) => (
+        <TourStop
+          index={i + 1}
+          id={stop.id}
+          side={STOPS[i + 1]?.side ?? 'left'}
+          labelledby={`stop-${stop.id}-title`}
+        >
+          <p class="eyebrow">
+            0{i + 1} {stop.label}
+          </p>
+          <h2 class="stop-title" id={`stop-${stop.id}-title`}>
+            {stop.title}
+          </h2>
+          <p class="line">{stop.line}</p>
+          <ul class="points">
+            {stop.points.map(point => (
+              <li>{point}</li>
+            ))}
+          </ul>
+        </TourStop>
+      ))
+    }
+  </div>
+</section>
+
+<script>
+  import { startTour } from '../tour/startTour';
+
+  const tour = document.querySelector<HTMLElement>('[data-tour]');
+  if (tour) startTour(tour);
+</script>
+
+<style>
+  .tour {
+    --stage: max(100svh, 680px);
+    position: relative;
+    background: var(--ink-deep);
+  }
+  .stage {
+    position: sticky;
+    top: 0;
+    height: var(--stage);
+    overflow: hidden;
+  }
+  .stops {
+    position: relative;
+    margin-top: calc(-1 * var(--stage));
+  }
+  .scene,
+  .canvas,
+  .poster,
+  .grade {
+    position: absolute;
+    inset: 0;
+  }
+  .poster {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 500ms ease;
+  }
+  .poster.is-shown {
+    opacity: 1;
+  }
+  .canvas {
+    opacity: 0;
+    transition: opacity 800ms ease;
+  }
+  .is-live .canvas {
+    opacity: 1;
+  }
+  .is-live .poster {
+    visibility: hidden;
+    transition: visibility 0s 800ms;
+  }
+  /* The grade: the cover colour pooling in from the right, a fade under the
+     header, a dark floor under the rail and a soft vignette. */
+  .grade {
+    pointer-events: none;
+    background:
+      radial-gradient(70vmax 55vmax at 85% 40%, var(--ambient), transparent 70%),
+      linear-gradient(180deg, var(--ink-deep) 0, oklch(0.1 0.01 var(--seed-h) / 0) 140px),
+      linear-gradient(0deg, oklch(0.09 0.01 var(--seed-h) / 0.95) 0, oklch(0.09 0.01 var(--seed-h) / 0) 170px),
+      radial-gradient(130% 100% at 60% 50%, transparent 55%, oklch(0.06 0.01 var(--seed-h) / 0.6) 100%);
+    mix-blend-mode: normal;
+  }
+
+  .display {
+    font-size: clamp(3rem, 7vw, 6.25rem);
+    line-height: 0.94;
+    font-stretch: 76%;
+    letter-spacing: -0.02em;
+  }
+  .display em {
+    font-style: normal;
+    color: var(--accent);
+    transition: color var(--d-theme) var(--ease-inout);
+  }
+  .lede {
+    max-width: 30rem;
+    font-size: clamp(var(--t-lg), 1.35vw, var(--t-xl));
+    line-height: 1.6;
+    color: var(--fg-2);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    padding-top: var(--s-2);
+  }
+  .scroll-cue {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    margin-top: var(--s-3);
+    color: var(--fg-3);
+    font: 500 var(--t-sm) / 1 var(--f-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+  .scroll-cue:hover {
+    color: var(--fg-1);
+  }
+  .stop-title {
+    font-size: clamp(2rem, 3.4vw, var(--t-5xl));
+    line-height: 1;
+  }
+  .line {
+    color: var(--fg-2);
+    line-height: 1.65;
+  }
+  .points {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    margin: var(--s-2) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .points li {
+    padding: 5px 10px;
+    border-radius: var(--r-chip);
+    background: var(--accent-wash);
+    color: var(--fg-1);
+    font-size: var(--t-sm);
+    font-weight: 500;
+  }
+
+  .mobile-cta {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .poster,
+    .canvas {
+      transition: none;
+    }
+  }
+
+  /* Poster capture: the bare canvas, nothing over it. */
+  :global(.capture) .grade,
+  :global(.capture) .poster {
+    display: none;
+  }
+  :global(.capture) .canvas {
+    transition: none;
+  }
+  :global(.capture) .stops {
+    visibility: hidden;
+  }
+
+  /* Phones and narrow windows: hero copy, then the poster, then the buttons. */
+  @media (max-width: 899px) {
+    .tour {
+      display: flex;
+      flex-direction: column;
+    }
+    .stops {
+      order: 1;
+      margin-top: 0;
+    }
+    .stage {
+      order: 2;
+      position: relative;
+      height: auto;
+      overflow: visible;
+    }
+    .mobile-cta {
+      order: 3;
+      display: flex;
+      flex-direction: column;
+      gap: var(--s-3);
+      padding: var(--s-5) var(--gutter) var(--s-6);
+    }
+    .display {
+      font-size: clamp(2.6rem, 12vw, 3.6rem);
+    }
+    .actions,
+    .scroll-cue {
+      display: none;
+    }
+    .scene {
+      position: relative;
+      margin-top: -8px;
+      aspect-ratio: 780 / 966;
+      -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 80px, #000 85%, transparent);
+      mask-image: linear-gradient(180deg, transparent 0, #000 80px, #000 85%, transparent);
+    }
+    .poster.later,
+    .canvas,
+    .grade {
+      display: none;
+    }
+  }
+</style>

@@ -1,0 +1,104 @@
+---
+import Brand from './Brand.astro';
+import Icon from './Icon.astro';
+import { GITHUB_REPO_URL } from '../lib/site';
+---
+
+<header class="header">
+  <div class="wrap bar">
+    <Brand />
+    <nav aria-label="Main">
+      <ul>
+        <li class="wide"><a href="#features">Features</a></li>
+        <li class="wide"><a href="#screens">Screens</a></li>
+        <li class="wide">
+          <a href={GITHUB_REPO_URL} rel="noopener">GitHub</a>
+        </li>
+        <li>
+          <a class="get" href="#download"><Icon name="download" size={16} />Download</a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .header {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 20;
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-5);
+    height: 84px;
+  }
+  ul {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  a:not(.get) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: var(--r-pill);
+    color: var(--fg-2);
+    font-size: var(--t-md);
+    font-weight: 500;
+    text-decoration: none;
+    transition: color var(--d-2) var(--ease-out);
+  }
+  a:not(.get):hover {
+    color: var(--fg-1);
+  }
+  .get {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 18px;
+    margin-left: var(--s-2);
+    border-radius: var(--r-pill);
+    background: var(--glass);
+    border: 1px solid var(--glass-edge);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+    color: var(--fg-1);
+    font-size: var(--t-md);
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color var(--d-2) var(--ease-out);
+  }
+  .get:hover {
+    border-color: var(--line-strong);
+  }
+  @media (max-width: 760px) {
+    .wide {
+      display: none;
+    }
+    .bar {
+      height: 72px;
+    }
+  }
+  @media (max-width: 400px) {
+    /* Hidden from sight, kept as the home link's name. */
+    .bar :global(.name) {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+  }
+  :global(.capture) .header {
+    display: none;
+  }
+</style>

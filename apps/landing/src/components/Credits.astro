@@ -1,0 +1,88 @@
+---
+import { AUTHOR_URL, LICENSE_URL, NOTICES_URL } from '../lib/site';
+---
+
+<section id="credits" class="section credits" aria-labelledby="credits-title">
+  <div class="wrap">
+    <p class="eyebrow">Credits and notices</p>
+    <h2 class="title" id="credits-title">Who made this, and with what.</h2>
+    <dl class="list">
+      <div>
+        <dt>Made by</dt>
+        <dd>
+          I build KireiManga on my own, as <a href={AUTHOR_URL} rel="noopener">Shironex</a>. Kirei,
+          the girl with the glasses, is the project's mascot.
+        </dd>
+      </div>
+      <div>
+        <dt>Licence</dt>
+        <dd>
+          Source available under the <a href={LICENSE_URL} rel="noopener">KireiManga licence</a>:
+          free for personal, non-commercial use.
+        </dd>
+      </div>
+      <div>
+        <dt>Inside the app</dt>
+        <dd>
+          Tauri, Rust and React, plus third party code such as UnRAR for CBR archives. The full list
+          is in <a href={NOTICES_URL} rel="noopener">THIRD_PARTY_NOTICES</a>.
+        </dd>
+      </div>
+      <div>
+        <dt>This page</dt>
+        <dd>
+          Built with Astro, three.js and React Three Fiber (MIT). Type is Bricolage Grotesque, Onest,
+          Shippori Mincho and JetBrains Mono, all under the SIL Open Font License.
+        </dd>
+      </div>
+      <div>
+        <dt>Art</dt>
+        <dd>
+          Every cover and manga page shown here is fictional art made for the project. The screens
+          are captures of the design prototype.
+        </dd>
+      </div>
+      <div>
+        <dt>Online services</dt>
+        <dd>
+          MangaDex and AniList support arrives in 1.1. KireiManga is not affiliated with either, and
+          it credits MangaDex and the scanlation groups wherever their work is shown.
+        </dd>
+      </div>
+    </dl>
+  </div>
+</section>
+
+<style>
+  .credits {
+    border-top: 1px solid var(--line);
+    padding-block: clamp(64px, 8vw, 112px);
+  }
+  .title {
+    font-size: clamp(1.9rem, 3.4vw, var(--t-5xl));
+    max-width: 18ch;
+  }
+  .list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+    gap: var(--s-6) var(--s-7);
+    margin: var(--s-7) 0 0;
+  }
+  dt {
+    margin-bottom: var(--s-2);
+    font: 500 var(--t-xs) / 1.2 var(--f-mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  dd {
+    margin: 0;
+    color: var(--fg-2);
+    font-size: var(--t-md);
+    line-height: 1.65;
+  }
+  dd a {
+    color: var(--fg-1);
+    text-underline-offset: 3px;
+  }
+</style>
