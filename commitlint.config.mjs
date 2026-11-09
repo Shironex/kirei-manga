@@ -39,6 +39,7 @@ export default {
         'assets',
         '3d',
         'design',
+        'stats',
       ],
     ],
     'subject-case': [2, 'never', ['sentence-case', 'pascal-case', 'upper-case', 'start-case']],

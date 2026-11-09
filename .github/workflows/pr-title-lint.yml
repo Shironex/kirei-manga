@@ -54,6 +54,7 @@ jobs:
             assets
             3d
             design
+            stats
           requireScope: true
           subjectPattern: ^[a-z].+$
           subjectPatternError: |
