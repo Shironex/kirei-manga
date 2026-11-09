@@ -25,7 +25,7 @@ import {
 import { oklchToHex } from '../lib/color';
 import { GPU_CONTEXT } from '../tour/gate';
 import type { TourScroll } from '../tour/scroll';
-import { DESK_TOP, PHONE_FRAME, RIBBON_POINTS, STOPS } from '../tour/stops';
+import { DESK_TOP, LAST_STOP, PHONE_FRAME, RIBBON_POINTS, STOPS } from '../tour/stops';
 import { readAnchors, type Anchors } from './anchors';
 import { CameraRig } from './CameraRig';
 import { Mascot, SceneFile, useGltfPromise, useLoaders } from './Models';
@@ -239,7 +239,12 @@ function World(props: SceneOptions) {
             <Desk onModel={onModel} mascot={Boolean(mascotPromise)} />
           )}
           {mascotPromise && anchors?.mascot && (
-            <Mascot promise={mascotPromise} at={anchors.mascot} still={still} />
+            <Mascot
+              promise={mascotPromise}
+              at={anchors.mascot}
+              faceTo={(frames[LAST_STOP] ?? STOPS[LAST_STOP]!.frame).position}
+              still={still}
+            />
           )}
           {anchors && (
             <>

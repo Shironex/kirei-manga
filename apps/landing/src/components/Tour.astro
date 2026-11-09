@@ -6,7 +6,6 @@
  * On phones the stage is the hero poster under the hero copy, and the
  * features section below carries the stops.
  */
-import { existsSync } from 'node:fs';
 import { HERO, TOUR } from '../lib/copy';
 import { GITHUB_REPO_URL } from '../lib/site';
 import { STOPS } from '../tour/stops';
@@ -14,12 +13,10 @@ import Icon from './Icon.astro';
 import TourRail from './TourRail.astro';
 import TourStop from './TourStop.astro';
 
-// The scene files are optional: until they are dropped into public/3d the
-// island builds its placeholder nook. Checked at build time, so a missing
-// file never costs a failed request.
-const publicFile = (path: string) => existsSync(new URL(`../../public${path}`, import.meta.url));
-const sceneGlb = publicFile('/3d/scene.glb') ? '/3d/scene.glb' : undefined;
-const mascotGlb = publicFile('/3d/mascot.glb') ? '/3d/mascot.glb' : undefined;
+// Set in astro.config.mjs from what is in public/3d at build time, so a
+// missing file never costs a failed request.
+const sceneGlb = import.meta.env.SCENE_GLB || undefined;
+const mascotGlb = import.meta.env.MASCOT_GLB || undefined;
 
 const poster = (i: number, w: 960 | 1920) => `/3d/posters/stop-${i}-${w}.webp`;
 ---
