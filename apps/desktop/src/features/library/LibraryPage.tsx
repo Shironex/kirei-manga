@@ -1,6 +1,6 @@
-import { useDeferredValue, useMemo } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { getRouteApi } from '@tanstack/react-router';
-import { FolderPlus, RefreshCw, Search, TriangleAlert } from 'lucide-react';
+import { FolderPlus, ListChecks, RefreshCw, Search, TriangleAlert } from 'lucide-react';
 
 import { EmptyState } from '@/components/page/EmptyState';
 import { usePageHeading } from '@/components/page/usePageHeading';
@@ -15,11 +15,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { isMacPlatform } from '@/app/shell/platform';
+import { BulkBar } from '@/features/collections/BulkBar';
+import { ShelfRows } from '@/features/collections/ShelfRows';
 import { usePageCover } from '@/lib/theme/coverTheme';
 
 import { ContinueHero } from './ContinueHero';
 import { addFolderAndScan, refreshLibrary, rescanLibrary, useLibrary } from './libraryStore';
 import { ScanStatus } from './ScanStatus';
+import {
+  EMPTY_SELECTION,
+  keepShown,
+  select,
+  selectedInOrder,
+  toggleAll,
+  type Selection,
+} from './selection';
 import {
   continueShelf,
   FILTERS,
@@ -86,6 +97,7 @@ export function LibraryPage() {
   const heading = usePageHeading('Library');
   // The library wears the colours of the series it would resume.
   usePageCover(shelf.hero?.cover);
+  const bulk = useBulkSelect(shown);
 
   if (library.status === 'error') {
     return (
@@ -167,9 +179,10 @@ export function LibraryPage() {
 
   return (
     <>
-      {shelf.hero && !query.search && query.filter === 'all' && (
+      {shelf.hero && !query.search && query.filter === 'all' && !bulk.selecting && (
         <ContinueHero hero={shelf.hero} mode={shelf.mode} also={shelf.also} />
       )}
+      {!query.search && query.filter === 'all' && !bulk.selecting && <ShelfRows />}
 
       <section aria-labelledby="library-heading">
         <div className="mb-6 flex flex-wrap items-end gap-x-6 gap-y-3">
@@ -198,6 +211,22 @@ export function LibraryPage() {
               className="w-[220px] max-xl:basis-[calc(100%-100px)] max-xl:grow"
             />
             <span className="flex gap-2 xl:order-last">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={bulk.selecting ? 'secondary' : 'ghost'}
+                    size="icon"
+                    className="size-[38px]"
+                    aria-label="Select series to edit"
+                    aria-pressed={bulk.selecting}
+                    disabled={shown.length === 0}
+                    onClick={bulk.toggle}
+                  >
+                    <ListChecks />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Select series to tag or collect</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -263,7 +292,13 @@ export function LibraryPage() {
         <ScanStatus scan={library.scan} error={library.scanError} className="mb-6" />
 
         {shown.length > 0 ? (
-          <ShelfGrid series={shown} label="Series" />
+          <ShelfGrid
+            series={shown}
+            label="Series"
+            selection={
+              bulk.selecting ? { ids: bulk.selection.ids, onSelect: bulk.onSelect } : undefined
+            }
+          />
         ) : (
           library.status === 'ready' && (
             <EmptyState
@@ -291,6 +326,14 @@ export function LibraryPage() {
             </EmptyState>
           )
         )}
+        {bulk.selecting && (
+          <BulkBar
+            seriesIds={bulk.ids}
+            shownCount={shown.length}
+            onSelectAll={bulk.selectAll}
+            onDone={bulk.toggle}
+          />
+        )}
         {library.series.some(s => s.missing) && (
           <p className="mt-10 flex items-center gap-2 text-xs text-fg-3">
             <TriangleAlert className="size-3.5" aria-hidden /> Greyed out series have gone missing
@@ -300,4 +343,49 @@ export function LibraryPage() {
       </section>
     </>
   );
+}
+
+/**
+ * Selection mode of the grid for bulk edit. The selection follows the grid:
+ * series a search or filter hides drop out of it. Esc leaves selection mode
+ * and Ctrl or Cmd+A selects everything shown.
+ */
+function useBulkSelect(shown: readonly { id: number }[]) {
+  const [selecting, setSelecting] = useState(false);
+  const [selection, setSelection] = useState<Selection>(EMPTY_SELECTION);
+  const order = useMemo(() => shown.map(s => s.id), [shown]);
+
+  useEffect(() => {
+    setSelection(prev => keepShown(prev, order));
+  }, [order]);
+
+  useEffect(() => {
+    if (!selecting) return;
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, [role="dialog"], [data-slot="popover"]')) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setSelecting(false);
+        setSelection(EMPTY_SELECTION);
+      } else if (event.key === 'a' && (isMacPlatform() ? event.metaKey : event.ctrlKey)) {
+        event.preventDefault();
+        setSelection(prev => toggleAll(prev, order));
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selecting, order]);
+
+  return {
+    selecting,
+    selection,
+    ids: selectedInOrder(selection, order),
+    onSelect: (id: number, range: boolean) => setSelection(prev => select(prev, id, order, range)),
+    selectAll: () => setSelection(prev => toggleAll(prev, order)),
+    toggle: () => {
+      setSelecting(on => !on);
+      setSelection(EMPTY_SELECTION);
+    },
+  };
 }

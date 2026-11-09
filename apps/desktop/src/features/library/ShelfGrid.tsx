@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type FocusEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type FocusEvent, type MouseEvent } from 'react';
 
 import type { SeriesSummary } from '@/lib/library';
 import { useCoverPreview } from '@/lib/theme/coverTheme';
@@ -8,6 +8,12 @@ import { SeriesTile, TILE_CAPTION } from './SeriesTile';
 
 const SPEC: GridSpec = { minTile: 150, gapX: 24, gapY: 32, caption: TILE_CAPTION };
 const OVERSCAN = 2;
+
+/** Selection mode for bulk edit: which series are picked and what a click does. */
+export interface GridSelection {
+  ids: ReadonlySet<number>;
+  onSelect: (id: number, range: boolean) => void;
+}
 
 /** Nearest scrolling ancestor; the shell scrolls #main, not the window. */
 function scrollParent(el: HTMLElement): HTMLElement {
@@ -31,9 +37,18 @@ interface Viewport {
  * so 10k series cost as much as a screenful. Rows are absolutely placed from
  * fixed geometry (see gridLayout.ts), which keeps scrolling free of layout
  * work. A focused tile scrolls into view, so Tab walks the whole list.
- * Hovering or focusing a tile previews its cover colours.
+ * Hovering or focusing a tile previews its cover colours. With `selection`
+ * the tiles toggle instead of opening the series (see selection.ts).
  */
-export function ShelfGrid({ series, label }: { series: SeriesSummary[]; label: string }) {
+export function ShelfGrid({
+  series,
+  label,
+  selection,
+}: {
+  series: SeriesSummary[];
+  label: string;
+  selection?: GridSelection;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<Viewport>({ width: 0, scrollTop: 0, height: 900, top: 0 });
 
@@ -121,6 +136,12 @@ export function ShelfGrid({ series, label }: { series: SeriesSummary[]; label: s
           >
             <SeriesTile
               series={s}
+              selected={selection?.ids.has(s.id)}
+              onSelect={
+                selection
+                  ? (event: MouseEvent<HTMLElement>) => selection.onSelect(s.id, event.shiftKey)
+                  : undefined
+              }
               onFocus={event => onFocus(event, s)}
               onBlur={preview.leave}
               onPointerEnter={() => preview.enter(s.cover)}
