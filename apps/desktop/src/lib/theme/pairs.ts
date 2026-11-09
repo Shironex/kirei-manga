@@ -48,6 +48,12 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
   { fg: ['--accent'], bg: ['--ink-0'], min: AA_UI, use: 'Focus ring' },
   { fg: ['--accent'], bg: ['--ink-1', '--accent-wash'], min: AA_UI, use: 'Selected nav icon' },
   { fg: ['--accent'], bg: ['--ink-3'], min: AA_UI, use: 'Slider fill against its track' },
+  {
+    fg: ['--accent'],
+    bg: ['--ink-2'],
+    min: AA_UI,
+    use: 'Fullest heatmap day against an empty one',
+  },
   { fg: ['--fg-1'], bg: ['--ink-1'], min: AA_UI, use: 'Slider thumb' },
   { fg: ['--fg-2'], bg: ['--ink-3'], min: AA_UI, use: 'Switch thumb, off' },
   { fg: ['--on-accent'], bg: ['--accent'], min: AA_UI, use: 'Switch thumb, on' },
