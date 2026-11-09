@@ -22,6 +22,7 @@ export default {
         'desktop',
         'ui',
         'tauri',
+        'updater',
         // Repo and tooling
         'workspace',
         'rust',
