@@ -9,6 +9,7 @@
 //! and the series links and the offline queue in the library database; see
 //! `docs/tracking.md`.
 
+pub mod auth;
 mod client;
 mod config;
 mod error;
@@ -17,6 +18,7 @@ mod limiter;
 mod model;
 mod token;
 
+pub use auth::{CALLBACK_PATH, SignInListener, authorize_url, redirect_uri};
 pub use client::{AniList, MAX_PAGE_SIZE};
 pub use config::{ClientConfig, Endpoints, Limits, RetryPolicy, default_user_agent};
 pub use error::{AniListError, Result};
