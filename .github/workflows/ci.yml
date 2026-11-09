@@ -50,3 +50,20 @@ jobs:
       - run: pnpm test
       - name: Web build
         run: pnpm build
+
+  landing:
+    name: Landing build, budget and a11y
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - run: pnpm --filter @kireimanga/landing check
+      - run: pnpm build:landing
+      # Fails when the first view, the 3D island JS or its models grow past
+      # the budget in apps/landing/scripts/check-budget.mjs.
+      - run: pnpm --filter @kireimanga/landing check:budget
+      - run: pnpm --filter @kireimanga/landing exec playwright install --with-deps chromium
+      # axe WCAG 2.1 AA at desktop and phone widths, no sideways scroll, the
+      # 16px gutter, the page with JavaScript off and with reduced motion.
+      - run: pnpm --filter @kireimanga/landing check:page
