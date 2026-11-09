@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { AboutSection } from './AboutSection';
 import { AppearanceSection } from './AppearanceSection';
 import { DataSection } from './DataSection';
+import { DownloadsSection } from './DownloadsSection';
 import { LibrarySection } from './LibrarySection';
 import { ReaderSection } from './ReaderSection';
 import { ShortcutsSection } from './ShortcutsSection';
@@ -18,6 +19,7 @@ const SECTIONS = [
   { id: 'appearance', label: 'Appearance' },
   { id: 'reader', label: 'Reader' },
   { id: 'library', label: 'Library' },
+  { id: 'downloads', label: 'Downloads' },
   { id: 'data', label: 'Data' },
   { id: 'shortcuts', label: 'Shortcuts' },
   { id: 'about', label: 'About' },
@@ -108,6 +110,7 @@ export function SettingsPage() {
           <AppearanceSection />
           <ReaderSection />
           <LibrarySection />
+          <DownloadsSection />
           <DataSection />
           <ShortcutsSection />
           <AboutSection info={info} />
