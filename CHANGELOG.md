@@ -5,6 +5,106 @@ All notable changes to KireiManga are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - Unreleased
+
+KireiManga 1.0 is a rewrite from scratch in Tauri 2 and Rust. The Electron app that the 0.x entries below describe is kept under the `legacy-electron` tag, and nothing from its database is migrated: 1.0 starts clean. It ships a streaming local library, a new reader, MangaDex browsing and downloads, AniList tracking and a redesigned interface in one release.
+
+### Highlights
+
+- **A native core.** Archives are read in place and pages are decoded ahead of the reader, sized to the window, so there is no extraction step and page turns stay quick.
+- **MangaDex inside the app.** Browse, follow, read and download, with a grouped feed of new chapters, a language chain and read marker sync.
+- **A reader with comfort options.** Single, double and webtoon modes, image adjustments, remappable keys and cover colours that tint the chrome.
+- **Your library, your way.** Collections, tags, Want to Read and smart filters, plus a command palette and reading stats with a year in review.
+- **AniList tracking** and **offline downloads** to plain CBZ files.
+
+### What's New
+
+#### Library
+
+- A SQLite catalogue filled by an incremental folder scanner that understands loose chapter naming and `ComicInfo.xml`. CBZ, ZIP, CBR and image folders are streamed in place and never extracted.
+- Library folders are watched. Changes made while the app was closed are caught up at launch, and watcher rescans skip series whose chapters did not change.
+- Removing a folder keeps reading progress and per-series settings, and your files are never written to.
+- Series pages with metadata, chapters, read state and a continue reading hero on the home screen. Covers are cropped for the card and chosen from the first portrait page when the first page is a wide strip.
+- A cleanup screen that counts orphaned data and unused cover thumbnails before it removes anything.
+
+#### Reader
+
+- Single page, double page with spread detection and a page shift, and webtoon modes, left to right or right to left, with fit modes and a page pipeline that cancels stale renders.
+- Resampling filters (lanczos3, mitchell, nearest) and an adjust panel for brightness, contrast, saturation, sharpen, invert, grayscale and sepia, remembered per series.
+- Comfort options: webtoon detection, tall strips split into screen sized parts, webtoon chapters that run into the next with no seam, the next chapter opened ahead of time, and remappable reader keys with a conflict check.
+- The reader chrome takes its tint from the series cover.
+
+#### Cover colours
+
+- The palette of each cover is sampled at scan time and themes the library, series page and reader, with a blurred backdrop held to AA contrast. It can be turned off in Settings.
+
+#### MangaDex
+
+- Browse and search by title, sort and filters, a series page with chapters and scanlation groups, and reading MangaDex chapters in the normal reader.
+- Follow series, keep a reading status, and see new chapters in a feed grouped by series, refreshed in the background with an optional notification.
+- A language chain (Polish then English by default) and an "only my language" toggle.
+- Signing in syncs follows, reading statuses and read markers both ways. Credentials are kept in the OS keychain.
+- A request rate limiter and response cache keep the app inside the MangaDex limits.
+
+#### Downloads
+
+- A resumable queue that writes each chapter as a CBZ with `ComicInfo.xml` into a downloads folder the library watches, with atomic writes, rate limits and a data saver option.
+- Download from the series page, or let new feed chapters queue up automatically.
+
+#### AniList
+
+- Sign in through the browser, link a MangaDex or local series, and send progress when a chapter is finished. Updates made offline are queued and delivered later, and conflicts are reconciled by fixed rules.
+
+#### Collections and smart filters
+
+- Collections, free tags and a Want to Read list for local and MangaDex series, bulk edit in the library grid, and smart filters that can be pinned to the home screen as rows.
+
+#### Command palette
+
+- Ctrl+K or Cmd+K opens a palette that finds series, collections, filters, tags, screens and MangaDex titles.
+
+#### Reading stats
+
+- Reading sessions, totals, streaks, a heatmap and top series on a stats page, and a year in review card drawn on a canvas and saved as a PNG. Stats can be cleared from Settings.
+
+#### Data
+
+- Backup and restore the library to a single file, and a portable mode that keeps all data next to the app.
+- Signed in-app updates with a separate prerelease channel. Portable Windows copies update by hand.
+
+#### Interface and site
+
+- A new interface: dark gallery surfaces, self-hosted fonts and an app shell with a left rail.
+- A new landing site with a 3D desk tour and a static fallback, and real screenshots of the app made by `pnpm shots`.
+
+### Bug Fixes
+
+- Covers are remade when the cover rule changes, cropped to the card and sized for the large series hero.
+- Watcher rescans no longer run when no chapter changed, and a catch-up that finds nothing no longer leaves the scan flag set.
+- Reader defaults stay stable between renders.
+
+### Performance
+
+- Downscaled pages are encoded with `jpeg-encoder`.
+- The settings and reader routes load on demand.
+- The landing starts its 3D island on first intent, inlines its CSS and ships a subset of the display font.
+
+### Accessibility
+
+- Cover tinted surfaces are held to WCAG AA contrast, and reduced motion is respected (Settings can also force it).
+- The landing is checked for accessibility and page weight in CI.
+
+### Under the Hood
+
+- A Cargo workspace of crates (`kirei-core`, `kirei-archive`, `kirei-reader`, `kirei-library`, `kirei-mangadex`, `kirei-download`, `kirei-anilist`) behind a Tauri 2 shell with a React 19 interface.
+- CI for JavaScript and Rust on macOS and Windows, with ESLint, Prettier, commitlint, clippy, rustfmt and cargo-deny.
+- A release workflow that builds Windows and macOS installers from `v` tags, generates the updater feed and drafts release notes from conventional commits. The release builds are not code signed yet.
+- Rewrite documentation in `docs/`, including the decisions in `docs/spec.md`. The Electron era roadmaps are in `docs/legacy/`.
+
+### Dependencies
+
+- Tauri 2, React 19, Vite, Tailwind CSS v4, rusqlite (bundled SQLite), `notify`, `keyring`, `jpeg-encoder` and the Tauri updater, dialog, notification and window state plugins. Third party licences, including the UnRAR licence for CBR, are listed in `THIRD_PARTY_NOTICES`.
+
 ## [0.2.0] - 2026-04-16
 
 The **Local Library** milestone (PRD §5.2). Brings first-class support for
