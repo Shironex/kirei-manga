@@ -49,6 +49,12 @@ Appearance keys are applied to `<html>` by `useAppearanceSettings()`, mounted on
 | `tracking.enabled`      | `boolean`                                           | `false`      | AniList tracking (#45, `docs/tracking.md`): off, nothing is queued or sent                |
 | `tracking.autoUpdate`   | `boolean`                                           | `true`       | AniList tracking: queue progress when the reader finishes a chapter of a linked series    |
 | `tracking.conflict`     | `'higher' \| 'local'`                               | `'higher'`   | AniList tracking: which side wins when progress differs, see the conflict rules           |
+| `online.languages`      | `string[]` (MangaDex codes, 1 to 6, no repeats)     | `['pl', 'en']` | MangaDex (#43): preferred language first, then the fallbacks that fill its gaps, in order |
+| `online.onlyMyLanguage` | `boolean`                                           | `false`      | MangaDex (#43): list only the preferred language, never a fallback                        |
+| `online.contentRatings` | `('safe' \| 'suggestive' \| 'erotica' \| 'pornographic')[]`, never empty | `['safe', 'suggestive']` | MangaDex (#43): search, feed and chapter lists only show these ratings |
+| `online.dataSaver`      | `boolean`                                           | `false`      | MangaDex (#43): compressed pages when reading online (downloads have `downloads.dataSaver`) |
+| `online.notifications`  | `boolean`                                           | `true`       | MangaDex (#43): a system notification for new chapters of followed series                 |
+| `online.autoRefresh`    | `boolean`                                           | `true`       | MangaDex (#43): the 30 minute background refresh of follows, feed and read markers        |
 
 `downloads.concurrency` is refused outside 1 to 4 and `downloads.folder` unless it is null or an absolute path; `settings_set` applies a changed download key to the running queue at once (see `downloads::apply_settings`).
 
@@ -63,6 +69,10 @@ The `reader.*` keys are defaults (`reader.keys` aside). A choice made inside the
 The empty object means the built-in bindings (`DEFAULT_BINDINGS`). Once the user changes anything, the Settings screen stores every command, and goes back to `{}` when the bindings match the defaults again, so later built-in changes still reach users who never customised. A command the stored map does not name (one added by a later build) keeps its built-in keys, minus any the user already gave to another command (`resolveBindings`).
 
 Rust checks the shape only: command names of lower case letters, digits and dashes, at most 4 keys per command, names up to 32 characters, and no key on two commands. The Settings screen never gets that far: a key another command holds is offered to move ("Move it here" or "Keep it there") instead of being taken silently. The four arrow commands keep their meaning on any key: `page-left` and `page-right` follow the reading direction, `page-down` and `page-up` scroll a little in webtoon.
+
+The `online.*` keys reach the Rust MangaDex client as soon as they are written (`online::apply_settings`, called from `settings_set`). MangaDex credentials are never settings: they live in the system keychain (see `docs/online.md`).
+
+The Settings route takes a `section` search param (`/settings?section=accounts`) that opens the page on that section, so a "Sign in again" link lands on the Accounts row.
 
 ## Adding a key
 
