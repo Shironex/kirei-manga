@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 
 import { NAV_SHORTCUTS } from '@/app/shell/useShortcuts';
 import { modKeyLabel } from '@/app/shell/platform';
+import { useShelf } from '@/features/collections/shelfStore';
 import { useLibrary } from '@/features/library/libraryStore';
 import { getSeriesDetail } from '@/lib/library';
 
@@ -11,6 +12,7 @@ import {
   SECTION_LIMITS,
   searchEntries,
   seriesEntries,
+  shelfEntries,
   staticEntries,
 } from './index';
 import { resolveRecents } from './recents';
@@ -43,14 +45,17 @@ export interface PaletteResults {
 export function usePaletteResults(query: string, recent: PaletteItem[]): PaletteResults {
   const { series, version } = useLibrary();
   const index = useMemo(() => seriesEntries(series), [series]);
+  const { overview } = useShelf();
+  const shelf = useMemo(() => shelfEntries(overview), [overview]);
   const fixed = useMemo(() => staticEntries(path => [modKeyLabel(), NAV_SHORTCUTS[path]]), []);
 
   const byId = useMemo(() => {
     const map = new Map<string, PaletteItem>();
     for (const e of fixed) map.set(e.item.id, e.item);
     for (const e of index) map.set(e.item.id, e.item);
+    for (const e of shelf) map.set(e.item.id, e.item);
     return map;
-  }, [fixed, index]);
+  }, [fixed, index, shelf]);
 
   const seriesIds = useMemo(() => new Set(series.map(s => s.id)), [series]);
 
@@ -63,6 +68,7 @@ export function usePaletteResults(query: string, recent: PaletteItem[]): Palette
       out[section] = searchEntries(entries, query, SECTION_LIMITS[section]).map(h => h.item);
     };
     run('series', index);
+    run('shelf', shelf);
     run(
       'pages',
       fixed.filter(e => e.item.section === 'pages')
@@ -76,7 +82,7 @@ export function usePaletteResults(query: string, recent: PaletteItem[]): Palette
       fixed.filter(e => e.item.section === 'actions')
     );
     return out;
-  }, [query, index, fixed]);
+  }, [query, index, shelf, fixed]);
 
   const chapters = useChapterHits(query, version, local.series);
   const online = useSourceHits(query);
@@ -98,6 +104,7 @@ export function usePaletteResults(query: string, recent: PaletteItem[]): Palette
       add('actions', rest('actions'));
     } else {
       add('series', local.series);
+      add('shelf', local.shelf);
       add('chapters', chapters);
       add('pages', local.pages);
       add('settings', local.settings);
