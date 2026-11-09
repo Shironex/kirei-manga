@@ -131,9 +131,8 @@ impl Link {
             Self::Website => "https://kireimanga.app",
             Self::Repository => "https://github.com/Shironex/kirei-manga",
             Self::Issues => "https://github.com/Shironex/kirei-manga/issues",
-            // Points at the rewrite branch until it becomes master at 1.0.
             Self::Notices => {
-                "https://github.com/Shironex/kirei-manga/blob/rewrite/tauri/THIRD_PARTY_NOTICES"
+                "https://github.com/Shironex/kirei-manga/blob/master/THIRD_PARTY_NOTICES"
             }
         }
     }
