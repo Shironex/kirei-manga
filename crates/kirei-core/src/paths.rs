@@ -35,6 +35,9 @@ const WINDOW_STATE_FILE: &str = ".window-state.json";
 const BACKUPS_DIR: &str = "backups";
 const RESTORE_STAGING_DIR: &str = "restore-staging";
 const RESTORE_PENDING_FILE: &str = "restore-pending";
+const DOWNLOADS_DIR: &str = "downloads";
+const DOWNLOAD_QUEUE_FILE: &str = "downloads.sqlite3";
+const DOWNLOAD_STAGING_DIR: &str = "download-staging";
 
 /// Which kind of data directory is in use.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -123,6 +126,24 @@ impl DataPaths {
     /// Present while a staged restore waits to be swapped in at launch.
     pub fn restore_pending(&self) -> PathBuf {
         self.root.join(RESTORE_PENDING_FILE)
+    }
+
+    /// The default downloads folder, added to the library as a root of its
+    /// own. Users may point downloads somewhere else in Settings.
+    pub fn downloads(&self) -> PathBuf {
+        self.root.join(DOWNLOADS_DIR)
+    }
+
+    /// The download queue, a small SQLite file of its own so queue writes
+    /// never contend with the library database.
+    pub fn download_queue(&self) -> PathBuf {
+        self.root.join(DOWNLOAD_QUEUE_FILE)
+    }
+
+    /// Pages of chapters still downloading, one folder per chapter. Kept out
+    /// of every library root so a half finished chapter is never scanned.
+    pub fn download_staging(&self) -> PathBuf {
+        self.root.join(DOWNLOAD_STAGING_DIR)
     }
 }
 
@@ -228,6 +249,9 @@ mod tests {
             paths.backups(),
             paths.restore_staging(),
             paths.restore_pending(),
+            paths.downloads(),
+            paths.download_queue(),
+            paths.download_staging(),
         ] {
             assert!(path.starts_with("/x/data"), "{path:?}");
         }
