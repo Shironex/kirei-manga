@@ -26,6 +26,7 @@ kirei-reader = { path = "crates/kirei-reader" }
 kirei-library = { path = "crates/kirei-library" }
 kirei-mangadex = { path = "crates/kirei-mangadex" }
 kirei-download = { path = "crates/kirei-download" }
+kirei-anilist = { path = "crates/kirei-anilist" }
 
 # External. Versions live here, never in a leaf crate, so the tree stays unified.
 serde = { version = "1", features = ["derive"] }
@@ -101,6 +102,11 @@ tokio = { version = "1", default-features = false, features = ["sync", "time"] }
 url = "2.5"
 # Response bodies, shared without copying between the cache and callers. MIT.
 bytes = "1"
+
+# AniList tracking (kirei-anilist).
+# OS randomness for the sign in nonce. Already in the tree through rustls and
+# tempfile. MIT OR Apache-2.0.
+getrandom = "0.3"
 
 # Test-only helpers.
 # Local HTTP server that replays recorded MangaDex responses. MIT OR Apache-2.0.

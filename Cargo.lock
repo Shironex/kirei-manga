@@ -2114,6 +2114,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "kirei-anilist"
+version = "0.3.0"
+dependencies = [
+ "getrandom 0.3.4",
+ "reqwest",
+ "rustls",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "url",
+ "wiremock",
+]
+
+[[package]]
 name = "kirei-archive"
 version = "0.3.0"
 dependencies = [
