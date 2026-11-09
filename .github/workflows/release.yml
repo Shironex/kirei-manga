@@ -1,0 +1,556 @@
+name: Release
+
+# Builds signed installers for a `v*` tag and attaches them, with the signed
+# updater feed (latest.json), to a GitHub release. docs/release.md has the
+# secrets, the variables and the release steps.
+#
+# - A tag with a prerelease suffix (v1.0.0-rc.1) publishes a prerelease at once
+#   and refreshes the rolling prerelease feed the app's prerelease installs read.
+# - A plain tag (v1.0.0) creates a draft. Publishing it is a human step taken
+#   in the GitHub UI once the verify jobs are green; only then does the stable
+#   feed (releases/latest/download/latest.json) start serving it.
+#
+# ## Code signing switches
+#
+# Authenticode (Windows) and Developer ID plus notarization (macOS) are gated on
+# the repository variables WINDOWS_SIGNING_ENABLED and MACOS_SIGNING_ENABLED
+# rather than on the secrets: the `secrets` context cannot be read from an
+# `if:`, and one variable keeps the build side and the verify side switching
+# together. Set a variable to `true` together with its secrets, never before.
+# With both off the Windows installer is unsigned and the macOS app is ad-hoc
+# signed; the updater feed is minisign-signed either way.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  HUSKY: 0
+  CARGO_TERM_COLOR: always
+
+jobs:
+  preflight:
+    name: Check secrets and version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v6
+
+      # Fails in seconds, before any runner spends half an hour building, and
+      # names every missing secret at once. Values are only tested for being
+      # empty, never printed.
+      - name: Check the release secrets
+        shell: bash
+        env:
+          WINDOWS_SIGNING_ENABLED: ${{ vars.WINDOWS_SIGNING_ENABLED }}
+          MACOS_SIGNING_ENABLED: ${{ vars.MACOS_SIGNING_ENABLED }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          required=(TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
+          if [ "${WINDOWS_SIGNING_ENABLED}" = "true" ]; then
+            required+=(WINDOWS_CERTIFICATE WINDOWS_CERTIFICATE_PASSWORD)
+          fi
+          if [ "${MACOS_SIGNING_ENABLED}" = "true" ]; then
+            required+=(APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID)
+          fi
+          missing=()
+          for name in "${required[@]}"; do
+            if [ -z "${!name}" ]; then missing+=("${name}"); fi
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error title=Missing release secrets::Set these repository secrets (Settings > Secrets and variables > Actions), see docs/release.md: ${missing[*]}"
+            exit 1
+          fi
+          echo "Release secrets present: ${required[*]}"
+          echo "Windows signing: ${WINDOWS_SIGNING_ENABLED:-false}, macOS signing: ${MACOS_SIGNING_ENABLED:-false}"
+
+      # A build carrying the placeholder key would ship an app that rejects
+      # every update it is ever offered.
+      - name: Check the updater public key
+        run: |
+          node -e '
+            const conf = require("./apps/desktop/src-tauri/tauri.conf.json");
+            const key = conf.plugins?.updater?.pubkey ?? "";
+            const text = Buffer.from(key, "base64").toString("utf8");
+            if (!text.startsWith("untrusted comment: minisign public key")) {
+              console.log("::error title=Updater public key not set::plugins.updater.pubkey in apps/desktop/src-tauri/tauri.conf.json is not a minisign public key. Generate the key pair as docs/release.md describes and commit the public key.");
+              process.exit(1);
+            }
+          '
+
+      - name: Resolve the version from the tag
+        id: version
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          if ! [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error title=Bad tag::${TAG} is not v<semver>, for example v1.0.0 or v1.0.0-rc.1"
+            exit 1
+          fi
+          prerelease=false
+          if [[ "${version}" == *-* ]]; then prerelease=true; fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${prerelease}" >> "$GITHUB_OUTPUT"
+          echo "Releasing ${version} (prerelease: ${prerelease})"
+
+  build:
+    name: Build (${{ matrix.platform }} ${{ matrix.arch }})
+    needs: preflight
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: macos
+            arch: aarch64
+            target: aarch64-apple-darwin
+          # Cross-compiled on the arm64 runner: GitHub has no current Intel
+          # macOS image, and the toolchain targets x86_64 natively.
+          - os: macos-latest
+            platform: macos
+            arch: x64
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            platform: windows
+            arch: x64
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      VERSION: ${{ needs.preflight.outputs.version }}
+      BUNDLE_DIR: target/${{ matrix.target }}/release/bundle
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup show
+          rustup target add ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-release-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.target }}-cargo-release-
+
+      # The tag is the version. Cargo.lock goes stale for the workspace crates,
+      # which is why the build below does not pass --locked.
+      - name: Stamp the release version
+        run: node scripts/set-version.mjs "${VERSION}"
+
+      # Imports the Authenticode certificate so `certificateThumbprint` in the
+      # overlay below can find it.
+      - name: Import the Windows signing certificate
+        id: windows-cert
+        if: matrix.platform == 'windows' && vars.WINDOWS_SIGNING_ENABLED == 'true'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'signing.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $password = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password
+          Remove-Item $pfx -Force
+          "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+
+      # Signing config is an overlay rather than a tauri.conf.json entry so a
+      # local `pnpm tauri build` never asks for a certificate it cannot have.
+      # `tauri build --config` deep-merges it over the committed file.
+      - name: Write the signing config overlay
+        id: signing-overlay
+        shell: bash
+        env:
+          WINDOWS_SIGNING: ${{ matrix.platform == 'windows' && vars.WINDOWS_SIGNING_ENABLED == 'true' }}
+          MACOS_SIGNING: ${{ matrix.platform == 'macos' && vars.MACOS_SIGNING_ENABLED == 'true' }}
+          THUMBPRINT: ${{ steps.windows-cert.outputs.thumbprint }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          overlay="${RUNNER_TEMP}/signing.conf.json"
+          if [ "${WINDOWS_SIGNING}" = "true" ]; then
+            cat > "${overlay}" <<JSON
+          {
+            "bundle": {
+              "windows": {
+                "certificateThumbprint": "${THUMBPRINT}",
+                "digestAlgorithm": "sha256",
+                "timestampUrl": "http://timestamp.digicert.com"
+              }
+            }
+          }
+          JSON
+          elif [ "${MACOS_SIGNING}" = "true" ]; then
+            # Replaces the ad-hoc "-" identity of tauri.conf.json.
+            jq -n --arg id "${APPLE_SIGNING_IDENTITY}" '{bundle: {macOS: {signingIdentity: $id}}}' > "${overlay}"
+          else
+            echo "No code signing for this build"
+            exit 0
+          fi
+          echo "args=--config ${overlay}" >> "$GITHUB_OUTPUT"
+
+      # TAURI_SIGNING_PRIVATE_KEY makes the bundler write a minisign .sig next
+      # to every updater artifact. The APPLE_* variables make it import the
+      # Developer ID certificate into a temporary keychain, sign, notarize and
+      # staple; they are unset on any build that must not sign, because an
+      # empty APPLE_CERTIFICATE still sends the bundler down the import path.
+      - name: Build the bundle
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ matrix.platform == 'macos' && vars.MACOS_SIGNING_ENABLED == 'true' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ matrix.platform == 'macos' && vars.MACOS_SIGNING_ENABLED == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos' && vars.MACOS_SIGNING_ENABLED == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+          APPLE_ID: ${{ matrix.platform == 'macos' && vars.MACOS_SIGNING_ENABLED == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ matrix.platform == 'macos' && vars.MACOS_SIGNING_ENABLED == 'true' && secrets.APPLE_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ matrix.platform == 'macos' && vars.MACOS_SIGNING_ENABLED == 'true' && secrets.APPLE_TEAM_ID || '' }}
+        run: |
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then unset "${name}"; fi
+          done
+          pnpm tauri build --target ${{ matrix.target }} ${{ steps.signing-overlay.outputs.args }}
+
+      # Authenticode rewrites the installer's bytes, so a minisign signature
+      # made before it describes a file that no longer exists and every client
+      # would reject the update. Order: build, Authenticode, re-sign, publish.
+      # Only on the signed path; an unsigned build's signature is already right.
+      - name: Re-sign the installer after Authenticode
+        if: matrix.platform == 'windows' && vars.WINDOWS_SIGNING_ENABLED == 'true'
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          shopt -s nullglob
+          installers=("${BUNDLE_DIR}"/nsis/*-setup.exe)
+          if [ ${#installers[@]} -eq 0 ]; then
+            echo "::error::No NSIS installer to re-sign"
+            exit 1
+          fi
+          for installer in "${installers[@]}"; do
+            echo "Re-signing ${installer}"
+            # Absolute and in Windows form: `pnpm tauri` runs in apps/desktop.
+            pnpm tauri signer sign "$(cygpath -w "${PWD}/${installer}")"
+          done
+
+      - name: Collect the bundles
+        shell: bash
+        run: |
+          mkdir -p dist-release
+          shopt -s nullglob
+          for file in \
+            "${BUNDLE_DIR}"/dmg/*.dmg \
+            "${BUNDLE_DIR}"/macos/*.app.tar.gz \
+            "${BUNDLE_DIR}"/macos/*.app.tar.gz.sig \
+            "${BUNDLE_DIR}"/nsis/*-setup.exe \
+            "${BUNDLE_DIR}"/nsis/*-setup.exe.sig
+          do
+            cp "${file}" dist-release/
+          done
+
+          # Tauri names the updater archive a bare KireiManga.app.tar.gz, the
+          # same for both architectures, and the manifest reads the arch from
+          # the file name. Renaming keeps the minisign signature valid: it
+          # covers the bytes, not the name.
+          if [ "${{ matrix.platform }}" = "macos" ]; then
+            archives=(dist-release/*.app.tar.gz)
+            if [ ${#archives[@]} -ne 1 ]; then
+              echo "::error::Expected exactly one .app.tar.gz, found ${#archives[@]}"
+              exit 1
+            fi
+            renamed="dist-release/KireiManga_${VERSION}_${{ matrix.arch }}.app.tar.gz"
+            mv "${archives[0]}" "${renamed}"
+            mv "${archives[0]}.sig" "${renamed}.sig"
+          fi
+          ls -la dist-release
+
+      - name: Upload the bundles
+        uses: actions/upload-artifact@v7
+        with:
+          name: bundle-${{ matrix.platform }}-${{ matrix.arch }}
+          path: dist-release/*
+          if-no-files-found: error
+          retention-days: 14
+
+  manifest:
+    name: Build latest.json
+    needs: [preflight, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Download the bundles
+        uses: actions/download-artifact@v8
+        with:
+          pattern: bundle-*
+          path: bundles
+          merge-multiple: true
+
+      # Node builtins only, so no workspace install.
+      - name: Self-test the manifest builder
+        run: node scripts/build-update-manifest.mjs --self-test
+
+      - name: Build latest.json
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          node scripts/build-update-manifest.mjs \
+            --artifacts bundles --out manifest \
+            --version "${VERSION}" --tag "${TAG}" --repo "${REPO}" \
+            --notes "Release notes: https://github.com/${REPO}/releases/tag/${TAG}"
+          cat manifest/latest.json
+
+      - name: Upload latest.json
+        uses: actions/upload-artifact@v7
+        with:
+          name: manifest
+          path: manifest/latest.json
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish the release
+    needs: [preflight, manifest]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      PRERELEASE: ${{ needs.preflight.outputs.prerelease }}
+    steps:
+      # Full history and tags: the notes cover the range since the last tag.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Self-test the notes builder
+        run: node scripts/release-notes.mjs --self-test
+
+      - name: Draft the release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          node scripts/release-notes.mjs --tag "${TAG}" --repo "${REPO}" --out "${RUNNER_TEMP}/notes.md"
+          cat "${RUNNER_TEMP}/notes.md"
+
+      - name: Download the release assets
+        uses: actions/download-artifact@v8
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      # A prerelease goes out at once so the next prerelease can update it. A
+      # stable release stays a draft: no asset URL is served and the stable
+      # feed keeps answering with the previous release until a human publishes.
+      - name: Create the release
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        with:
+          draft: ${{ env.PRERELEASE != 'true' }}
+          prerelease: ${{ env.PRERELEASE == 'true' }}
+          make_latest: ${{ env.PRERELEASE == 'true' && 'false' || 'legacy' }}
+          tag_name: ${{ github.ref_name }}
+          name: KireiManga ${{ needs.preflight.outputs.version }}
+          body_path: ${{ runner.temp }}/notes.md
+          fail_on_unmatched_files: true
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  verify-minisign:
+    name: Verify update signatures
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # `write` although this job only reads: GitHub hides draft releases from a
+    # token without push access.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install minisign
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends minisign
+
+      # Downloaded again rather than reused from the build: the point is that
+      # the bytes GitHub serves are the bytes the signature covers.
+      - name: Download the published assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p verify && cd verify
+          gh release download "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --pattern 'latest.json' --pattern '*-setup.exe' --pattern '*.app.tar.gz'
+
+      - name: Verify every updater artifact against latest.json
+        run: |
+          cd verify
+          # `pubkey` in tauri.conf.json is the base64 of the whole .pub file and
+          # each feed `signature` the base64 of a .sig file; minisign wants both
+          # back in their original form. Every platform is checked: one left out
+          # here would ship unverified. The script is JavaScript, so its ${} are
+          # template literals, not shell expansions.
+          # shellcheck disable=SC2016
+          node -e '
+            const fs = require("fs");
+            const conf = JSON.parse(fs.readFileSync("../apps/desktop/src-tauri/tauri.conf.json", "utf8"));
+            const pub = Buffer.from(conf.plugins.updater.pubkey, "base64").toString("utf8");
+            fs.writeFileSync("updater.pub", pub.endsWith("\n") ? pub : pub + "\n");
+            const feed = JSON.parse(fs.readFileSync("latest.json", "utf8"));
+            const names = [];
+            for (const key of ["windows-x86_64", "darwin-aarch64", "darwin-x86_64"]) {
+              const entry = feed.platforms[key];
+              if (!entry) throw new Error(`latest.json carries no ${key} entry`);
+              const name = new URL(entry.url).pathname.split("/").pop();
+              if (!fs.existsSync(name)) throw new Error(`latest.json points at ${name}, which is not in the release`);
+              const sig = Buffer.from(entry.signature, "base64").toString("utf8");
+              fs.writeFileSync(`${name}.feed-sig`, sig.endsWith("\n") ? sig : sig + "\n");
+              names.push(name);
+            }
+            fs.writeFileSync("artifacts.list", names.join("\n") + "\n");
+          '
+          while read -r name; do
+            minisign -V -m "${name}" -x "${name}.feed-sig" -p updater.pub
+            echo "minisign verification passed for ${name}"
+          done < artifacts.list
+
+  verify-authenticode:
+    name: Verify Authenticode signature
+    needs: publish
+    if: ${{ vars.WINDOWS_SIGNING_ENABLED == 'true' }}
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download the published installer
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p verify && cd verify
+          gh release download "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --pattern '*-setup.exe'
+
+      - name: Verify with signtool
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match 'x64' } | Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe not found on the runner' }
+          Get-ChildItem verify\*-setup.exe | ForEach-Object {
+            & $signtool.FullName verify /pa /v $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Authenticode verification failed for $($_.Name)" }
+          }
+
+  verify-notarization:
+    name: Verify Developer ID and notarization
+    needs: publish
+    if: ${{ vars.MACOS_SIGNING_ENABLED == 'true' }}
+    runs-on: macos-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download the published app archives
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p verify && cd verify
+          gh release download "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --pattern '*.app.tar.gz'
+
+      # Gatekeeper's own verdict on each architecture's app: a Developer ID
+      # signature and a stapled notarization ticket.
+      - name: Assess with codesign, stapler and spctl
+        run: |
+          cd verify
+          for archive in *.app.tar.gz; do
+            dir="${archive%.app.tar.gz}"
+            mkdir -p "${dir}" && tar -xzf "${archive}" -C "${dir}"
+            app="${dir}/KireiManga.app"
+            codesign --verify --deep --strict --verbose=2 "${app}"
+            xcrun stapler validate "${app}"
+            spctl --assess --type execute --verbose=4 "${app}"
+            echo "Developer ID and notarization verified for ${archive}"
+          done
+
+  prerelease-feed:
+    name: Refresh the prerelease update feed
+    needs: [preflight, verify-minisign, verify-authenticode, verify-notarization]
+    # Runs after the optional verify jobs whether they ran or were skipped,
+    # never after one of them failed.
+    if: >-
+      ${{ !cancelled()
+      && needs.preflight.outputs.prerelease == 'true'
+      && needs.verify-minisign.result == 'success'
+      && needs.verify-authenticode.result != 'failure'
+      && needs.verify-notarization.result != 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      FEED_TAG: updater-prerelease
+    steps:
+      # The app's prerelease installs read latest.json from the fixed
+      # `updater-prerelease` release (see apps/desktop/src-tauri/src/updater.rs).
+      # It is itself marked a prerelease, so it can never become the latest
+      # release that the stable feed URL resolves to.
+      - name: Copy latest.json to the prerelease feed
+        run: |
+          gh release download "${{ github.ref_name }}" --repo "${REPO}" --pattern latest.json
+          if ! gh release view "${FEED_TAG}" --repo "${REPO}" > /dev/null 2>&1; then
+            gh release create "${FEED_TAG}" --repo "${REPO}" \
+              --prerelease --latest=false --target "${GITHUB_SHA}" \
+              --title "Prerelease update feed" \
+              --notes "Holds latest.json for installs of KireiManga prereleases. Not a release: download installers from the versioned releases."
+          fi
+          gh release upload "${FEED_TAG}" latest.json --repo "${REPO}" --clobber
+          echo "Prerelease feed now announces ${{ needs.preflight.outputs.version }}"
