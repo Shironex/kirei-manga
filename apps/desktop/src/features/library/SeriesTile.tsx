@@ -1,5 +1,6 @@
-import type { ComponentProps } from 'react';
+import type { FocusEventHandler, MouseEvent, PointerEventHandler } from 'react';
 import { Link } from '@tanstack/react-router';
+import { Check } from 'lucide-react';
 
 import { Progress } from '@/components/ui/progress';
 import type { SeriesSummary } from '@/lib/library';
@@ -21,27 +22,70 @@ function subline(series: SeriesSummary): string {
   return series.chapterCount === 1 ? '1 chapter' : `${series.chapterCount} chapters`;
 }
 
-/** One cover in the library grid: opens the series page. */
+/**
+ * One cover in the library grid: opens the series page. While the grid
+ * selects (`onSelect` given) it is a toggle button instead, with a check in
+ * the corner when `selected`.
+ */
 export function SeriesTile({
   series,
   className,
+  selected,
+  onSelect,
   ...props
-}: { series: SeriesSummary; className?: string } & Pick<
-  ComponentProps<'a'>,
-  'onFocus' | 'onBlur' | 'onPointerEnter' | 'onPointerLeave'
->) {
-  const state = readingState(series);
-  const fresh = series.newCount;
+}: {
+  series: SeriesSummary;
+  className?: string;
+  selected?: boolean;
+  /** Selection mode: called on click, with Shift held for a range. */
+  onSelect?: (event: MouseEvent<HTMLElement>) => void;
+  onFocus?: FocusEventHandler<HTMLElement>;
+  onBlur?: FocusEventHandler<HTMLElement>;
+  onPointerEnter?: PointerEventHandler<HTMLElement>;
+  onPointerLeave?: PointerEventHandler<HTMLElement>;
+}) {
+  const tileClass = cn(
+    'group grid w-full content-start gap-2.5 rounded-cover text-left text-fg-1 no-underline outline-none',
+    className
+  );
+  if (onSelect) {
+    return (
+      <button
+        type="button"
+        aria-pressed={!!selected}
+        onClick={onSelect}
+        className={tileClass}
+        {...props}
+      >
+        <TileBody series={series} selected={!!selected} selecting />
+      </button>
+    );
+  }
   return (
     <Link
       to="/series/$seriesId"
       params={{ seriesId: String(series.id) }}
-      className={cn(
-        'group grid content-start gap-2.5 rounded-cover text-fg-1 no-underline outline-none',
-        className
-      )}
+      className={tileClass}
       {...props}
     >
+      <TileBody series={series} selected={false} selecting={false} />
+    </Link>
+  );
+}
+
+function TileBody({
+  series,
+  selected,
+  selecting,
+}: {
+  series: SeriesSummary;
+  selected: boolean;
+  selecting: boolean;
+}) {
+  const state = readingState(series);
+  const fresh = series.newCount;
+  return (
+    <>
       <Cover
         cover={series.cover}
         title={series.title}
@@ -50,9 +94,23 @@ export function SeriesTile({
           'group-hover:-translate-y-1 group-focus-visible:-translate-y-1',
           'group-hover:shadow-[0_28px_50px_-20px_oklch(0.45_var(--accent-c)_var(--seed-h)/0.55),0_0_0_1px_oklch(1_0_0/0.1)]',
           'group-focus-visible:outline-2 group-focus-visible:outline-offset-[3px] group-focus-visible:outline-accent',
-          series.missing && 'opacity-50 grayscale'
+          series.missing && 'opacity-50 grayscale',
+          selected && 'outline-2 outline-offset-[3px] outline-accent'
         )}
       >
+        {selecting && (
+          <span
+            aria-hidden
+            className={cn(
+              'absolute top-2 left-2 z-[1] grid size-[22px] place-items-center rounded-full border-2 transition-colors duration-base ease-expo',
+              selected
+                ? 'border-transparent bg-accent text-on-accent'
+                : 'border-fg-1/80 bg-ink-0/50 text-transparent'
+            )}
+          >
+            <Check className="size-3.5" strokeWidth={3} />
+          </span>
+        )}
         {fresh > 0 && (
           <span
             aria-hidden
@@ -76,6 +134,6 @@ export function SeriesTile({
           className="mt-0.5"
         />
       )}
-    </Link>
+    </>
   );
 }
