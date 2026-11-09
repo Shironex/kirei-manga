@@ -33,8 +33,12 @@ SQL files in `crates/kirei-library/migrations/`, embedded at compile time and li
 | `series_settings`  | series with saved reader settings        | `series_id` (nullable, `ON DELETE SET NULL`), `ident`, `orphaned_at`; `settings` is a JSON blob owned by the UI (reader mode, filters, adjustments).               |
 | `app_settings`     | app setting the user changed             | Dotted `key`, JSON `value`. Contract and defaults in `kirei_core::AppSettings`; see `docs/settings.md`.                                                         |
 | `covers`           | distinct cover image                     | Keyed by the BLAKE3 hash of the source image bytes. Thumbnail file, size, and `palette` JSON.                                                                     |
+| `tracker_links`    | series linked to an AniList entry        | `series_key` (`local:<series ident>` or `mangadex:<uuid>`), `media_id`, `source`, cached `remote_*` state, `synced_progress`. No foreign keys; see `docs/tracking.md`. |
+| `tracker_queue`    | AniList entry with an update waiting     | One row per entry: `progress`, `status`, `score`, `state` (`pending`, `blocked`, `failed`), `attempts`, `revision`, `next_attempt_at`.                              |
 
-Deleting a root cascades to its series and chapters only. Progress and settings survive as orphans (below). Cover rows and thumbnail files stay; they are shared by content and cost little.
+The tracking tables come from `0005_tracking.sql`. The file only creates its own tables (`IF NOT EXISTS`) and references no other table.
+
+Deleting a root cascades to its series and chapters only. Tracker links are keyed by the series identity and stay too. Progress and settings survive as orphans (below). Cover rows and thumbnail files stay; they are shared by content and cost little.
 
 ### Keeping progress
 
