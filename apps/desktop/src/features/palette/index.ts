@@ -21,6 +21,7 @@ const PAGES: [path: keyof typeof NAV_SHORTCUTS, title: string, extra: string][] 
   ['/library', 'Library', 'home shelf series'],
   ['/browse', 'Browse', 'online mangadex discover'],
   ['/downloads', 'Downloads', 'queue offline'],
+  ['/stats', 'Reading stats', 'streak heatmap year in review hours history'],
   ['/settings', 'Settings', 'preferences options'],
 ];
 

@@ -1,6 +1,14 @@
 import type { ComponentType, SVGProps } from 'react';
 import { Link, useRouterState } from '@tanstack/react-router';
-import { ArrowDownToLine, Compass, Gauge, LibraryBig, Settings2, SwatchBook } from 'lucide-react';
+import {
+  ArrowDownToLine,
+  ChartNoAxesColumn,
+  Compass,
+  Gauge,
+  LibraryBig,
+  Settings2,
+  SwatchBook,
+} from 'lucide-react';
 
 import kireiFace from '@/assets/kirei/face.webp';
 import { cn } from '@/lib/utils';
@@ -14,6 +22,7 @@ const NAV: { to: NavPath; label: string; icon: Icon; also?: string }[] = [
   { to: '/library', label: 'Library', icon: LibraryBig, also: '/series/' },
   { to: '/browse', label: 'Browse', icon: Compass },
   { to: '/downloads', label: 'Downloads', icon: ArrowDownToLine },
+  { to: '/stats', label: 'Stats', icon: ChartNoAxesColumn },
   { to: '/settings', label: 'Settings', icon: Settings2 },
 ];
 
