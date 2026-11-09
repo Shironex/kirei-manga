@@ -8,6 +8,8 @@
  * misaligned (a missing credit page, an extra insert).
  */
 
+import { isTall } from './split';
+
 /** The size a page is known to have, from its image header. */
 export interface PageSize {
   width: number | null;
@@ -24,6 +26,8 @@ export interface SpreadOptions {
   coverAlone: boolean;
   /** Shift the pairing by one page. */
   shift: boolean;
+  /** Show tall strips on their own, for splitting them into parts. */
+  tallAlone?: boolean;
 }
 
 export const DEFAULT_SPREAD_OPTIONS: SpreadOptions = {
@@ -54,7 +58,8 @@ export function buildSpreads(pages: readonly PageSize[], options: SpreadOptions)
     spreads.push([index]);
     index += 1;
   }
-  const alone = (page: PageSize | undefined) => options.detectSpreads && isWide(page);
+  const alone = (page: PageSize | undefined) =>
+    (options.detectSpreads && isWide(page)) || (options.tallAlone === true && isTall(page));
   while (index < pages.length) {
     const next = pages[index + 1];
     if (alone(pages[index]) || next === undefined || alone(next)) {

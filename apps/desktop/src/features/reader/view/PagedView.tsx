@@ -34,6 +34,11 @@ export interface PagedViewProps {
   onMeasure: (index: number, width: number, height: number) => void;
   /** The end of chapter card is up: dim the pages behind it. */
   dimmed: boolean;
+  /**
+   * A tall strip shown in parts: the page box is one screen (`size.height`)
+   * and the strip, `height` tall, moves up to show the part from `offset`.
+   */
+  slice?: { offset: number; height: number };
 }
 
 /** Single and double page modes: one screen of pages, zoom, pan and tap zones. */
@@ -49,6 +54,7 @@ export function PagedView({
   onToggleChrome,
   onMeasure,
   dimmed,
+  slice,
 }: PagedViewProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
@@ -193,15 +199,31 @@ export function PagedView({
           {screen.map((index, slot) => (
             <div
               key={index}
-              className="relative bg-ink-1 shadow-[0_30px_80px_-30px_oklch(0_0_0/0.9)]"
+              className={cn(
+                'relative bg-ink-1 shadow-[0_30px_80px_-30px_oklch(0_0_0/0.9)]',
+                slice && 'overflow-hidden'
+              )}
               style={{ width: size.widths[slot], height: size.height }}
             >
-              <PageImage
-                src={urlFor(index)}
-                alt={`Page ${index + 1}`}
-                className="size-full object-contain"
-                onLoad={(width, height) => onMeasure(index, width, height)}
-              />
+              {slice ? (
+                <PageImage
+                  src={urlFor(index)}
+                  alt={`Page ${index + 1}`}
+                  className="absolute inset-x-0 top-0 w-full transition-transform duration-slow ease-expo"
+                  style={{
+                    height: slice.height,
+                    transform: `translate3d(0, ${-slice.offset}px, 0)`,
+                  }}
+                  onLoad={(width, height) => onMeasure(index, width, height)}
+                />
+              ) : (
+                <PageImage
+                  src={urlFor(index)}
+                  alt={`Page ${index + 1}`}
+                  className="size-full object-contain"
+                  onLoad={(width, height) => onMeasure(index, width, height)}
+                />
+              )}
             </div>
           ))}
         </div>

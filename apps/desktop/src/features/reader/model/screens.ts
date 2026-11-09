@@ -21,6 +21,8 @@ export interface PagedPosition {
   page: number;
   /** Past the last screen: the end of chapter card is up. */
   atEnd: boolean;
+  /** Part of a split tall strip on show (0 based); 0 for every other page. */
+  part?: number;
 }
 
 function screenIndex(screens: readonly number[][], page: number): number {
@@ -57,4 +59,27 @@ export function stepScreen(
 export function lastVisiblePage(screens: readonly number[][], position: PagedPosition): number {
   const group = screens[screenIndex(screens, position.page)];
   return group?.[group.length - 1] ?? 0;
+}
+
+/**
+ * Moves `delta` steps where a split tall strip (see `split.ts`) takes one
+ * step per part: forward walks its parts top to bottom before the next
+ * screen, and arriving on one from the next screen starts at its last part.
+ * `partsOf(page)` is the part count of the screen starting at `page`, 1 when
+ * it is not split.
+ */
+export function stepParts(
+  screens: readonly number[][],
+  position: PagedPosition,
+  delta: number,
+  partsOf: (page: number) => number
+): PagedPosition {
+  if (!position.atEnd && delta !== 0) {
+    const parts = partsOf(position.page);
+    const part = Math.min(position.part ?? 0, parts - 1) + Math.sign(delta);
+    if (part >= 0 && part < parts) return { ...position, part };
+  }
+  const moved = stepScreen(screens, position, delta);
+  if (moved.atEnd) return { ...moved, part: position.part ?? 0 };
+  return { ...moved, part: delta < 0 ? partsOf(moved.page) - 1 : 0 };
 }
