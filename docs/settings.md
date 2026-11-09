@@ -68,3 +68,19 @@ Never rename a shipped key: stored rows would be ignored. Add a new key instead.
 | `third_party_notices`       |                                             | the bundled `THIRD_PARTY_NOTICES` text, or null |
 
 `open_link` takes a name, not a URL, so the renderer cannot launch arbitrary targets. Folders and links are handed to the OS (`open`, `explorer`, `xdg-open`) without a plugin. `THIRD_PARTY_NOTICES` is bundled as a resource (`tauri.conf.json`); without it the About section links to the file in the repository.
+
+## Shortcuts and the command palette
+
+The Shortcuts section lists the keys the app runs on. `Ctrl+K` (Windows and Linux) or `Cmd+K` (macOS) opens the command palette from any screen inside the app shell, even while typing; the same keys or `Esc` close it. `1`, `2`, `3` and `,` with the same modifier go to the library, browse, downloads and settings.
+
+The palette's key is defined once in `features/palette/shortcut.ts` (`PALETTE_SHORTCUT`), so the remappable shortcuts table can take it over later.
+
+The palette (`features/palette/`) searches:
+
+- library series, from the library store (the index is memoised on the series array and built before the first open);
+- chapters of the best three series a query finds, read on demand and cached per catalogue version;
+- pages, Settings sections and individual settings, and app actions (rescan, add a folder, toggle cover colours, ambient glow and glass, back up or restore, open the data folder).
+
+Matching is a small hand written scorer (`fuzzy.ts`): every word must match, runs of letters beat letters spread in order, word starts beat the middle, accents are folded. Enter runs the highlighted result, arrow keys move, and the last six picks show first when the box is empty (kept in `localStorage`). The input is an ARIA combobox over a listbox with `aria-activedescendant`; focus stays trapped in the panel.
+
+Results that do not live in the app are a `PaletteSource` (`features/palette/types.ts`), registered with `registerPaletteSource`. The online lane (#43) fills the `online` section that way; the palette calls the source with the query (after a short pause, aborted when the query changes) and lists what it returns.
