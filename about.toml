@@ -10,6 +10,9 @@ accepted = [
   "MPL-2.0",
   "CC0-1.0",
   "Unlicense",
+  # rustls, rustls-webpki, ring and untrusted (TLS for the updater): ISC is
+  # MIT-equivalent.
+  "ISC",
   # jpeg-encoder: its AND clause covers the IJG-derived quantisation tables.
   "IJG",
 ]

@@ -36,6 +36,11 @@ tauri-build = { version = "2.7", features = [] }
 tauri-plugin-dialog = "2.8"
 # Saves the window size, position and maximized state on close, restores on launch.
 tauri-plugin-window-state = "2.5"
+# Self-update from the signed latest.json feed on GitHub releases. Release
+# builds only; see docs/release.md.
+tauri-plugin-updater = "2.10"
+# Compares the versions the two update feeds announce.
+semver = "1"
 
 # Archive backends (kirei-archive). Reading only: `deflate-flate2-zlib-rs` is
 # the one decoder CBZ files use in practice, and it skips the zopfli encoder
