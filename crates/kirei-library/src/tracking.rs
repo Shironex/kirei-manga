@@ -355,6 +355,18 @@ impl Library {
             .collect::<rusqlite::Result<Vec<_>>>()?)
     }
 
+    /// The update waiting for `media_id`, whatever its state.
+    pub fn queued_update(&self, media_id: i64) -> Result<Option<QueuedUpdate>> {
+        Ok(self
+            .conn()
+            .query_row(
+                &format!("{QUEUE_SELECT} WHERE q.tracker = ?1 AND q.media_id = ?2"),
+                params![ANILIST, media_id],
+                update_from_row,
+            )
+            .optional()?)
+    }
+
     /// When the next pending update is due.
     pub fn next_update_at(&self) -> Result<Option<i64>> {
         Ok(self.conn().query_row(
@@ -618,6 +630,8 @@ mod tests {
         assert_eq!(second.revision, first.revision + 1);
         let third = library.enqueue_update(7, &progress(5), 0).unwrap();
         assert_eq!(third.progress, Some(5));
+        assert_eq!(library.queued_update(7).unwrap(), Some(third));
+        assert_eq!(library.queued_update(8).unwrap(), None);
         assert_eq!(library.due_updates(now_ms(), 10).unwrap().len(), 1);
     }
 
