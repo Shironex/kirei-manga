@@ -13,9 +13,11 @@ import {
   Problem,
   RestoreBackupDialog,
 } from './BackupDialogs';
-import { plural } from './format';
+import { ConfirmButton } from './ConfirmButton';
+import { describeSessions, plural } from './format';
 import { SettingRow, SettingsList, SettingsSection } from './SettingRow';
 import { useBackup, type BackupControls } from './useBackup';
+import { useReadingStatsData } from './useReadingStatsData';
 
 const MODE_HELP = {
   portable: 'Portable mode: the folder sits next to the app, so the whole folder can move.',
@@ -95,6 +97,7 @@ function BackupHelp({ backup }: { backup: BackupControls }) {
 
 export function DataSection() {
   const backup = useBackup();
+  const stats = useReadingStatsData();
   const [openError, setOpenError] = useState<string | null>(null);
   const { info, available, restore } = backup;
 
@@ -160,7 +163,39 @@ export function DataSection() {
             </>
           }
         />
+        <SettingRow
+          id="reading-stats"
+          labelFor={false}
+          label="Reading stats"
+          help={<span className="tabular">{describeSessions(stats.count)}</span>}
+          error={stats.error}
+          control={
+            <ConfirmButton
+              variant="ghost"
+              size="sm"
+              disabled={!stats.available || stats.busy || !stats.count}
+              aria-describedby="reading-stats-help"
+              title="Clear reading stats?"
+              description={
+                <>
+                  {stats.count ? plural(stats.count, 'reading session') : 'Every reading session'}{' '}
+                  will be deleted for good: reading time, streaks, the heatmap and the year in
+                  review start over. Reading progress, series settings and your library are not
+                  touched. Backups you already made keep their copy.
+                </>
+              }
+              confirmLabel="Clear stats"
+              danger
+              onConfirm={() => void stats.clear()}
+            >
+              Clear
+            </ConfirmButton>
+          }
+        />
       </SettingsList>
+      <div aria-live="polite" className="mt-3 text-sm empty:mt-0">
+        {stats.notice && <p className="m-0 text-fg-2">{stats.notice}</p>}
+      </div>
       <CreateBackupDialog backup={backup} />
       <RestoreBackupDialog backup={backup} />
     </SettingsSection>

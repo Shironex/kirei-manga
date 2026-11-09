@@ -71,6 +71,16 @@ export function getReadingStats(year: number): Promise<ReadingStats> {
   return invoke<ReadingStats>('stats_get', { year, utcOffsetMin: utcOffsetMinutes() });
 }
 
+/** How many reading sessions `clearReadingStats` would delete. Deletes nothing. */
+export function countReadingSessions(): Promise<number> {
+  return invoke<number>('stats_count');
+}
+
+/** Deletes every reading session; progress and the library stay. Resolves to how many went. */
+export function clearReadingStats(): Promise<number> {
+  return invoke<number>('stats_clear');
+}
+
 /** The JPEG bytes of a cover thumbnail, for drawing on a canvas without tainting it. */
 export async function getCoverBytes(hash: string): Promise<ArrayBuffer> {
   return invoke<ArrayBuffer>('stats_cover', { hash });

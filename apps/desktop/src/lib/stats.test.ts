@@ -5,7 +5,8 @@ vi.mock('@tauri-apps/api/core', () => ({
   invoke: (...args: unknown[]) => invoke(...args),
 }));
 
-const { getReadingStats, saveCardPng, utcOffsetMinutes } = await import('./stats');
+const { clearReadingStats, countReadingSessions, getReadingStats, saveCardPng, utcOffsetMinutes } =
+  await import('./stats');
 
 describe('utcOffsetMinutes', () => {
   it('is minutes east of UTC, the opposite sign of getTimezoneOffset', () => {
@@ -25,6 +26,13 @@ describe('commands', () => {
       year: 2026,
       utcOffsetMin: utcOffsetMinutes(),
     });
+  });
+
+  it('counts and clears sessions without arguments', async () => {
+    await countReadingSessions();
+    expect(invoke).toHaveBeenLastCalledWith('stats_count');
+    await clearReadingStats();
+    expect(invoke).toHaveBeenLastCalledWith('stats_clear');
   });
 
   it('sends the PNG as the raw body and the path as an encoded header', async () => {

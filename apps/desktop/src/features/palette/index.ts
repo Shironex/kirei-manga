@@ -40,6 +40,7 @@ const SETTINGS: [section: string, title: string, extra: string][] = [
   ['reader', 'Page fit', 'screen width height original zoom'],
   ['library', 'Cover cache', 'thumbnails clear prune'],
   ['about', 'Check for updates', 'upgrade release version'],
+  ['data', 'Clear reading stats', 'stats sessions history privacy delete reset'],
 ];
 
 const ACTIONS: [

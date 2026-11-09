@@ -38,6 +38,20 @@ export function describePurge(purge: { progress: number; settings: number }): st
   return what ? `Deleted ${what}.` : 'There was no hidden progress to clean up.';
 }
 
+/** The help line of the Reading stats row, from the stored session count. */
+export function describeSessions(count: number | null): string {
+  if (count === null) return 'Reading time, streaks and the year in review, kept on this computer.';
+  if (count === 0) return 'No reading sessions stored. They build up as you read.';
+  return `${plural(count, 'reading session')} behind the stats page and the year in review, kept on this computer.`;
+}
+
+/** The notice after clearing the stats. */
+export function describeClearedSessions(count: number): string {
+  return count === 0
+    ? 'There were no reading sessions to clear.'
+    : `Cleared ${plural(count, 'reading session')}. The stats start over from your next chapter.`;
+}
+
 /** The notice after pruning thumbnails: how many went and the space freed. */
 export function describePrune({ bytes, files }: { bytes: number; files: number }): string {
   if (files === 0) return 'Every cover thumbnail is in use, nothing to remove.';

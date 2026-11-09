@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { describeOrphans, describePrune, describePurge, formatAgo, plural } from './format';
+import {
+  describeClearedSessions,
+  describeOrphans,
+  describePrune,
+  describePurge,
+  describeSessions,
+  formatAgo,
+  plural,
+} from './format';
 
 describe('formatAgo', () => {
   const now = 1_700_000_000_000;
@@ -36,6 +44,26 @@ describe('cleanup messages', () => {
     expect(describePrune({ bytes: 0, files: 0 })).toMatch(/nothing to remove/);
     expect(describePrune({ bytes: 2_097_152, files: 3 })).toBe(
       'Removed 3 unused thumbnails and freed 2.0 MiB.'
+    );
+  });
+});
+
+describe('reading stats messages', () => {
+  it('says how many sessions a clear would delete', () => {
+    expect(describeSessions(null)).toBe(
+      'Reading time, streaks and the year in review, kept on this computer.'
+    );
+    expect(describeSessions(0)).toBe('No reading sessions stored. They build up as you read.');
+    expect(describeSessions(1)).toBe(
+      '1 reading session behind the stats page and the year in review, kept on this computer.'
+    );
+    expect(describeSessions(1234)).toMatch(/^1,234 reading sessions /);
+  });
+
+  it('names what a clear deleted', () => {
+    expect(describeClearedSessions(0)).toBe('There were no reading sessions to clear.');
+    expect(describeClearedSessions(42)).toBe(
+      'Cleared 42 reading sessions. The stats start over from your next chapter.'
     );
   });
 });
