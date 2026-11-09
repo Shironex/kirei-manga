@@ -1032,6 +1032,20 @@ fn write(
                          ORDER BY updated_at DESC LIMIT 1)
                AND NOT EXISTS (SELECT 1 FROM series_settings WHERE series_id = ?1)",
         )?;
+        // Tags, collections and Want to Read follow the series identity too.
+        let mut relink_shelf = tx.prepare_cached(
+            "UPDATE series_refs SET series_id = ?1
+             WHERE id = (SELECT id FROM series_refs
+                         WHERE series_id IS NULL AND series_ident = ?2
+                         ORDER BY updated_at DESC LIMIT 1)
+               AND NOT EXISTS (SELECT 1 FROM series_refs WHERE series_id = ?1)",
+        )?;
+        let orphan_shelf: bool = tx.query_row(
+            "SELECT EXISTS (SELECT 1 FROM series_refs
+                            WHERE series_id IS NULL AND series_ident IS NOT NULL)",
+            [],
+            |row| row.get(0),
+        )?;
         let orphan_progress: bool = tx.query_row(
             "SELECT EXISTS (SELECT 1 FROM reading_progress WHERE chapter_id IS NULL)",
             [],
@@ -1077,6 +1091,9 @@ fn write(
             )?;
             if orphan_settings {
                 relink_settings.execute(params![series_id, s_ident])?;
+            }
+            if orphan_shelf {
+                relink_shelf.execute(params![series_id, s_ident])?;
             }
             summary.series += 1;
             for (order, chapter) in series.chapters.iter().enumerate() {
