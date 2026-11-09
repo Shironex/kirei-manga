@@ -21,8 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { requestDownload } from '@/features/downloads/requestDownload';
 import { Cover } from '@/features/library/Cover';
+import { requestDownload } from '@/lib/downloads';
 import {
   getOnlineChapters,
   getOnlineSeries,
@@ -43,6 +43,7 @@ import { useAccount } from './account';
 import { LanguagePicker } from './LanguagePicker';
 import {
   bestText,
+  chapterLabel,
   errorText,
   languageLabel,
   mangaTitle,
@@ -167,8 +168,12 @@ export function OnlineSeriesPage() {
 
   const download = (chapter: Chapter) =>
     run(async () => {
-      const result = await requestDownload([chapter.id]);
-      setNotice(result.status === 'queued' ? 'Added to downloads.' : result.reason);
+      const added = await requestDownload([chapter.id]);
+      setNotice(
+        added.length > 0
+          ? `${chapterLabel(chapter)} added to downloads.`
+          : `${chapterLabel(chapter)} is already downloaded or queued.`
+      );
     });
 
   const list = chapters.data;
