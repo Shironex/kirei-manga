@@ -36,9 +36,11 @@ jobs:
             archive
             reader
             library
+            mangadex
             desktop
             ui
             tauri
+            updater
             workspace
             rust
             deps
