@@ -70,6 +70,8 @@ function ReaderScreen({ target }: { target: ChapterTarget }) {
   const { settings: app } = settings;
   const storedKeys = app['reader.keys'];
   const bindings = useMemo(() => resolveBindings(storedKeys), [storedKeys]);
+  // Stable while the settings are, so the reader's memos keep their results.
+  const defaults = useMemo(() => prefsFromAppSettings(app), [app]);
   const options = useMemo(
     () => ({
       detectWebtoon: app['reader.detectWebtoon'],
@@ -107,7 +109,7 @@ function ReaderScreen({ target }: { target: ChapterTarget }) {
     <Reader
       key={chapter.source.id}
       chapter={chapter}
-      defaults={prefsFromAppSettings(settings.settings)}
+      defaults={defaults}
       options={options}
       defaultFilter={settings.settings['reader.filter']}
       onClose={close}
