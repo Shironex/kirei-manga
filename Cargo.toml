@@ -109,7 +109,7 @@ bytes = "1"
 # AniList tracking (kirei-anilist) and the desktop keychain.
 # OS randomness for the sign in nonce. Already in the tree through rustls and
 # tempfile. MIT OR Apache-2.0.
-getrandom = "0.3"
+getrandom = "0.4"
 # The OS credential store: Keychain on macOS, Credential Manager on Windows.
 # Only the two native backends; no Linux secret service, which would pull in
 # D-Bus. MIT OR Apache-2.0.
