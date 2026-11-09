@@ -61,19 +61,44 @@ impl ScanScope {
 
     /// Whether a known chapter belongs to this part of `root`.
     fn contains(&self, root: &Path, path: &str, kind: SourceKind) -> bool {
-        let Ok(relative) = Path::new(path).strip_prefix(root) else {
-            return false;
-        };
+        match RootEntry::of(root, path, kind == SourceKind::Folder) {
+            Some(RootEntry::Loose) => self.loose,
+            Some(RootEntry::SeriesDir(name)) => self.series_dirs.contains(name),
+            None => false,
+        }
+    }
+
+    /// Widens the scope to the part of `root` a chapter belongs to.
+    fn add(&mut self, root: &Path, path: &str, is_folder: bool) {
+        match RootEntry::of(root, path, is_folder) {
+            Some(RootEntry::Loose) => self.loose = true,
+            Some(RootEntry::SeriesDir(name)) => {
+                self.series_dirs.insert(name.to_owned());
+            }
+            None => {}
+        }
+    }
+}
+
+/// The entry directly inside a root that a chapter lives under.
+enum RootEntry<'a> {
+    /// An archive directly in the root.
+    Loose,
+    /// Anything under the series folder with this name.
+    SeriesDir(&'a str),
+}
+
+impl<'a> RootEntry<'a> {
+    fn of(root: &Path, path: &'a str, is_folder: bool) -> Option<Self> {
+        let relative = Path::new(path).strip_prefix(root).ok()?;
         let mut parts = relative.components();
-        let Some(first) = parts.next().and_then(|c| c.as_os_str().to_str()) else {
-            return false;
-        };
+        let first = parts.next()?.as_os_str().to_str()?;
         // An archive directly in the root is loose; a folder directly in it
         // is a series folder that holds images itself.
-        if parts.next().is_none() && kind != SourceKind::Folder {
-            return self.loose;
+        if parts.next().is_none() && !is_folder {
+            return Some(Self::Loose);
         }
-        self.series_dirs.contains(first)
+        Some(Self::SeriesDir(first))
     }
 }
 
@@ -316,6 +341,50 @@ pub(crate) fn scan_root(
     }
     reporter.report(ScanPhase::Saving, 1, 1, None);
     Ok(())
+}
+
+/// The part of a root whose chapters no longer match the database: series
+/// folders where a chapter was added, removed, changed size or mtime, or came
+/// back after being missing, and the loose archives when any of them did. It
+/// walks the root the way discovery does, reading only folder listings and
+/// file metadata; no archive is opened and nothing is written. Stored open
+/// errors are not a reason to rescan here, so a broken archive does not cost
+/// a rescan on every launch. `None` when the root cannot be read (an
+/// unplugged drive, an offline share), so nothing under it is marked missing.
+pub(crate) fn changed_entries(
+    conn: &Mutex<Connection>,
+    root_id: i64,
+    root_path: &str,
+) -> Result<Option<ScanScope>> {
+    let root = Path::new(root_path);
+    if !root.is_dir() {
+        return Ok(None);
+    }
+    let Ok(discovered) = discover(root, None) else {
+        return Ok(None);
+    };
+    let (known, _, _) = {
+        let conn = lock(conn);
+        load_known(&conn, root_id)?
+    };
+    let mut scope = ScanScope::default();
+    let mut seen: HashSet<&str> = HashSet::new();
+    for candidate in discovered.iter().flat_map(|series| &series.chapters) {
+        seen.insert(candidate.path.as_str());
+        let same = known.get(&candidate.path).is_some_and(|known| {
+            !known.missing && known.size == candidate.size && known.mtime == candidate.mtime
+        });
+        if !same {
+            let is_folder = candidate.kind == CandidateKind::Folder;
+            scope.add(root, &candidate.path, is_folder);
+        }
+    }
+    for (path, known) in &known {
+        if !known.missing && !seen.contains(path.as_str()) {
+            scope.add(root, path, known.data.kind == SourceKind::Folder);
+        }
+    }
+    Ok(Some(scope))
 }
 
 fn lock(conn: &Mutex<Connection>) -> std::sync::MutexGuard<'_, Connection> {
