@@ -2,7 +2,7 @@ import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 
 import type { ResampleFilter } from './settings/contract';
 
-export type SourceKind = 'zip' | 'rar' | 'folder';
+export type SourceKind = 'zip' | 'rar' | 'folder' | 'online';
 export type ReadDirection = 'forward' | 'backward';
 
 /** Mirrors `kirei_core::PageInfo`. */
