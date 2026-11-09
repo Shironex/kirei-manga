@@ -2,6 +2,7 @@ import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 import type { SourceKind } from './reader';
+import { utcOffsetMinutes } from './stats';
 
 /** One OKLCH colour, mirrors `kirei_library::Oklch`. */
 export interface Oklch {
@@ -152,9 +153,16 @@ export function getSeriesDetail(id: number): Promise<SeriesDetail | null> {
   return invoke<SeriesDetail | null>('library_series_detail', { id });
 }
 
-/** Records the page on screen (0 based). */
+/**
+ * Records the page on screen (0 based). The UTC offset files the event under
+ * the right local day in the reading sessions behind the stats page.
+ */
 export function recordProgress(chapterId: number, page: number): Promise<ReadingProgress> {
-  return invoke<ReadingProgress>('library_record_progress', { chapterId, page });
+  return invoke<ReadingProgress>('library_record_progress', {
+    chapterId,
+    page,
+    utcOffsetMin: utcOffsetMinutes(),
+  });
 }
 
 export function getSeriesSettings<T = unknown>(seriesId: number): Promise<T | null> {

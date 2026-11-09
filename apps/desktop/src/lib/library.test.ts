@@ -30,7 +30,11 @@ describe('commands', () => {
     await scanLibrary(3);
     expect(invoke).toHaveBeenLastCalledWith('library_scan', { rootId: 3 });
     await recordProgress(7, 12);
-    expect(invoke).toHaveBeenLastCalledWith('library_record_progress', { chapterId: 7, page: 12 });
+    expect(invoke).toHaveBeenLastCalledWith('library_record_progress', {
+      chapterId: 7,
+      page: 12,
+      utcOffsetMin: -new Date().getTimezoneOffset(),
+    });
   });
 });
 
