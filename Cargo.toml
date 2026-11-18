@@ -122,7 +122,7 @@ tempfile = "3"
 crc32fast = "1.5"
 # Writes RAR fixtures inside the tests, since no RAR encoder ships with the
 # OS or CI runners. Pure Rust, Apache-2.0, dev-dependency only.
-rars = "=0.12.3"
+rars = "=0.12.4"
 
 # Lints are declared once and inherited by every member via `[lints] workspace
 # = true`. CI runs clippy with `-D warnings`, so a warn here is a hard gate.
